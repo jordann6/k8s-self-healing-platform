@@ -1,0 +1,10 @@
+# Reloader restarts the web Rollout when the ESO-synced API key changes (row
+# S1). isArgoRollouts lets it act on Rollouts; the per-object restart strategy
+# annotation makes it set spec.restartAt instead of editing the pod template,
+# so a key rotation never runs the canary steps meant for a release.
+reloader:
+  isArgoRollouts: true
+  reloadOnCreate: false
+  deployment:
+    resources:
+      requests: {cpu: 10m, memory: 32Mi}

@@ -1,0 +1,7 @@
+# HPA (row A3) reads pod CPU from metrics-server. kind's kubelet serves a
+# self-signed certificate, hence the insecure-TLS flag (kind only).
+args:
+  - --kubelet-insecure-tls
+  - --metric-resolution=15s
+resources:
+  requests: {cpu: 50m, memory: 48Mi}

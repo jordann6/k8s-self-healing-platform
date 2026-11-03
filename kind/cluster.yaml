@@ -1,0 +1,19 @@
+# Local proving ground for phase 1. One node: the rows proven here (probes,
+# canary, HPA, OOM, secret rotation, cert renewal, GitOps drift, runtime
+# quarantine) are pod- and namespace-level, so a second node would only cost
+# memory. Node loss (A4) and node max-age (S5) need real nodes and are proven
+# on the cloud modules, not here. kindnet is disabled so Cilium is the only CNI,
+# as on the clouds.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: selfheal
+networking:
+  disableDefaultCNI: true
+nodes:
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: KubeletConfiguration
+        # Secret volume updates (row S2's renewed certificate) reach the pod
+        # from the API watch instead of waiting for the kubelet's sync period.
+        configMapAndSecretChangeDetectionStrategy: Watch

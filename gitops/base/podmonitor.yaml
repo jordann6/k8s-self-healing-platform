@@ -1,0 +1,14 @@
+# The Rollouts pod-template hash becomes a series label, so the canary
+# analysis can query the canary's own requests and nothing else.
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: web
+spec:
+  selector:
+    matchLabels: {app: web}
+  podTargetLabels: [rollouts-pod-template-hash, lab/pool]
+  podMetricsEndpoints:
+    - port: http
+      path: /metrics
+      interval: 10s

@@ -1,0 +1,87 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: web
+  annotations:
+    # Row S1: restart (spec.restartAt) when the synced key changes, so a
+    # rotation never runs the release canary below.
+    secret.reloader.stakater.com/reload: partner-api-key
+    reloader.stakater.com/rollout-strategy: restart
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {app: web, lab/pool: serving}
+  strategy:
+    # Row A2: a quarter of the pods take the new image while the analysis
+    # judges the canary's own error rate; a failure aborts and the stable
+    # pods keep serving.
+    canary:
+      maxSurge: 1
+      maxUnavailable: 0
+      analysis:
+        templates:
+          - templateName: web-error-rate
+        startingStep: 1
+        args:
+          - name: canary-hash
+            valueFrom:
+              podTemplateHashValue: Latest
+      steps:
+        - setWeight: 25
+        - pause: {duration: 60s}
+        - setWeight: 50
+        - pause: {duration: 30s}
+  template:
+    metadata:
+      labels: {app: web, lab/pool: serving}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 20
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: web
+          image: selfheal-app
+          env:
+            - {name: ROLE, value: web}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: PARTNER_API_KEY
+              valueFrom: {secretKeyRef: {name: partner-api-key, key: api-key}}
+          ports:
+            - {name: http, containerPort: 8080}
+            - {name: https, containerPort: 8443}
+          # Row A1: readiness takes a hung pod out of the Service within a few
+          # seconds; liveness restarts it.
+          readinessProbe:
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 2
+            timeoutSeconds: 1
+            failureThreshold: 2
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          # Endpoints drop the pod before it stops listening.
+          lifecycle:
+            preStop:
+              exec: {command: [sleep, "5"]}
+          resources:
+            requests: {cpu: 250m, memory: 64Mi}
+            # Row A5: a leak is killed at the limit instead of eating the node.
+            limits: {cpu: 500m, memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tls, mountPath: /tls, readOnly: true}
+      volumes:
+        - name: tls
+          secret: {secretName: web-tls}

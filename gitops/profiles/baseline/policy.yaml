@@ -1,0 +1,12 @@
+# Same object name as the hardened policy, so row S3 deletes the same thing in
+# both runs. Allow-all keeps the policy engine provably loaded.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: selfheal-policy
+spec:
+  endpointSelector: {}
+  ingress:
+    - fromEntities: [all]
+  egress:
+    - toEntities: [all]

@@ -1,0 +1,27 @@
+# Canary analysis for row A2, used only by the hardened Rollout. Same rules as
+# platform-guardrails' http-canary: health routes are excluded, and no data is
+# never a pass (an empty result errors, and repeated errors fail the run).
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: web-error-rate
+spec:
+  args:
+    - name: canary-hash
+  metrics:
+    - name: canary-error-rate
+      initialDelay: 20s
+      interval: 10s
+      failureLimit: 1
+      consecutiveErrorLimit: 3
+      successCondition: len(result) == 1 && !isNaN(result[0]) && result[0] < 0.05
+      provider:
+        prometheus:
+          address: http://kps-prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            (
+              sum(rate(http_requests_total{namespace="selfheal",container="web",path="/",code=~"5..",rollouts_pod_template_hash="{{args.canary-hash}}"}[30s]))
+              or vector(0)
+            )
+            /
+            sum(rate(http_requests_total{namespace="selfheal",container="web",path="/",rollouts_pod_template_hash="{{args.canary-hash}}"}[30s]))

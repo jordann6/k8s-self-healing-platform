@@ -1,0 +1,18 @@
+# Falco Talon is alpha, so the image is pinned (chart 0.5.0, app 0.3.0). The
+# response rules are not here: the runner sets config.rulesOverride per profile
+# from platform/talon/<profile>.yaml (baseline has none: detect only).
+image:
+  registry: docker.io
+  repository: falcosecurity/falco-talon
+  tag: "0.3.0"
+  pullPolicy: IfNotPresent
+replicaCount: 1
+config:
+  defaultNotifiers:
+    - k8sevents
+  deduplication:
+    leaderElection: false
+    timeWindowSeconds: 5
+  rulesOverride: ""
+resources:
+  requests: {cpu: 10m, memory: 32Mi}

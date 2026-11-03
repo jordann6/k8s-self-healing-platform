@@ -1,0 +1,18 @@
+# Isolate, then preserve. The pod is relabelled out of the Service and the
+# ReplicaSet selector (lab/pool: quarantine), so it stops serving and a fresh
+# replica replaces it, but the pod itself keeps running for evidence capture.
+# quarantine=true selects the pre-deployed CiliumNetworkPolicy that cuts all of
+# its traffic. Killing the pod first would destroy the evidence.
+- action: Quarantine Pod
+  actionner: kubernetes:label
+  parameters:
+    labels:
+      quarantine: "true"
+      lab/pool: quarantine
+
+- rule: Quarantine a web pod that spawned a shell
+  match:
+    rules:
+      - Shell spawned in selfheal web pod
+  actions:
+    - action: Quarantine Pod

@@ -1,0 +1,18 @@
+# Hardened: the same workload with every healing control on. Compare with
+# ../baseline: these files are the whole difference between the two runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../../base
+  - rollout.yaml
+  - hpa.yaml
+  - pdb.yaml
+  - externalsecret.yaml
+  - certificate.yaml
+  - policy.yaml
+  - quarantine.yaml
+  - oom-alert.yaml
+images:
+  - name: selfheal-app
+    newTag: v1

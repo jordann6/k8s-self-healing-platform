@@ -1,0 +1,22 @@
+# The lab namespace runs the restricted Pod Security profile: every lab pod is
+# non-root, read-only root filesystem, no privilege escalation, all
+# capabilities dropped, in both profiles.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+# Stands in for AWS Secrets Manager / Key Vault / Secret Manager on kind: the
+# system of record for the partner API key. Nothing in the lab namespace can
+# read it except ESO through the reader ServiceAccount below.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: secret-backend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gitops

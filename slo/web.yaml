@@ -1,0 +1,24 @@
+# Source of the web SLOs. Generated into gitops/base/slo-rules.yaml by
+# `make slo` (Sloth, Google SRE Workbook multiwindow multi-burn-rate). The SLI
+# is the app's own metrics, so it cannot see a request that hangs forever
+# (row A1): that is why every row judges user impact at the prober instead.
+version: prometheus/v1
+service: selfheal-web
+labels:
+  team: platform
+slos:
+  - name: availability
+    objective: 99.5
+    description: GET / answers without a 5xx.
+    sli:
+      events:
+        error_query: sum(rate(http_requests_total{namespace="selfheal",container="web",path="/",code=~"5.."}[{{.window}}]))
+        total_query: sum(rate(http_requests_total{namespace="selfheal",container="web",path="/"}[{{.window}}]))
+    alerting:
+      name: WebAvailabilityBudgetBurn
+      page_alert:
+        labels: {severity: page}
+        annotations:
+          runbook_url: docs/runbooks/slo-burn.md
+      ticket_alert:
+        labels: {severity: ticket}

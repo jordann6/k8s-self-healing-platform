@@ -1,0 +1,39 @@
+# Prometheus + kube-state-metrics + the operator. Grafana, Alertmanager and
+# node-exporter are off to fit a laptop: the runner reads alert state from the
+# Prometheus API, which is where "fired at" is decided. Routing to a pager is a
+# per-cloud concern (managed Prometheus/Grafana in phases 2-3).
+fullnameOverride: kps
+grafana:
+  enabled: false
+alertmanager:
+  enabled: false
+nodeExporter:
+  enabled: false
+defaultRules:
+  create: false
+kubeEtcd: {enabled: false}
+kubeScheduler: {enabled: false}
+kubeControllerManager: {enabled: false}
+kubeProxy: {enabled: false}
+coreDns: {enabled: false}
+kube-state-metrics:
+  resources:
+    requests: {cpu: 20m, memory: 48Mi}
+prometheusOperator:
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+prometheus:
+  prometheusSpec:
+    # Short intervals so alerts and canary analysis act within a demo.
+    scrapeInterval: 10s
+    evaluationInterval: 10s
+    retention: 6h
+    # Pick up PodMonitors and PrometheusRules from the lab namespace without
+    # the Helm release label.
+    ruleSelectorNilUsesHelmValues: false
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    resources:
+      requests: {cpu: 100m, memory: 300Mi}
+      limits: {memory: 900Mi}

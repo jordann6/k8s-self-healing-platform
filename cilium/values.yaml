@@ -1,0 +1,22 @@
+# Cilium on kind. Same engine as eks-network-segmentation: the quarantine
+# policy for row R1 is a CiliumNetworkPolicy, and Hubble supplies the drop
+# evidence that proves the isolation happened at the policy layer.
+ipam:
+  mode: kubernetes
+image:
+  pullPolicy: IfNotPresent
+l7Proxy: true
+agentNotReadyTaintKey: node.cilium.io/agent-not-ready
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: false
+  eventBufferCapacity: "65535"
+operator:
+  replicas: 1
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi

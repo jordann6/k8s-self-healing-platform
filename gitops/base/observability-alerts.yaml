@@ -1,0 +1,24 @@
+# Observability that exists in both profiles. Not a healing control under
+# test: these page a human when an automatic control itself breaks.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: selfheal-observability
+spec:
+  groups:
+    - name: selfheal.observability
+      rules:
+        # A failed rotation sync must page, not silently serve a stale key.
+        - alert: ExternalSecretSyncFailing
+          expr: sum by (name, namespace) (increase(externalsecret_sync_calls_error_total{namespace="selfheal"}[5m])) > 0
+          labels: {severity: page}
+          annotations:
+            summary: ExternalSecret {{ $labels.name }} failed to sync
+            runbook_url: docs/runbooks/external-secret-sync.md
+        # Lab threshold: 15 minutes left on a 1h certificate.
+        - alert: CertificateNearExpiry
+          expr: (certmanager_certificate_expiration_timestamp_seconds{namespace="selfheal"} - time()) < 900
+          labels: {severity: page}
+          annotations:
+            summary: Certificate {{ $labels.name }} expires in under 15 minutes
+            runbook_url: docs/runbooks/certificate-expiry.md

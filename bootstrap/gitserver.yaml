@@ -1,0 +1,52 @@
+# git daemon for Argo CD (see app/gitserver/Dockerfile). The repository lives in
+# an emptyDir and is re-seeded from ./gitops at the start of every run, so each
+# run begins from the same commit.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gitserver
+  namespace: gitops
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: gitserver}
+  template:
+    metadata:
+      labels: {app: gitserver}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      initContainers:
+        - name: init
+          image: selfheal-gitserver:dev
+          command: [sh, -c, "git init -q --bare -b main /srv/git/lab.git && git -C /srv/git/lab.git config receive.denyNonFastForwards false"]
+          securityContext: &sc
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts: [{name: repo, mountPath: /srv/git}]
+      containers:
+        - name: git
+          image: selfheal-gitserver:dev
+          ports: [{name: git, containerPort: 9418}]
+          securityContext: *sc
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+          volumeMounts: [{name: repo, mountPath: /srv/git}]
+      volumes:
+        - name: repo
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: gitserver
+  namespace: gitops
+spec:
+  selector: {app: gitserver}
+  ports: [{name: git, port: 9418, targetPort: git}]

@@ -1,0 +1,15 @@
+# Identical in both profiles: the dependencies, the prober (the user), the
+# Services, the secret store, scraping, the canary analysis definition and the
+# SLO rules. Nothing here is a healing control under test.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - partner.yaml
+  - prober.yaml
+  - services.yaml
+  - secretstore.yaml
+  - podmonitor.yaml
+  - analysis.yaml
+  - observability-alerts.yaml
+  - slo-rules.yaml

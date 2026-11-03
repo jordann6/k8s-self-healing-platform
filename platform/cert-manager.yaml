@@ -1,0 +1,14 @@
+crds:
+  enabled: true
+prometheus:
+  enabled: true
+  servicemonitor:
+    enabled: true
+resources:
+  requests: {cpu: 20m, memory: 48Mi}
+webhook:
+  resources:
+    requests: {cpu: 10m, memory: 24Mi}
+cainjector:
+  resources:
+    requests: {cpu: 10m, memory: 48Mi}

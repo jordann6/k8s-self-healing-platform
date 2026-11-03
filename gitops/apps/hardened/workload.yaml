@@ -1,0 +1,27 @@
+# Hardened: drift on anything in Git is reverted (row S3).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-workload
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git://gitserver.gitops.svc.cluster.local/lab.git
+    targetRevision: main
+    path: profiles/hardened
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  # The HPA owns the replica count; without this, self-heal and the autoscaler
+  # would fight over it.
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Rollout
+      jsonPointers: [/spec/replicas]

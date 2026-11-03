@@ -1,0 +1,22 @@
+# Row R1. Pre-deployed and selecting nothing until Talon labels a pod
+# quarantine=true. Deny wins over every allow: no pod in any namespace and
+# nothing outside the cluster can reach it, and it can reach nothing (DNS
+# included). The host stays allowed in, so kubelet probes keep passing and the
+# kubelet does not restart the container, which would kill the attacker's
+# process and destroy the evidence.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: quarantine
+spec:
+  endpointSelector:
+    matchLabels: {quarantine: "true"}
+  ingress:
+    - fromEntities: [host]
+  ingressDeny:
+    - fromEntities: [world]
+    - fromEndpoints:
+        - matchExpressions:
+            - {key: k8s:io.kubernetes.pod.namespace, operator: Exists}
+  egressDeny:
+    - toEntities: [all]

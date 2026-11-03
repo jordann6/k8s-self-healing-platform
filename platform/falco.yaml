@@ -1,0 +1,35 @@
+# Falco detects (row R1); Falcosidekick forwards to Talon, which responds.
+driver:
+  kind: modern_ebpf
+falco:
+  json_output: true
+  json_include_output_property: true
+  json_include_tags_property: true
+falcosidekick:
+  enabled: true
+  webui:
+    enabled: false
+  config:
+    talon:
+      address: http://falco-talon.falco.svc.cluster.local:2803
+  resources:
+    requests: {cpu: 10m, memory: 24Mi}
+resources:
+  requests: {cpu: 100m, memory: 256Mi}
+  limits: {memory: 768Mi}
+customRules:
+  selfheal.yaml: |-
+    - rule: Shell spawned in selfheal web pod
+      desc: >
+        A shell started inside a web pod of the self-healing lab. Nothing in
+        the image runs a shell in normal operation, so any shell is an intruder
+        or a human who should not be there.
+      condition: >
+        spawned_process and container and proc.name in (shell_binaries)
+        and k8s.ns.name = "selfheal" and k8s.pod.name startswith "web-"
+      output: >
+        Shell in selfheal web pod (user=%user.name cmd=%proc.cmdline
+        pod=%k8s.pod.name ns=%k8s.ns.name container=%container.id
+        image=%container.image.repository)
+      priority: WARNING
+      tags: [selfheal, mitre_execution, T1059]

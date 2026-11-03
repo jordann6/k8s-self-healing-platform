@@ -16,3 +16,12 @@ kubeconfig
 *.ppk
 .checkov.json
 infracost.json
+
+# lab kubeconfig (make up writes it)
+.kube/
+# python
+__pycache__/
+*.pyc
+# scenario runs: only curated reference runs are committed (see evidence/README.md)
+evidence/*
+!evidence/README.md

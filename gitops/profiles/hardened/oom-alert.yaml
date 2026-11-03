@@ -1,0 +1,19 @@
+# Row A5: the limit contains the leak and the restart clears it, but a human
+# still needs to know the code leaks.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: selfheal-oom
+spec:
+  groups:
+    - name: selfheal.oom
+      rules:
+        - alert: WebContainerOOMKilled
+          expr: |
+            (kube_pod_container_status_last_terminated_reason{namespace="selfheal",container="web",reason="OOMKilled"} == 1)
+            and on (namespace, pod, container)
+            (increase(kube_pod_container_status_restarts_total{namespace="selfheal",container="web"}[5m]) > 0)
+          labels: {severity: page}
+          annotations:
+            summary: web container {{ $labels.pod }} was OOMKilled and restarted
+            runbook_url: docs/runbooks/oomkilled.md

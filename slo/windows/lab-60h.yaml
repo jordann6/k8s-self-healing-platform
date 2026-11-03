@@ -1,0 +1,14 @@
+# Lab SLO windows: the SRE Workbook defaults (30d period) with every window
+# divided by 12, so a burn pages within a demo. Budget percentages, and
+# therefore burn-rate thresholds, are unchanged. The scaling factor is the only
+# difference from production windows.
+apiVersion: sloth.slok.dev/v1
+kind: AlertWindows
+spec:
+  sloPeriod: 60h
+  page:
+    quick: {errorBudgetPercent: 2, shortWindow: 25s, longWindow: 5m}
+    slow: {errorBudgetPercent: 5, shortWindow: 150s, longWindow: 30m}
+  ticket:
+    quick: {errorBudgetPercent: 10, shortWindow: 10m, longWindow: 2h}
+    slow: {errorBudgetPercent: 10, shortWindow: 30m, longWindow: 6h}

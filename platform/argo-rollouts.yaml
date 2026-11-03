@@ -1,0 +1,6 @@
+dashboard:
+  enabled: false
+controller:
+  replicas: 1
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}

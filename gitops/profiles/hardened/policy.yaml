@@ -1,0 +1,32 @@
+# Who may reach the web pods. Row S3 deletes this object to simulate a
+# hand-made change that opens the namespace; Argo CD self-heal must restore it.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: selfheal-policy
+spec:
+  endpointSelector:
+    matchLabels: {app: web}
+  ingress:
+    - fromEndpoints:
+        - matchLabels: {app: prober}
+        - matchLabels: {app: loadgen}
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}, {port: "8443", protocol: TCP}]
+    - fromEndpoints:
+        - matchLabels: {k8s:io.kubernetes.pod.namespace: monitoring}
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: partner-policy
+spec:
+  endpointSelector:
+    matchLabels: {app: partner}
+  ingress:
+    - fromEndpoints:
+        - matchLabels: {app: web}
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]

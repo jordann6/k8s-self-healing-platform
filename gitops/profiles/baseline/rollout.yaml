@@ -1,0 +1,49 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: web
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels: {app: web, lab/pool: serving}
+  strategy:
+    # No steps: a new image replaces every pod at once, like a plain Deployment.
+    canary:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels: {app: web, lab/pool: serving}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: web
+          image: selfheal-app
+          env:
+            - {name: ROLE, value: web}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: PARTNER_API_KEY
+              valueFrom: {secretKeyRef: {name: partner-api-key, key: api-key}}
+          ports:
+            - {name: http, containerPort: 8080}
+            - {name: https, containerPort: 8443}
+          resources:
+            requests: {cpu: 250m, memory: 64Mi}
+            limits: {cpu: 500m}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: tls, mountPath: /tls, readOnly: true}
+      volumes:
+        - name: tls
+          secret: {secretName: web-tls}

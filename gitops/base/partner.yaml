@@ -1,0 +1,43 @@
+# The third-party API. Its keys come from partner-keys, which the rotation
+# driver keeps in step with its admin calls, so a partner restart keeps state.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: partner
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: partner}
+  template:
+    metadata:
+      labels: {app: partner}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: partner
+          image: selfheal-app
+          env:
+            - {name: ROLE, value: partner}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
+            - name: PARTNER_CURRENT
+              valueFrom: {secretKeyRef: {name: partner-keys, key: current}}
+            - name: PARTNER_PREVIOUS
+              valueFrom: {secretKeyRef: {name: partner-keys, key: previous, optional: true}}
+          ports: [{name: http, containerPort: 8080}]
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 5
+          resources:
+            requests: {cpu: 50m, memory: 32Mi}
+            limits: {cpu: "1", memory: 128Mi}
+          securityContext: &sc
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

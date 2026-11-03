@@ -1,0 +1,27 @@
+# web selects only pods in the serving pool. Quarantine (row R1) relabels a pod
+# to lab/pool=quarantine, which takes it out of this Service at once.
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+spec:
+  selector: {app: web, lab/pool: serving}
+  ports:
+    - {name: http, port: 8080, targetPort: http}
+    - {name: https, port: 8443, targetPort: https}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: partner
+spec:
+  selector: {app: partner}
+  ports: [{name: http, port: 8080, targetPort: http}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prober
+spec:
+  selector: {app: prober}
+  ports: [{name: http, port: 8080, targetPort: http}]

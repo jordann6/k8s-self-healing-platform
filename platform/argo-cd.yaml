@@ -1,0 +1,25 @@
+# Argo CD for the lab namespace. Dex, notifications and ApplicationSets are
+# not used.
+dex:
+  enabled: false
+notifications:
+  enabled: false
+applicationSet:
+  replicas: 0
+configs:
+  params:
+    server.insecure: true
+  cm:
+    timeout.reconciliation: 60s
+controller:
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+repoServer:
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+server:
+  resources:
+    requests: {cpu: 20m, memory: 64Mi}
+redis:
+  resources:
+    requests: {cpu: 10m, memory: 32Mi}
