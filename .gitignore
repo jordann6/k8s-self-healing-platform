@@ -1,0 +1,18 @@
+
+# --- platform-guardrails ---
+*.tfstate
+*.tfstate.*
+*.tfvars
+!example.tfvars
+tfplan
+plan.json
+.terraform/
+crash.log
+.env
+.envrc
+kubeconfig
+*.kubeconfig
+*.pem
+*.ppk
+.checkov.json
+infracost.json

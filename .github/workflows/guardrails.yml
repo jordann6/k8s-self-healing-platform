@@ -1,0 +1,20 @@
+name: Guardrails
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Application repository: no Terraform root here. Its infrastructure lives in the
+# owning infrastructure repository and is gated there by tf-ci.yml / tf-apply.yml.
+# This caller runs the credential-free fleet gates: gitleaks over full history,
+# plus whatever language and container checks ci.yml detects.
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    uses: jordann6/platform-guardrails/.github/workflows/ci.yml@6006053c9d3fade137a29bac56d6c0d621edcc75 # v1.10.0
+    permissions:
+      contents: read
+      security-events: write
