@@ -45,13 +45,24 @@ if kubectl version --request-timeout=10s >/dev/null 2>&1; then
 	kubectl annotate nodes --all karpenter.sh/do-not-disrupt- >/dev/null 2>&1 || true
 
 	echo "eks-predestroy: draining the workload pool through Karpenter"
+	# The lab app goes first: with its PDB (minAvailable 2) in place and the
+	# NodePool deleted, a replacement replica can never schedule, the PDB
+	# allows 0 disruptions, and Karpenter's drain blocks (first EKS session:
+	# Karpenter was then removed and two nodes were stranded, running).
+	kubectl -n selfheal delete rollout,deployment,pdb --all --wait=false >/dev/null 2>&1 || true
 	kubectl delete nodepool --all --wait=false >/dev/null 2>&1 || true
 	for _ in $(seq 1 60); do
 		[[ -z "$(kubectl get nodeclaims -o name 2>/dev/null)" ]] && break
 		sleep 10
 	done
 	left="$(kubectl get nodeclaims -o name 2>/dev/null || true)"
-	[[ -z "$left" ]] || echo "  still terminating: $left (verify-gone will show the instances)"
+	if [[ -n "$left" ]]; then
+		# Never remove Karpenter while it still owns instances: nothing else
+		# would terminate them, and their ENIs block the VPC delete.
+		echo "eks-predestroy: FAIL, Karpenter has not terminated: $left" >&2
+		echo "  inspect with: kubectl get nodeclaims; kubectl -n kube-system logs deploy/karpenter" >&2
+		exit 1
+	fi
 	kubectl delete ec2nodeclass --all --wait=false >/dev/null 2>&1 || true
 
 	echo "eks-predestroy: removing Karpenter and Cilium"
