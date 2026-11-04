@@ -9,8 +9,12 @@ repos:
     rev: v5.0.0
     hooks:
       - id: check-merge-conflict
+      # Evidence is committed byte-for-byte as recorded; the secret and
+      # private-key hooks below still scan it.
       - id: end-of-file-fixer
+        exclude: ^evidence/
       - id: trailing-whitespace
+        exclude: ^evidence/
       - id: check-yaml
         # Kubernetes manifests are multi-document YAML.
         args: [--allow-multiple-documents]

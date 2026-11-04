@@ -1,0 +1,25 @@
+{
+  "hostname": "ip-10-30-23-86.ec2.internal",
+  "output": "18:02:02.746200268: Warning Shell in selfheal web pod (user=lab cmd=sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 & pod=web-566bb4f6fd-4hdp2 ns=selfheal container=53a4148f333f image=<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app) container_id=53a4148f333f container_name=web container_image_repository=<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app container_image_tag=2aac581-v1 k8s_pod_name=web-566bb4f6fd-4hdp2 k8s_ns_name=selfheal",
+  "output_fields": {
+    "container.id": "53a4148f333f",
+    "container.image.repository": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app",
+    "container.image.tag": "2aac581-v1",
+    "container.name": "web",
+    "evt.time": 1793815322746200268,
+    "k8s.ns.name": "selfheal",
+    "k8s.pod.name": "web-566bb4f6fd-4hdp2",
+    "proc.cmdline": "sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 &",
+    "user.name": "lab"
+  },
+  "priority": "Warning",
+  "rule": "Shell spawned in selfheal web pod",
+  "source": "syscall",
+  "tags": [
+    "T1059",
+    "mitre_execution",
+    "selfheal"
+  ],
+  "time": "2026-11-04T18:02:02.746200268Z",
+  "_t": 1793815322.7462
+}

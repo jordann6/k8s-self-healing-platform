@@ -1,0 +1,81 @@
+{
+  "schema": "k8s-self-healing-platform/evidence/v1",
+  "written_at": "2026-11-04T17:35:31.460Z",
+  "order": "isolate -> preserve -> investigate (eradicate is a human decision)",
+  "finding": {
+    "finding_id": "96d0d3d082cca4cf94dd4613bd727642",
+    "finding_type": "Backdoor:Runtime/C&CActivity.B!DNS",
+    "severity": 8,
+    "first_seen": "2026-11-04T17:32:48.264Z",
+    "workload": {
+      "name": "web-566bb4f6fd-qtrmt",
+      "type": "pods",
+      "uid": "d7284743-8022-43f2-a3ae-ddcd199ca661",
+      "namespace": "selfheal"
+    },
+    "containers": [
+      "web"
+    ],
+    "instance_id_hint": "i-0bcca202ffacf9b56"
+  },
+  "target": {
+    "pod": "web-566bb4f6fd-qtrmt",
+    "pod_uid": "d7284743-8022-43f2-a3ae-ddcd199ca661",
+    "service_account": "default",
+    "node": "ip-10-30-12-44.ec2.internal",
+    "instance_id": "i-0bcca202ffacf9b56",
+    "container_ids": [
+      "0d1d5f2b4df07a5a2ccb72463a8ac54417ebb83d1502232456171ac654aef402"
+    ]
+  },
+  "steps": {
+    "cordon": {
+      "at": "2026-11-04T17:35:18.085Z"
+    },
+    "isolate_pod": {
+      "at": "2026-11-04T17:35:18.254Z",
+      "labels": {
+        "quarantine": "true",
+        "lab/pool": "quarantine"
+      }
+    },
+    "quarantine": [
+      {
+        "done": true
+      },
+      {
+        "done": true
+      }
+    ],
+    "snapshot": {
+      "snapshot_ids": [
+        "snap-0e56cd75b9169c3aa"
+      ]
+    },
+    "capture": {
+      "command_id": "f9fafd51-2502-4e13-9093-36ec4309d7d3"
+    },
+    "revoke": {
+      "at": "2026-11-04T17:35:26.639Z",
+      "revoked": [],
+      "reason": "service account default has no Pod Identity association, and IMDS is unreachable from pods (hop limit 1): no AWS credentials were exposed to revoke"
+    }
+  },
+  "evidence": {
+    "capture": {
+      "command_id": "f9fafd51-2502-4e13-9093-36ec4309d7d3",
+      "status": "Success",
+      "truncated": true,
+      "key": "evidence/ip-10-30-12-44.ec2.internal/web-566bb4f6fd-qtrmt/96d0d3d082cca4cf94dd4613bd727642/capture.txt",
+      "bytes": 24195
+    },
+    "snapshots": [
+      "snap-0e56cd75b9169c3aa"
+    ],
+    "audit": {
+      "key": "evidence/ip-10-30-12-44.ec2.internal/web-566bb4f6fd-qtrmt/96d0d3d082cca4cf94dd4613bd727642/audit.jsonl",
+      "events": 44,
+      "error": null
+    }
+  }
+}

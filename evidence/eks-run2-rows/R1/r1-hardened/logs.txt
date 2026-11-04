@@ -1,0 +1,2 @@
+{"ts": 1793812921.575, "role": "web", "pod": "web-566bb4f6fd-dpbgc", "event": "started", "release": "v1", "port": 8080}
+{"ts": 1793812924.935, "role": "web", "pod": "web-566bb4f6fd-dpbgc", "event": "tls_loaded"}

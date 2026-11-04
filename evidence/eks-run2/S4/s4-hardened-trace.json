@@ -1,0 +1,87 @@
+{
+  "trace": [
+    {
+      "t": 2.4,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 15.2,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 28.0,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 40.8,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 61.3,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 74.3,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 94.8,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 107.6,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 120.5,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 132.5,
+      "noncompliant": true,
+      "remediation": "QUEUED",
+      "public": false
+    },
+    {
+      "t": 144.7,
+      "noncompliant": true,
+      "remediation": "SUCCEEDED",
+      "public": false
+    }
+  ],
+  "remediation": {
+    "ResourceKey": {
+      "resourceType": "AWS::EC2::SecurityGroup",
+      "resourceId": "sg-05d04e7f43c5c190d"
+    },
+    "State": "SUCCEEDED",
+    "StepDetails": [
+      {
+        "Name": "RevokePublicIngress",
+        "State": "SUCCEEDED",
+        "StartTime": "2026-11-04T07:45:29.458000-06:00",
+        "StopTime": "2026-11-04T07:45:33-06:00"
+      }
+    ],
+    "InvocationTime": "2026-11-04T07:45:29.245000-06:00",
+    "LastUpdatedTime": "2026-11-04T07:45:33.259000-06:00"
+  }
+}

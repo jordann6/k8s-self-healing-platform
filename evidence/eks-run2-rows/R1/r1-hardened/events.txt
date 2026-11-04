@@ -1,0 +1,6 @@
+LAST SEEN   TYPE      REASON      OBJECT                     MESSAGE
+10m         Normal    Scheduled   pod/web-566bb4f6fd-dpbgc   Successfully assigned selfheal/web-566bb4f6fd-dpbgc to ip-10-30-12-44.ec2.internal
+10m         Normal    Pulled      pod/web-566bb4f6fd-dpbgc   Container image "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2aac581-v1" already present on machine
+10m         Normal    Created     pod/web-566bb4f6fd-dpbgc   Created container: web
+10m         Normal    Started     pod/web-566bb4f6fd-dpbgc   Started container web
+10m         Warning   Unhealthy   pod/web-566bb4f6fd-dpbgc   Readiness probe failed: Get "http://10.30.8.50:8080/readyz": dial tcp 10.30.8.50:8080: connect: connection refused

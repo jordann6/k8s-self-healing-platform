@@ -1,0 +1,19 @@
+{
+  "stats": {
+    "samples": 84,
+    "failed": 0,
+    "dropped": 0,
+    "session_failed": 0,
+    "users_seen": [
+      "selfheal_app",
+      "selfheal_app_clone"
+    ],
+    "first_error": "",
+    "mode": "files"
+  },
+  "original_login": {
+    "login": false,
+    "auth_error": true,
+    "error": "connection to server at \"selfheal.cy9ag66egmj4.us-east-1.rds.amazonaws.com\" (10.30.0.113), port 5432 failed: FATAL:  password authentication failed for user \"selfheal_app_clone\""
+  }
+}

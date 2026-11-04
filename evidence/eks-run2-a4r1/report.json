@@ -1,0 +1,266 @@
+{
+  "run_id": "eks-run2-a4r1",
+  "target": "eks",
+  "started": "2026-11-04T17:40:03.705Z",
+  "rows": [
+    "A4",
+    "R1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "kube-system/karpenter": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.34.12-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2aac581-v1",
+    "workload_ami": [
+      "ami-09696b17488e356ab"
+    ]
+  },
+  "results": {
+    "A4": {
+      "baseline": {
+        "status": "no-impact",
+        "reason": "killed i-0166bc0a5528b179f (1 web pods), errors 0.24%, all replicas serving 20s, replacement node none",
+        "thresholds": {
+          "recover_s": 300,
+          "error_rate": 0.01
+        },
+        "pass": false
+      },
+      "hardened": {
+        "status": "inconclusive",
+        "reason": "baseline was 'no-impact'; a heal can only be claimed against an impact observed in the same run",
+        "thresholds": {
+          "recover_s": 300,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    },
+    "R1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "detected 1s, isolated never (0 Hubble policy drops), evidence never, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "detected 1s, isolated 16s (28 Hubble policy drops), evidence 35s, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "A4": {
+      "baseline": {
+        "t0": 1793814146.086105,
+        "experiment_id": "EXP25NrKLka7Yjbx8i6",
+        "experiment_state": {
+          "status": "completed",
+          "reason": "Experiment completed."
+        },
+        "instance_id": "i-0166bc0a5528b179f",
+        "node": "ip-10-30-5-108.ec2.internal",
+        "web_pods_on_node": 1,
+        "terminated": true,
+        "stopped_by_alarm": false,
+        "node_gone_s": 52.7,
+        "recovered_s": 19.9,
+        "replacement_node": null,
+        "replacement_s": null,
+        "error_rate": 0.0024,
+        "samples": 2124,
+        "expected": 2124.2724537849426,
+        "window": "T0 to T0+300s (fixed)",
+        "impact": {
+          "kind": "http",
+          "since": 1793814146.1477065,
+          "until": 1793814571.0021973,
+          "n": 2124,
+          "errors": 5,
+          "error_rate": 0.0024,
+          "p95_ms": 119.5,
+          "error_kinds": {
+            "ConnectionResetError": 2,
+            "URLError": 3
+          },
+          "first_error": 1793814160.222653,
+          "last_error": 1793814163.6226425,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6c664b947c-2j27h",
+            "web-6c664b947c-hzpdk",
+            "web-6c664b947c-lbxk5",
+            "web-6c664b947c-xpbm6"
+          ],
+          "expected": 2124.2724537849426
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793814977.618216,
+        "experiment_id": "EXPDpaySntXzErg1a2",
+        "experiment_state": {
+          "status": "completed",
+          "reason": "Experiment completed."
+        },
+        "instance_id": "i-04533edefd9a12ab4",
+        "node": "ip-10-30-11-237.ec2.internal",
+        "web_pods_on_node": 2,
+        "terminated": true,
+        "stopped_by_alarm": false,
+        "node_gone_s": 54.7,
+        "recovered_s": 77.7,
+        "replacement_node": "ip-10-30-1-78.ec2.internal",
+        "replacement_s": 63.2,
+        "error_rate": 0.0013,
+        "samples": 1500,
+        "expected": 1500.0021648406982,
+        "window": "T0 to T0+300s (fixed)",
+        "impact": {
+          "kind": "http",
+          "since": 1793814977.6798174,
+          "until": 1793815277.6802504,
+          "n": 1500,
+          "errors": 2,
+          "error_rate": 0.0013,
+          "p95_ms": 121.1,
+          "error_kinds": {
+            "ConnectionResetError": 1,
+            "URLError": 1
+          },
+          "first_error": 1793814997.0228336,
+          "last_error": 1793814997.6228163,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-566bb4f6fd-4hdp2",
+            "web-566bb4f6fd-pzx44",
+            "web-566bb4f6fd-qm9fq",
+            "web-566bb4f6fd-vgjsw",
+            "web-566bb4f6fd-vwlr7"
+          ],
+          "expected": 1500.0021648406982
+        },
+        "alerts_fired": []
+      }
+    },
+    "R1": {
+      "baseline": {
+        "t0": 1793814601.7415738,
+        "target_pod": "web-6c664b947c-hzpdk",
+        "reachable_before": true,
+        "detected_s": 1.0,
+        "labelled_s": null,
+        "isolated_s": null,
+        "hubble_policy_drops": 0,
+        "evidence_s": null,
+        "pod_kept_for_capture": null,
+        "error_rate": 0.0,
+        "samples": 392,
+        "expected": 391.81634545326233,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793814601.8031752,
+          "until": 1793814680.1664443,
+          "n": 392,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 115.4,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6c664b947c-hzpdk",
+            "web-6c664b947c-lbxk5",
+            "web-6c664b947c-xpbm6"
+          ],
+          "expected": 391.81634545326233
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793815321.3577979,
+        "target_pod": "web-566bb4f6fd-4hdp2",
+        "reachable_before": true,
+        "detected_s": 1.4,
+        "labelled_s": 1.6,
+        "isolated_s": 16.1,
+        "hubble_policy_drops": 28,
+        "evidence_s": 35.1,
+        "pod_kept_for_capture": true,
+        "error_rate": 0.0,
+        "samples": 300,
+        "expected": 300.0225353240967,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793815321.4193993,
+          "until": 1793815381.4239063,
+          "n": 300,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 123.0,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-566bb4f6fd-4hdp2",
+            "web-566bb4f6fd-nskpx",
+            "web-566bb4f6fd-pzx44",
+            "web-566bb4f6fd-vgjsw"
+          ],
+          "expected": 300.0225353240967
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-04T18:03:03.591Z",
+  "pass": false
+}

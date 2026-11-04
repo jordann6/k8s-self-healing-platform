@@ -1,0 +1,315 @@
+{
+  "AccountId": "<lab-account>",
+  "Arn": "arn:aws:guardduty:us-east-1:<lab-account>:detector/7ad083425ace58aa95da704068fe0151/finding/22d0d35157900d88b416859effec5ad7",
+  "CreatedAt": "2026-11-04T12:57:21.952Z",
+  "Description": "A process is querying a domain name associated with a known Command & Control server.",
+  "Id": "22d0d35157900d88b416859effec5ad7",
+  "Partition": "aws",
+  "Region": "us-east-1",
+  "Resource": {
+    "InstanceDetails": {
+      "AvailabilityZone": "us-east-1b",
+      "IamInstanceProfile": {
+        "Arn": "arn:aws:iam::<lab-account>:instance-profile/karpenter/us-east-1/selfheal/13456f59-2353-4dad-9b41-8d3d397ee631/selfheal_9289112341344361541",
+        "Id": "AIPAZTQENP57X5LOKP3M5"
+      },
+      "ImageDescription": "EKS-optimized Kubernetes node based on Amazon Linux 2023, (k8s: 1.34.12, containerd: 2.*)",
+      "ImageId": "ami-078ba44fb8cea0c34",
+      "InstanceId": "i-0516fdb6eabf58ba4",
+      "InstanceState": "running",
+      "InstanceType": "c6a.large",
+      "LaunchTime": "2026-11-04T12:50:40.000Z",
+      "NetworkInterfaces": [
+        {
+          "Ipv6Addresses": [],
+          "NetworkInterfaceId": "eni-0c10900e20039d1d9",
+          "PrivateDnsName": "ip-10-30-17-120.ec2.internal",
+          "PrivateIpAddress": "10.30.17.120",
+          "PrivateIpAddresses": [
+            {
+              "PrivateDnsName": "ip-10-30-17-120.ec2.internal",
+              "PrivateIpAddress": "10.30.17.120"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-23-207.ec2.internal",
+              "PrivateIpAddress": "10.30.23.207"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-25-76.ec2.internal",
+              "PrivateIpAddress": "10.30.25.76"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-23-45.ec2.internal",
+              "PrivateIpAddress": "10.30.23.45"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-29-29.ec2.internal",
+              "PrivateIpAddress": "10.30.29.29"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-28-88.ec2.internal",
+              "PrivateIpAddress": "10.30.28.88"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-18-102.ec2.internal",
+              "PrivateIpAddress": "10.30.18.102"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-16-148.ec2.internal",
+              "PrivateIpAddress": "10.30.16.148"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-27-99.ec2.internal",
+              "PrivateIpAddress": "10.30.27.99"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-25-203.ec2.internal",
+              "PrivateIpAddress": "10.30.25.203"
+            }
+          ],
+          "SecurityGroups": [
+            {
+              "GroupId": "sg-0dfbdb700522e7226",
+              "GroupName": "selfheal-node-111b649dfd13ee8aabfb1951d7"
+            },
+            {
+              "GroupId": "sg-05d04e7f43c5c190d",
+              "GroupName": "selfheal-exposure"
+            }
+          ],
+          "SubnetId": "subnet-013065cbc6be91216",
+          "VpcId": "vpc-007bf4dad6cff98e4"
+        },
+        {
+          "Ipv6Addresses": [],
+          "NetworkInterfaceId": "eni-0f00ce041c84b0d42",
+          "PrivateDnsName": "ip-10-30-31-94.ec2.internal",
+          "PrivateIpAddress": "10.30.31.94",
+          "PrivateIpAddresses": [
+            {
+              "PrivateDnsName": "ip-10-30-31-94.ec2.internal",
+              "PrivateIpAddress": "10.30.31.94"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-29-191.ec2.internal",
+              "PrivateIpAddress": "10.30.29.191"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-25-253.ec2.internal",
+              "PrivateIpAddress": "10.30.25.253"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-27-109.ec2.internal",
+              "PrivateIpAddress": "10.30.27.109"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-17-91.ec2.internal",
+              "PrivateIpAddress": "10.30.17.91"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-17-216.ec2.internal",
+              "PrivateIpAddress": "10.30.17.216"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-29-231.ec2.internal",
+              "PrivateIpAddress": "10.30.29.231"
+            },
+            {
+              "PrivateDnsName": "ip-10-30-19-71.ec2.internal",
+              "PrivateIpAddress": "10.30.19.71"
+            }
+          ],
+          "SecurityGroups": [
+            {
+              "GroupId": "sg-0dfbdb700522e7226",
+              "GroupName": "selfheal-node-111b649dfd13ee8aabfb1951d7"
+            },
+            {
+              "GroupId": "sg-05d04e7f43c5c190d",
+              "GroupName": "selfheal-exposure"
+            }
+          ],
+          "SubnetId": "subnet-013065cbc6be91216",
+          "VpcId": "vpc-007bf4dad6cff98e4"
+        }
+      ],
+      "ProductCodes": [],
+      "Tags": [
+        {
+          "Key": "selfheal.lab/managed",
+          "Value": "true"
+        },
+        {
+          "Key": "aws:ec2launchtemplate:id",
+          "Value": "lt-0bee4e83ab4f50845"
+        },
+        {
+          "Key": "karpenter.sh/nodepool",
+          "Value": "workload"
+        },
+        {
+          "Key": "Environment",
+          "Value": "lab"
+        },
+        {
+          "Key": "kubernetes.io/cluster/selfheal",
+          "Value": "owned"
+        },
+        {
+          "Key": "aws:eks:cluster-name",
+          "Value": "selfheal"
+        },
+        {
+          "Key": "eks:eks-cluster-name",
+          "Value": "selfheal"
+        },
+        {
+          "Key": "karpenter.sh/nodeclaim",
+          "Value": "workload-fghdr"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "karpenter"
+        },
+        {
+          "Key": "aws:ec2launchtemplate:version",
+          "Value": "1"
+        },
+        {
+          "Key": "aws:ec2:fleet-id",
+          "Value": "fleet-453daf9d-96a6-4685-ae90-012226c0b9da"
+        },
+        {
+          "Key": "Owner",
+          "Value": "jordann6"
+        },
+        {
+          "Key": "karpenter.k8s.aws/ec2nodeclass",
+          "Value": "workload"
+        },
+        {
+          "Key": "CostCenter",
+          "Value": "cc-1010"
+        },
+        {
+          "Key": "Name",
+          "Value": "ip-10-30-17-120.ec2.internal"
+        },
+        {
+          "Key": "Project",
+          "Value": "k8s-self-healing-platform"
+        }
+      ]
+    },
+    "EksClusterDetails": {
+      "Name": "selfheal",
+      "Arn": "arn:aws:eks:us-east-1:<lab-account>:cluster/selfheal",
+      "VpcId": "vpc-007bf4dad6cff98e4",
+      "Status": "ACTIVE",
+      "Tags": [
+        {
+          "Key": "Project",
+          "Value": "k8s-self-healing-platform"
+        },
+        {
+          "Key": "Environment",
+          "Value": "lab"
+        },
+        {
+          "Key": "Owner",
+          "Value": "jordann6"
+        },
+        {
+          "Key": "ManagedBy",
+          "Value": "terraform"
+        },
+        {
+          "Key": "CostCenter",
+          "Value": "cc-1010"
+        }
+      ],
+      "CreatedAt": "2026-11-04T03:23:47.239000-06:00"
+    },
+    "KubernetesDetails": {
+      "KubernetesWorkloadDetails": {
+        "Name": "web-6c664b947c-r4cwb",
+        "Type": "pods",
+        "Uid": "4727e274-11a7-4c64-b70b-73447664e1b9",
+        "Namespace": "selfheal",
+        "Containers": [
+          {
+            "ContainerRuntime": "containerd",
+            "Id": "14bac3d3197521afc382358efb754d4e7bc6c0cc718998d1890285eae3c6a970",
+            "Name": "web",
+            "Image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2aac581-v1",
+            "ImagePrefix": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal"
+          }
+        ]
+      }
+    },
+    "ResourceType": "EKSCluster"
+  },
+  "SchemaVersion": "2.0",
+  "Service": {
+    "Action": {
+      "ActionType": "DNS_REQUEST",
+      "DnsRequestAction": {
+        "Domain": "guarddutyc2activityb.com",
+        "Protocol": "UDP",
+        "Blocked": false,
+        "DomainWithSuffix": "guarddutyc2activityb.com"
+      }
+    },
+    "Evidence": {
+      "ThreatIntelligenceDetails": [
+        {
+          "ThreatListName": "Amazon",
+          "ThreatNames": []
+        }
+      ]
+    },
+    "Archived": false,
+    "Count": 20,
+    "DetectorId": "7ad083425ace58aa95da704068fe0151",
+    "EventFirstSeen": "2026-11-04T12:54:50.470Z",
+    "EventLastSeen": "2026-11-04T12:54:50.598Z",
+    "ServiceName": "guardduty",
+    "AdditionalInfo": {
+      "Value": "{\"threatListName\":\"Amazon\"}",
+      "Type": "default"
+    },
+    "FeatureName": "RuntimeMonitoring",
+    "RuntimeDetails": {
+      "Process": {
+        "Name": "python3",
+        "ExecutablePath": "/usr/local/bin/python3.12",
+        "ExecutableSha256": "d7fc81b2f93779e4278fc7b928190d5e86d52b6c8076706512dc567874adb262",
+        "NamespacePid": 79,
+        "Pwd": "/",
+        "Pid": 6702,
+        "StartTime": "2026-11-04T06:54:48.570000-06:00",
+        "Uuid": "924f5803-0d68-261f-7ab0-898da1fede27",
+        "ParentUuid": "2e9c15b9-a6ec-a00c-0e4f-98d4e0762557",
+        "User": "lab",
+        "UserId": 10001,
+        "Euid": 10001,
+        "Lineage": [
+          {
+            "NamespacePid": 6297,
+            "UserId": 0,
+            "Name": "containerd-shim",
+            "Pid": 6297,
+            "Uuid": "2e9c15b9-a6ec-a00c-0e4f-98d4e0762557",
+            "ExecutablePath": "/usr/bin/containerd-shim-runc-v2",
+            "Euid": 0
+          }
+        ]
+      },
+      "Context": {}
+    }
+  },
+  "Severity": 8.0,
+  "Title": "A Command & Control server domain name was queried by EC2 instance i-0516fdb6eabf58ba4.",
+  "Type": "Backdoor:Runtime/C&CActivity.B!DNS",
+  "UpdatedAt": "2026-11-04T12:57:21.955Z"
+}

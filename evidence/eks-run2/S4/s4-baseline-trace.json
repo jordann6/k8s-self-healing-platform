@@ -1,0 +1,317 @@
+{
+  "trace": [
+    {
+      "t": 2.4,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 15.2,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 28.0,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 40.8,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 53.6,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 73.9,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 88.4,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 101.3,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 114.0,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 126.8,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 139.5,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 152.3,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 165.5,
+      "noncompliant": false,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 178.2,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 191.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 203.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 214.9,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 226.9,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 238.8,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 250.8,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 262.7,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 274.6,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 286.5,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 298.4,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 310.6,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 322.9,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 334.9,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 346.9,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 358.8,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 370.8,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 382.7,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 394.7,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 414.3,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 434.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 446.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 458.2,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 470.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 482.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 494.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 506.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 518.2,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 530.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 542.2,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 554.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 566.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 578.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 590.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 602.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 614.1,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 626.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 638.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    },
+    {
+      "t": 650.0,
+      "noncompliant": true,
+      "remediation": null,
+      "public": true
+    }
+  ],
+  "remediation": null
+}

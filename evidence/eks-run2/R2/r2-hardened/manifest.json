@@ -1,0 +1,81 @@
+{
+  "schema": "k8s-self-healing-platform/evidence/v1",
+  "written_at": "2026-11-04T13:55:56.027Z",
+  "order": "isolate -> preserve -> investigate (eradicate is a human decision)",
+  "finding": {
+    "finding_id": "ded0d36c03074a9fcf90797ffe09ebd5",
+    "finding_type": "Backdoor:Runtime/C&CActivity.B!DNS",
+    "severity": 8,
+    "first_seen": "2026-11-04T13:53:02.797Z",
+    "workload": {
+      "name": "web-895f8bd59-pd4vw",
+      "type": "pods",
+      "uid": "28a99d4c-7e4e-49f6-a4de-0785389d4727",
+      "namespace": "selfheal"
+    },
+    "containers": [
+      "web"
+    ],
+    "instance_id_hint": "i-0b1ba516022d3c248"
+  },
+  "target": {
+    "pod": "web-895f8bd59-pd4vw",
+    "pod_uid": "28a99d4c-7e4e-49f6-a4de-0785389d4727",
+    "service_account": "default",
+    "node": "ip-10-30-8-210.ec2.internal",
+    "instance_id": "i-0b1ba516022d3c248",
+    "container_ids": [
+      "f149b3ad9021e76d67afdaa3756214f69d29ba0a8bd9f405eb14864f4fb62c88"
+    ]
+  },
+  "steps": {
+    "isolate_pod": {
+      "at": "2026-11-04T13:55:44.070Z",
+      "labels": {
+        "quarantine": "true",
+        "lab/pool": "quarantine"
+      }
+    },
+    "cordon": {
+      "at": "2026-11-04T13:55:44.239Z"
+    },
+    "quarantine": [
+      {
+        "done": true
+      },
+      {
+        "done": true
+      }
+    ],
+    "snapshot": {
+      "snapshot_ids": [
+        "snap-0adba451f6787498d"
+      ]
+    },
+    "capture": {
+      "command_id": "0177ecee-b21f-4594-a689-20448e5eeb5f"
+    },
+    "revoke": {
+      "at": "2026-11-04T13:55:52.472Z",
+      "revoked": [],
+      "reason": "service account default has no Pod Identity association, and IMDS is unreachable from pods (hop limit 1): no AWS credentials were exposed to revoke"
+    }
+  },
+  "evidence": {
+    "capture": {
+      "command_id": "0177ecee-b21f-4594-a689-20448e5eeb5f",
+      "status": "Success",
+      "truncated": true,
+      "key": "evidence/ip-10-30-8-210.ec2.internal/web-895f8bd59-pd4vw/ded0d36c03074a9fcf90797ffe09ebd5/capture.txt",
+      "bytes": 24195
+    },
+    "snapshots": [
+      "snap-0adba451f6787498d"
+    ],
+    "audit": {
+      "key": "evidence/ip-10-30-8-210.ec2.internal/web-895f8bd59-pd4vw/ded0d36c03074a9fcf90797ffe09ebd5/audit.jsonl",
+      "events": 66,
+      "error": null
+    }
+  }
+}

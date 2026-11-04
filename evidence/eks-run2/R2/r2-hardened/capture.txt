@@ -1,0 +1,206 @@
+== host
+Wed Nov  4 13:55:46 UTC 2026
+ 13:55:46 up 9 min,  0 users,  load average: 0.30, 0.23, 0.17
+Linux ip-10-30-8-210.ec2.internal 6.12.113-138.209.amzn2023.x86_64 #1 SMP PREEMPT_DYNAMIC Tue Oct 20 21:57:40 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+== processes
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           2  0.0  0.0      0     0 ?        S    13:46   0:00 [kthreadd]
+root           3  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [pool_workqueue_release]
+root           4  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-kvfree_rcu_reclaim]
+root           5  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-rcu_gp]
+root           6  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-sync_wq]
+root           7  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-slub_flushwq]
+root           8  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-netns]
+root          10  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/0:0H-events_highpri]
+root          13  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-mm_percpu_wq]
+root          14  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [rcu_tasks_kthread]
+root          15  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [rcu_tasks_rude_kthread]
+root          16  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [rcu_tasks_trace_kthread]
+root          17  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [ksoftirqd/0]
+root          18  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [rcu_preempt]
+root          19  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [rcu_exp_par_gp_kthread_worker/0]
+root          20  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [rcu_exp_gp_kthread_worker]
+root          21  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [migration/0]
+root          22  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [cpuhp/0]
+root          23  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [cpuhp/1]
+root          24  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [migration/1]
+root          25  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [ksoftirqd/1]
+root          27  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/1:0H-events_highpri]
+root          30  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [kdevtmpfs]
+root          31  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-inet_frag_wq]
+root          32  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [kauditd]
+root          33  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [khungtaskd]
+root          34  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [oom_reaper]
+root          35  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [kworker/u8:2-gid-cache-wq]
+root          36  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-writeback]
+root          37  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [kcompactd0]
+root          38  0.0  0.0      0     0 ?        SN   13:46   0:00  \_ [khugepaged]
+root          39  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-cryptd]
+root          40  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-kintegrityd]
+root          41  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-kblockd]
+root          42  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-blkcg_punt_bio]
+root          43  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [irq/9-acpi]
+root          45  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-tpm_dev_wq]
+root          46  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-md]
+root          47  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-md_bitmap]
+root          48  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-edac-poller]
+root          49  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [watchdogd]
+root          50  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-quota_events_unbound]
+root          51  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/1:1H-xfs-log/nvme0n1p1]
+root          74  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [kswapd0]
+root          76  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfsalloc]
+root          78  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs_mru_cache]
+root          80  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-kthrotld]
+root          87  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [kworker/u8:3-ipv6_addrconf]
+root          97  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [kworker/u8:4-xfs-blockgc/nvme0n1p1]
+root         142  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-nvme-wq]
+root         143  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-nvme-reset-wq]
+root         145  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-nvme-delete-wq]
+root         167  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-mld]
+root         174  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ipv6_addrconf]
+root         179  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [kworker/u8:6-kvfree_rcu_reclaim]
+root         195  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-kstrp]
+root         508  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/u9:0]
+root         606  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/0:1H-xfs-log/nvme0n1p1]
+root        1251  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-buf/nvme0n1p1]
+root        1252  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-conv/nvme0n1p1]
+root        1253  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-reclaim/nvme0n1p1]
+root        1254  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-blockgc/nvme0n1p1]
+root        1255  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-inodegc/nvme0n1p1]
+root        1256  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-log/nvme0n1p1]
+root        1257  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xfs-cil/nvme0n1p1]
+root        1258  0.0  0.0      0     0 ?        S    13:46   0:00  \_ [xfsaild/nvme0n1p1]
+root        1357  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ib-comp-wq]
+root        1358  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ib-comp-unb-wq]
+root        1360  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ib_mcast]
+root        1363  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ib_nl_sa_wq]
+root        1830  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-rpciod]
+root        1831  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-xprtiod]
+root        1899  0.0  0.0      0     0 ?        I<   13:46   0:00  \_ [kworker/R-ena]
+root        2646  0.0  0.0      0     0 ?        I    13:46   0:00  \_ [kworker/1:5-events]
+root        3923  0.0  0.0      0     0 ?        I    13:47   0:00  \_ [kworker/1:15-events]
+root        4784  0.0  0.0      0     0 ?        I    13:48   0:00  \_ [kworker/0:20-mm_percpu_wq]
+root        4786  0.0  0.0      0     0 ?        I    13:48   0:00  \_ [kworker/0:22-mm_percpu_wq]
+root        5976  0.0  0.0      0     0 ?        I    13:53   0:00  \_ [kworker/0:0-events]
+root        6399  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:0-mm_percpu_wq]
+root        6400  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:1-events]
+root        6401  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:2-events]
+root        6402  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:3-events]
+root        6403  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:4-events]
+root        6404  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:6-events]
+root        6405  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:7-events]
+root        6406  0.0  0.0      0     0 ?        I    13:55   0:00  \_ [kworker/1:8]
+root           1  0.4  0.4 174908 18412 ?        Ss   13:46   0:02 /usr/lib/systemd/systemd --switched-root --system --deserialize=32
+root        1323  0.0  0.3  37732 14820 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-journald
+root        1806  0.0  0.2  33300 11596 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-udevd
+root        6437  0.0  0.1  33304  6112 ?        S    13:55   0:00  \_ (udev-worker)
+root        6438  0.0  0.1  33304  6304 ?        S    13:55   0:00  \_ (udev-worker)
+root        6443  0.0  0.1  33304  5796 ?        S    13:55   0:00  \_ (udev-worker)
+root        6444  0.0  0.1  33304  5916 ?        S    13:55   0:00  \_ (udev-worker)
+root        6445  0.0  0.1  33304  5916 ?        S    13:55   0:00  \_ (udev-worker)
+systemd+    1810  0.0  0.4  24260 15788 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-resolved
+root        1817  0.0  0.0  21872  2624 ?        S<sl 13:46   0:00 /sbin/auditd
+root        1968  0.0  0.0  81428  3132 ?        Ssl  13:46   0:00 /usr/sbin/irqbalance --foreground
+root        1971  0.0  0.2  18184  8112 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-homed
+root        1980  0.0  0.2  19984 10484 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-logind
+dbus        2006  0.0  0.1   8492  4040 ?        Ss   13:46   0:00 /usr/bin/dbus-broker-launch --scope system --audit
+dbus        2035  0.0  0.0   5388  3144 ?        S    13:46   0:00  \_ dbus-broker --log 4 --controller 9 --machine-id ec2cc6fddc65578abbb2665410b3169c --max-bytes 536870912 --max-fds 4096 --max-matches 16384 --audit
+systemd+    2044  0.0  0.2 238488 10216 ?        Ss   13:46   0:00 /usr/lib/systemd/systemd-networkd
+root        2052  0.0  0.0 282724  3804 ?        Ssl  13:46   0:00 /usr/sbin/gssproxy -D
+root        2153  0.0  0.5 1277076 21400 ?       Ssl  13:46   0:00 /usr/bin/amazon-ssm-agent
+root        2252  0.0  0.7 1287844 30992 ?       Sl   13:46   0:00  \_ /usr/bin/ssm-agent-worker
+root        6521  0.0  0.7 1285664 29472 ?       Sl   13:55   0:00      \_ /usr/bin/ssm-document-worker 0177ecee-b21f-4594-a689-20448e5eeb5f
+root        6528  0.0  0.0 223000  3548 ?        S    13:55   0:00          \_ sh -c /var/lib/amazon/ssm/i-0b1ba516022d3c248/document/orchestration/0177ecee-b21f-4594-a689-20448e5eeb5f/awsrunShellScript/0.awsrunShellScript/_script.sh
+root        6533  0.0  0.0 223700  3068 ?        R    13:55   0:00              \_ ps auxww --forest
+root        2157  0.0  0.1   9536  6836 ?        Ss   13:46   0:00 sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups
+root        2160  0.0  0.0 221368  1868 tty1     Ss+  13:46   0:00 /sbin/agetty -o -p -- \u --noclear - linux
+root        2161  0.0  0.0 221412  1948 ttyS0    Ss+  13:46   0:00 /sbin/agetty -o -p -- \u --keep-baud 115200,57600,38400,9600 - vt220
+chrony      2191  0.0  0.0  87084  3700 ?        S    13:46   0:00 /usr/sbin/chronyd -F 2
+root        2233  3.5  1.8 2554164 73664 ?       Ssl  13:46   0:19 /usr/bin/containerd
+root        2267  2.0  2.3 2308884 90732 ?       Ssl  13:46   0:11 /usr/bin/kubelet --hostname-override=ip-10-30-8-210.ec2.internal --config-dir=/etc/kubernetes/kubelet/config.json.d --kubeconfig=/var/lib/kubelet/kubeconfig --image-credential-provider-bin-dir=/etc/eks/image-credential-provider --image-credential-provider-config=/etc/eks/image-credential-provider/config.json --node-ip=10.30.8.210 --cloud-provider=external --runtime-cgroups=/runtime.slice/containerd.service --config=/etc/kubernetes/kubelet/config.json --node-labels=karpenter.k8s.aws/ec2nodeclass=workload,karpenter.sh/capacity-type=on-demand,karpenter.sh/do-not-sync-taints=true,karpenter.sh/nodepool=workload,selfheal.lab/nodes=workload
+root        2346  0.1  0.5 2037432 20928 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id fa73f3872641a07a16a38013de09db1194fa3f5611f936330f63432d2282e105 -address /run/containerd/containerd.sock
+65535       2371  0.0  0.0   1020   692 ?        Ss   13:46   0:00  \_ /pause
+root        2935  1.7  1.4 158492 57856 ?        Ssl  13:46   0:09  \_ bin/amzn-guardduty-agent --worker-threads 8
+root        2386  0.1  0.5 2037432 21140 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 85901a89d4e07c4360b0e47bc0ae0ad2b6575f0b8e5f17449c5839f066a30d1a -address /run/containerd/containerd.sock
+65535       2410  0.0  0.0   1020   696 ?        Ss   13:46   0:00  \_ /pause
+root        3099  0.0  0.0 1227480 2856 ?        Ssl  13:47   0:00  \_ /go-runner /eks-pod-identity-agent server --port 80 --cluster-name selfheal --probe-port 2703
+root        3123  0.0  0.9 1309136 37544 ?       Sl   13:47   0:00      \_ /eks-pod-identity-agent server --port 80 --cluster-name selfheal --probe-port 2703
+root        2440  0.1  0.5 2037176 20300 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id da81e17e652ecb7af5e9ccd6134d728bb36fc5d32060fc55e468aa4b8390b4d3 -address /run/containerd/containerd.sock
+65535       2556  0.0  0.0   1020   696 ?        Ss   13:46   0:00  \_ /pause
+root        2976  0.4  1.4 2045812 54716 ?       Ssl  13:46   0:02  \_ /opt/amazon/bin/eks-node-monitoring-agent --probe-address=:8002 --metrics-address=:8003
+root        2446  0.1  0.5 2037432 20796 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 13a09be1b229f6db220196b0fcd7d4d1930549ba8ebf1e7def875343ad62e421 -address /run/containerd/containerd.sock
+65535       2563  0.0  0.0   1020   692 ?        Ss   13:46   0:00  \_ /pause
+root        2724  0.0  1.5 1330256 60956 ?       Ssl  13:46   0:00  \_ kube-proxy --v=2 --config=/var/lib/kube-proxy-config/config --hostname-override=ip-10-30-8-210.ec2.internal
+root        2466  0.2  0.5 2037176 20988 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id c2c785f832378f7fd8865f962331a1dd15bccf9cbc3a4fdd8c77c4a9b9b95299 -address /run/containerd/containerd.sock
+65535       2565  0.0  0.0   1020   692 ?        Ss   13:46   0:00  \_ /pause
+root        3314  2.9  6.3 1533180 248200 ?      Ssl  13:47   0:15  \_ cilium-agent --config-dir=/tmp/cilium/config-map
+root        3645  0.0  0.1 1264140 6212 ?        Sl   13:47   0:00      \_ cilium-health-responder --listen 4240 --pidfile /var/run/cilium/state/health-endpoint.pid
+root        2524  0.1  0.5 2037176 20352 ?       Sl   13:46   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id d4618e21e388d0ad962db020d099785aa0c7b19a1355e7a305d06cd806b0fb8f -address /run/containerd/containerd.sock
+65535       2572  0.0  0.0   1020   692 ?        Ss   13:46   0:00  \_ /pause
+root        2671  0.0  0.0   4400  2288 ?        Ss   13:46   0:00  \_ /usr/bin/cilium-envoy-starter -- -c /var/run/cilium/envoy/bootstrap-config.json --base-id 0 --log-level info
+root        2683  0.1  1.3 3323360 50956 ?       Sl   13:46   0:00      \_ /usr/bin/cilium-envoy -c /var/run/cilium/envoy/bootstrap-config.json --base-id 0 --log-level info
+root        3794  0.3  0.5 2037432 21752 ?       Sl   13:47   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 50bb94931070d08b1aa960caedb1ae2e354f7b50bed4ede5ef639ae163b771f0 -address /run/containerd/containerd.sock
+65535       3823  0.0  0.0   1020   696 ?        Ss   13:47   0:00  \_ /pause
+root        4192  1.0  2.2 1581856 86440 ?       Ssl  13:47   0:05  \_ /usr/bin/falco
+65532       4223  0.0  1.9 1370936 75908 ?       Ssl  13:47   0:00  \_ /usr/bin/falcoctl artifact follow --log-format=json
+root        3890  0.1  0.5 2037176 20300 ?       Sl   13:47   0:00 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 75ebbd6c0627328555c356c84abfe13a0b69981d2751fda3aaf35cf5d24be2b7 -address /run/containerd/containerd.sock
+65535       3931  0.0  0.0   1020   696 ?        Ss   13:47   0:00  \_ /pause
+root        4142  0.0  1.2 1787892 49332 ?       Ssl  13:47   0:00  \_ /usr/local/bin/chaos-daemon --runtime containerd --http-port 31766 --grpc-port 31767 --pprof --ca /etc/chaos-daemon/cert/ca.crt --cert /etc/chaos-daemon/cert/tls.crt --key /etc/chaos-daemon/cert/tls.key --runtime-socket-path /host-run/containerd.sock
+root        3992  0.2  0.5 2037176 20664 ?       Sl   13:47   0:01 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 5cfb807aee8888f197f8fede6a984883e0d0f00e68dadc54b87b228fc3a7c31f -address /run/containerd/containerd.sock
+10001       4016  0.0  0.0   1020   696 ?        Ss   13:47   0:00  \_ /pause
+10001       4087  4.0  0.6  32052 25208 ?        Ssl  13:47   0:20  \_ python3 -u /app/app.py
+root        6455  1.5  0.5 1961116 20220 ?       Sl   13:55   0:00 /usr/bin/containerd-shim-runc-v2 -namespace k8s.io -id 789f617cd7526c979b77adc3349a97ccd3afa0e471cbc46bd51747c394f4794b -address /run/containerd/containerd.sock
+10001       6479  1.5  0.0   1020   696 ?        Ss   13:55   0:00  \_ /pause
+10001       6504 18.5  0.5  26452 22272 ?        Rs   13:55   0:00  \_ python3 -u /app/app.py
+== sockets
+Netid State     Recv-Q Send-Q                  Local Address:Port          Peer Address:Port Process                                     
+udp   UNCONN    0      0                           127.0.0.1:34751              0.0.0.0:*     users:(("cilium-agent",pid=3314,fd=54))    
+udp   UNCONN    0      0                    10.30.8.210%ens5:68                 0.0.0.0:*     users:(("systemd-network",pid=2044,fd=17)) 
+udp   UNCONN    0      0                           127.0.0.1:323                0.0.0.0:*     users:(("chronyd",pid=2191,fd=5))          
+udp   UNCONN    0      0                               [::1]:323                   [::]:*     users:(("chronyd",pid=2191,fd=6))          
+udp   UNCONN    0      0      [fe80::ff:e5ff:fe9d:ce73]%ens5:546                   [::]:*     users:(("systemd-network",pid=2044,fd=21)) 
+tcp   LISTEN    0      4096                        127.0.0.1:32773              0.0.0.0:*     users:(("containerd",pid=2233,fd=16))      
+tcp   LISTEN    0      4096                        127.0.0.1:10248              0.0.0.0:*     users:(("kubelet",pid=2267,fd=12))         
+tcp   LISTEN    0      128                           0.0.0.0:22                 0.0.0.0:*     users:(("sshd",pid=2157,fd=7))             
+tcp   LISTEN    0      4096                      10.30.8.210:4240               0.0.0.0:*     users:(("cilium-agent",pid=3314,fd=165))   
+tcp   LISTEN    0      4096                        127.0.0.1:2703               0.0.0.0:*     users:(("eks-pod-identit",pid=3123,fd=8))  
+tcp   LISTEN    0      4096                   169.254.170.23:80                 0.0.0.0:*     users:(("eks-pod-identit",pid=3123,fd=10)) 
+tcp   LISTEN    0      4096                        127.0.0.1:9890               0.0.0.0:*     users:(("cilium-agent",pid=3314,fd=4))     
+tcp   LISTEN    0      4096                        127.0.0.1:9878               0.0.0.0:*     users:(("cilium-envoy",pid=2683,fd=27))    
+tcp   LISTEN    0      4096                        127.0.0.1:9878               0.0.0.0:*     users:(("cilium-envoy",pid=2683,fd=26))    
+tcp   LISTEN    0      4096                        127.0.0.1:9879               0.0.0.0:*     users:(("cilium-agent",pid=3314,fd=64))    
+tcp   LISTEN    0      4096                          0.0.0.0:9964               0.0.0.0:*     users:(("cilium-envoy",pid=2683,fd=25))    
+tcp   LISTEN    0      4096                          0.0.0.0:9964               0.0.0.0:*     users:(("cilium-envoy",pid=2683,fd=24))    
+tcp   LISTEN    0      4096                        127.0.0.1:34751              0.0.0.0:*     users:(("cilium-agent",pid=3314,fd=53))    
+tcp   ESTAB     0      0                         10.30.8.210:4240           10.30.8.210:38374 users:(("cilium-agent",pid=3314,fd=92))    
+tcp   TIME-WAIT 0      0                         10.30.8.210:34908          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:34870          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                           127.0.0.1:42642            127.0.0.1:2703                                             
+tcp   TIME-WAIT 0      0                      169.254.170.23:58126       169.254.170.23:80                                               
+tcp   TIME-WAIT 0      0                           127.0.0.1:9879             127.0.0.1:46992                                            
+tcp   TIME-WAIT 0      0                         10.30.8.210:42764          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:43468          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:36600          10.30.5.228:8080                                             
+tcp   ESTAB     0      0                         10.30.8.210:51378           10.30.9.78:4240  users:(("cilium-agent",pid=3314,fd=90))    
+tcp   TIME-WAIT 0      0                      169.254.170.23:49426       169.254.170.23:80                                               
+tcp   TIME-WAIT 0      0                           127.0.0.1:9879             127.0.0.1:59794                                            
+tcp   TIME-WAIT 0      0                         10.30.8.210:35028         10.30.24.173:4240                                             
+tcp   TIME-WAIT 0      0                           127.0.0.1:9878             127.0.0.1:52638                                            
+tcp   TIME-WAIT 0      0                         10.30.8.210:43472          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:42748          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                           127.0.0.1:9878             127.0.0.1:47540                                            
+tcp   TIME-WAIT 0      0                           127.0.0.1:9879             127.0.0.1:59800                                            
+tcp   TIME-WAIT 0      0                         10.30.8.210:53554          10.30.5.228:8080                                             
+tcp   ESTAB     0      0                         10.30.8.210:56478          10.30.11.88:4240  users:(("cilium-agent",pid=3314,fd=240))   
+tcp   TIME-WAIT 0      0                           127.0.0.1:2703             127.0.0.1:40210                                            
+tcp   TIME-WAIT 0      0                         10.30.8.210:36638          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:42802          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:55624          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                         10.30.8.210:42804          10.30.5.228:8080                                             
+tcp   TIME-WAIT 0      0                      169.254.170.23:35746       169.254.170.23:80                                               
+tcp   ESTAB     0      0                         10.30.8.210:48216          10.30.14.66:443   users:(("kube-proxy",pid=2724,fd=6))       
+tcp   ESTAB     0      0                         10.30.8.210:4240          10.30.10.248:37454 users:(("cilium-agent",pid=3314,fd=59))    
+tcp   TIME-WAIT 0      0                      169.254.170.23:55456       169.254.170.23:80                                               
+tcp   TIME-WAIT 0      0                           127.0.0.1:9878             127.0.0.1:53846                           --output truncated--
+== stderr
+/var/lib/amazon/ssm/i-0b1ba516022d3c248/document/orchestration/0177ecee-b21f-4594-a689-20448e5eeb5f/awsrunShellScript/0.awsrunShellScript/_script.sh: line 6: crictl: command not found

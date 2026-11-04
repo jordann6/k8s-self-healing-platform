@@ -1,0 +1,8 @@
+LAST SEEN   TYPE      REASON      OBJECT                    MESSAGE
+3m40s       Normal    Scheduled   pod/web-895f8bd59-9cgvv   Successfully assigned selfheal/web-895f8bd59-9cgvv to ip-10-30-10-248.ec2.internal
+3m39s       Normal    Pulling     pod/web-895f8bd59-9cgvv   Pulling image "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2aac581-v1"
+3m36s       Normal    Pulled      pod/web-895f8bd59-9cgvv   Successfully pulled image "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2aac581-v1" in 2.708s (2.708s including waiting). Image size: 20408201 bytes.
+3m36s       Normal    Created     pod/web-895f8bd59-9cgvv   Created container: web
+3m35s       Normal    Started     pod/web-895f8bd59-9cgvv   Started container web
+3m33s       Warning   Unhealthy   pod/web-895f8bd59-9cgvv   Readiness probe failed: Get "http://10.30.8.29:8080/readyz": dial tcp 10.30.8.29:8080: connect: connection refused
+3m35s       Warning   Unhealthy   pod/web-895f8bd59-9cgvv   Liveness probe failed: Get "http://10.30.8.29:8080/healthz": dial tcp 10.30.8.29:8080: connect: connection refused
