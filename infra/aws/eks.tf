@@ -32,7 +32,9 @@ module "eks" {
   enable_cluster_creator_admin_permissions = true
 
   # The audit log is evidence for R2 (the responder exports its window).
-  enabled_log_types                      = ["api", "audit", "authenticator"]
+  # The verbose api log is left off: nothing reads it, and log ingestion is
+  # one of the larger line items of a session.
+  enabled_log_types                      = ["audit", "authenticator"]
   cloudwatch_log_group_retention_in_days = 14
 
   vpc_id     = module.vpc.vpc_id

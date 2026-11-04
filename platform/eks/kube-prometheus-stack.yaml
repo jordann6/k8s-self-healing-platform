@@ -16,6 +16,15 @@ prometheus:
         queueConfig:
           maxSamplesPerSend: 1000
           capacity: 2500
+        # AMP bills per sample ingested (ADR-0005). Everything at a 10s scrape
+        # would exhaust the free tier within a session, so only what the lab
+        # reads leaves the cluster: the SLO recording rules, the app's request
+        # counters, and the restart, rotation, certificate and node signals the
+        # rows and dashboards use.
+        writeRelabelConfigs:
+          - sourceLabels: [__name__]
+            regex: "slo:.*|http_requests_total|kube_pod_container_status_restarts_total|kube_pod_container_status_last_terminated_reason|externalsecret_sync_calls.*|certmanager_certificate_expiration_timestamp_seconds|karpenter_nodes_.*|karpenter_nodeclaims_.*|kube_node_status_condition|up"
+            action: keep
 grafana:
   enabled: true
   serviceAccount:

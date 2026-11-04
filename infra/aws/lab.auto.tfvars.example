@@ -1,0 +1,4 @@
+# Copy to lab.auto.tfvars (gitignored) and fill in. Account IDs stay out of the
+# public repo; Terraform loads *.auto.tfvars automatically.
+lab_account_id      = "111111111111" # the isolated workload account that holds the lab
+security_account_id = "222222222222" # the organization's delegated GuardDuty administrator

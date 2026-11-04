@@ -5,10 +5,17 @@ on:
     branches: [main]
   pull_request:
 
-# Application repository: no Terraform root here. Its infrastructure lives in the
-# owning infrastructure repository and is gated there by tf-ci.yml / tf-apply.yml.
-# This caller runs the credential-free fleet gates: gitleaks over full history,
-# plus whatever language and container checks ci.yml detects.
+# Credential-free by design. Two halves:
+#   ci      gitleaks over full history, plus the language and container checks
+#           ci.yml detects (the app, the db probe, the runner)
+#   static  the Terraform root in infra/aws: fmt, validate, tflint, checkov,
+#           trivy, and conftest against the shared policy (FinOps tags included)
+#
+# The credentialed gates (plan, destroy guard, cost diff) need an OIDC role in
+# the lab account and are not wired: this lab is applied and destroyed by its
+# operator from saved plans in one sitting (docs/runbook-aws.md). The Lambda
+# packages that tf-plan.yml would build with build_command are staged by
+# infra/aws/rotation/build.sh; tf-ci.yml validates without them.
 permissions:
   contents: read
 
@@ -18,3 +25,13 @@ jobs:
     permissions:
       contents: read
       security-events: write
+
+  static:
+    uses: jordann6/platform-guardrails/.github/workflows/tf-ci.yml@6006053c9d3fade137a29bac56d6c0d621edcc75 # v1.10.0
+    with:
+      terraform_dir: infra/aws
+      guardrails_ref: 6006053c9d3fade137a29bac56d6c0d621edcc75
+      # The only accepted Checkov finding is CKV_TF_1 (registry modules pinned
+      # by version range, not commit hash), the same exception the sibling
+      # repos carry.
+      checkov_baseline: infra/aws/.checkov.baseline
