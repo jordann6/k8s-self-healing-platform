@@ -56,3 +56,30 @@ from a run:
 
 Like A2 on kind, any change after a run has been observed will be listed here
 with the run that prompted it.
+
+## Fixes during the first EKS session (2026-11-04, no threshold changed)
+
+No EKS threshold was changed. These runner and manifest fixes were made after
+the first runs had been observed, so they are listed here with the run that
+prompted each one:
+
+- **S1b, runner** (`eks-run1`): a rotation was treated as finished only once
+  no version carried `AWSPENDING`. Secrets Manager leaves that label on the
+  version that has just become `AWSCURRENT`, so the runner waited out its 240s
+  on a rotation that had finished in 4s. A rotation is now finished when
+  `AWSCURRENT` has moved and no other version is pending (unit tested).
+- **S1b, hardened manifest** (`eks-run1-s1b`): the database probe could not
+  read its own mounted credential files (`root:root`, mode `0440`, probe
+  running as UID 10001), so every query failed with "no credential
+  available". The pod now sets `fsGroup: 10001`.
+- **R2, runner** (`eks-run1`): the runner stopped polling once the responder
+  had isolated the pod and stored evidence (170s), before `ListFindings`
+  returned a finding GuardDuty had created at 155s and already delivered to
+  EventBridge. The runner now waits for the finding itself, and times
+  detection from the finding's `CreatedAt`.
+
+Three runs from that session are not reference evidence and are not
+committed: `eks-run1`, `eks-run1-s1b` and `eks-run1-rerun` overlapped on the
+same cluster (two runners switching profiles under each other), and an
+in-cluster Git re-seed landed during `eks-run1`'s hardened A2. The rows they
+measured before the overlap agree with the reference run.

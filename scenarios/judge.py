@@ -269,6 +269,13 @@ def judge_a4(o: dict, t: dict):
 def judge_s1b(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"db probe window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    # The probe must have been logging in before the fault, or any "impact"
+    # was already there (eks-run2 baseline: every login failing for 30
+    # minutes before T0, after earlier runs had rotated the password).
+    pre = o.get("pre_t0") or {}
+    if not pre.get("samples") or pre.get("failed"):
+        return False, (f"db probe not clean before T0 ({pre.get('failed')} of {pre.get('samples')} logins failed "
+                       f"in the {pre.get('seconds')}s before), so the rotation's effect cannot be measured"), False, False
     if (o.get("rotations") or 0) < 2:
         return False, (f"only {o.get('rotations')} of 2 rotations completed; the original user's password "
                        f"was never changed"), False, False

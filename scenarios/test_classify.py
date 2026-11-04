@@ -213,7 +213,8 @@ class A4NodeKill(unittest.TestCase):
 
 def s1b(**kw):
     o = {"samples": 600, "expected": 600, "rotations": 2, "original_credential_rejected": True,
-         "failed": 0, "dropped": 0, "users_seen": ["selfheal_app", "selfheal_app_clone"]}
+         "failed": 0, "dropped": 0, "users_seen": ["selfheal_app", "selfheal_app_clone"],
+         "pre_t0": {"samples": 30, "failed": 0, "seconds": 30}}
     o.update(kw)
     return o
 
@@ -239,6 +240,16 @@ class S1bDatabaseRotation(unittest.TestCase):
 
     def test_baseline_failures_are_impact(self):
         self.assertEqual(eks("S1b", "baseline", s1b(failed=40))["status"], "impact")
+
+    def test_probe_failing_before_t0_is_error_not_impact(self):
+        # eks-run2 baseline: every login had failed for 30 minutes before T0.
+        v = eks("S1b", "baseline", s1b(failed=239, pre_t0={"samples": 30, "failed": 30, "seconds": 30}))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("not clean before T0", v["reason"])
+
+    def test_no_pre_t0_measurement_is_error(self):
+        v = eks("S1b", "hardened", s1b(pre_t0=None))
+        self.assertEqual(v["status"], "error")
 
 
 def s4(**kw):

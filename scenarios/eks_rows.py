@@ -11,6 +11,7 @@ set by `make demo TARGET=eks`). Terraform outputs are read with MGMT_PROFILE.
 """
 from __future__ import annotations
 
+import base64
 import gzip
 import json
 import os
@@ -246,15 +247,58 @@ def _rotate(secret: str) -> str:
     raise RuntimeError(f"rotation of {secret} did not finish within 240s")
 
 
+PRE_S = 30  # the db probe must be clean for this long before T0
+
+
+def _probe_recent(h, seconds: int) -> dict:
+    with h.PortForward(h.NS, "svc/dbprobe", 8080) as pf:
+        t1 = h.now()
+        offset = pf.get("/now")["now"] - (t1 + h.now()) / 2
+        return pf.get(f"/stats?since={h.now() - seconds + offset}&until={h.now() + offset}")
+
+
+def s1b_steady(h, secret: str) -> None:
+    """The probe must be logging in before T0, or a baseline "impact" would be
+    whatever broke it earlier. eks-run2: after overlapping runs had rotated the
+    password, the baseline probe (ESO refreshes its Secret hourly there) had
+    failed every login for 30 minutes before the row began. On proof of
+    failures: force an ESO sync to AWSCURRENT, restart the probe, require a
+    clean window."""
+    st = _probe_recent(h, PRE_S)
+    if st["samples"] and not st["failed"]:
+        return
+    h.log(f"  steady: db probe failing before T0 ({st['failed']} of {st['samples']} logins), "
+          f"syncing its Secret and restarting it")
+    cur = json.loads(aws("secretsmanager", "get-secret-value", "--secret-id", secret)["SecretString"])
+    h.k("-n", h.NS, "annotate", "externalsecret", "db-app", f"force-sync={int(time.time())}", "--overwrite")
+
+    def synced() -> bool:
+        data = h.kj("-n", h.NS, "get", "secret", "db-app").get("data", {})
+        dec = {k: base64.b64decode(v).decode() for k, v in data.items()}
+        if "username" in dec:  # baseline: one version as env keys
+            return dec["username"] == cur["username"] and dec.get("password") == cur["password"]
+        return json.loads(dec.get("current.json", "{}")).get("password") == cur["password"]
+
+    h.wait_for(synced, 120, step=5, what="the db-app Secret to hold AWSCURRENT")
+    h.k("-n", h.NS, "rollout", "restart", "deploy/dbprobe")
+    h.k("-n", h.NS, "rollout", "status", "deploy/dbprobe", "--timeout=180s", timeout=200)
+    time.sleep(PRE_S + 5)
+    st = _probe_recent(h, PRE_S)
+    if not st["samples"] or st["failed"]:
+        raise RuntimeError(f"db probe still failing after a resync and restart ({st['failed']} of {st['samples']})")
+
+
 def row_s1b(h, lab, profile: str, d: Path) -> dict:
     o = outputs()
     secret = o["db_app_secret"]
+    s1b_steady(h, secret)
     pod_name = h.kj("-n", h.NS, "get", "pod", "-l", "app=dbprobe")["items"][0]["metadata"]["name"]
     original = json.loads(aws("secretsmanager", "get-secret-value", "--secret-id", secret)["SecretString"])
     with h.PortForward(h.NS, "svc/dbprobe", 8080) as pf:
         t1 = h.now()
         offset = pf.get("/now")["now"] - (t1 + h.now()) / 2
         t0 = h.now()
+        pre = pf.get(f"/stats?since={t0 - PRE_S + offset}&until={t0 + offset}")
         ev: dict = {"rotation1": None, "rotation2": None}
         _rotate(secret)
         ev["rotation1"] = h.now()
@@ -285,6 +329,7 @@ def row_s1b(h, lab, profile: str, d: Path) -> dict:
             "original_credential_rejected": login.get("login") is False and login.get("auth_error") is True,
             "failed": st["failed"], "dropped": st["dropped"], "users_seen": st["users_seen"],
             "first_error": st.get("first_error"), "samples": st["samples"], "expected": end - t0,
+            "pre_t0": {"samples": pre["samples"], "failed": pre["failed"], "seconds": PRE_S},
             "window": "T0 (first rotation) to second rotation + 60s",
             "impact": {"n": st["samples"], "errors": st["failed"],
                        "error_rate": (st["failed"] / st["samples"]) if st["samples"] else None}}
