@@ -77,7 +77,10 @@ replaces the nodes under the profile's budget.
 
 ### R2: isolate, preserve, investigate
 
-The responder follows the EKS incident response order. It never deletes the
+The responder follows the EKS incident response order. It cordons the node
+before it relabels the pod out of the Service: relabelling makes the Rollout
+create a replacement at once, and an uncordoned node can receive it just
+before its security groups are swapped (found in the first EKS session). It never deletes the
 pod or the node; eradication is a human decision, which the runner takes only
 after the evidence is in the repo. Run Command output comes back through the
 SSM API, so nodes need no write access to the evidence bucket, and the

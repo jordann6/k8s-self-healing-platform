@@ -18,7 +18,7 @@
       "Default": "NoAction"
     },
     "NoAction": {"Type": "Succeed"},
-    "InitSteps": {"Type": "Pass", "Result": {}, "ResultPath": "$.steps", "Next": "IsolatePod"},
+    "InitSteps": {"Type": "Pass", "Result": {}, "ResultPath": "$.steps", "Next": "CordonNode"},
 
     "IsolatePod": {
       "Type": "Task",
@@ -27,7 +27,7 @@
       "ResultPath": "$.steps.isolate_pod",
       "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 3, "IntervalSeconds": 2}],
       "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
-      "Next": "CordonNode"
+      "Next": "ProtectInstance"
     },
     "CordonNode": {
       "Type": "Task",
@@ -36,7 +36,7 @@
       "ResultPath": "$.steps.cordon",
       "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 3, "IntervalSeconds": 2}],
       "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
-      "Next": "ProtectInstance"
+      "Next": "IsolatePod"
     },
     "ProtectInstance": {
       "Type": "Task",

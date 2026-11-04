@@ -181,16 +181,36 @@ class PortForward:
 
 
 class HubbleRelay:
-    def __enter__(self) -> "HubbleRelay":
+    """The relay port-forward. On EKS a port-forward through the API server
+    does not survive a two-hour run (eks-run2: R1's drop query silently came
+    back empty), so every query first ensures it is still up."""
+
+    current: "HubbleRelay | None" = None
+
+    def _start(self) -> None:
         self.proc = subprocess.Popen(["cilium", "hubble", "port-forward"],
                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         for _ in range(60):
             if sh(["hubble", "status"], timeout=10).returncode == 0:
-                return self
+                return
             time.sleep(0.5)
         raise RuntimeError("hubble relay not reachable on localhost:4245")
 
+    def ensure(self) -> None:
+        if sh(["hubble", "status"], timeout=10).returncode == 0:
+            return
+        log("  hubble relay port-forward lost, re-opening")
+        self.proc.kill()
+        self.proc.wait(timeout=10)
+        self._start()
+
+    def __enter__(self) -> "HubbleRelay":
+        self._start()
+        HubbleRelay.current = self
+        return self
+
     def __exit__(self, *exc) -> None:
+        HubbleRelay.current = None
         self.proc.send_signal(signal.SIGTERM)
         self.proc.wait(timeout=10)
 
@@ -913,16 +933,31 @@ def falco_event(pod_name: str, since: float) -> dict | None:
 
 
 def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
-    p = sh(["hubble", "observe", "--pod", f"{NS}/{pod_name}", "--verdict", "DROPPED", "--since",
-            dt.datetime.fromtimestamp(since - 2, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "-o", "json"], timeout=60)
-    out = []
-    for ln in p.stdout.splitlines():
-        try:
-            f = json.loads(ln).get("flow")
-        except json.JSONDecodeError:
+    """Policy drops for the pod since `since`. A failed query raises (it is
+    never "no drops"); an empty answer is retried briefly, because the relay
+    collects flows from every node."""
+    out: list[dict] = []
+    for attempt in range(3):
+        if HubbleRelay.current:
+            HubbleRelay.current.ensure()
+        p = sh(["hubble", "observe", "--pod", f"{NS}/{pod_name}", "--verdict", "DROPPED", "--since",
+                dt.datetime.fromtimestamp(since - 2, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "-o", "json"],
+               timeout=60)
+        if p.returncode != 0:
+            if attempt == 2:
+                raise RuntimeError(f"hubble observe failed: {(p.stderr or p.stdout).strip()[:300]}")
+            time.sleep(5)
             continue
-        if f and "POLICY" in f.get("drop_reason_desc", ""):
-            out.append(f)
+        for ln in p.stdout.splitlines():
+            try:
+                f = json.loads(ln).get("flow")
+            except json.JSONDecodeError:
+                continue
+            if f and "POLICY" in f.get("drop_reason_desc", ""):
+                out.append(f)
+        if out:
+            return out
+        time.sleep(5)
     return out
 
 

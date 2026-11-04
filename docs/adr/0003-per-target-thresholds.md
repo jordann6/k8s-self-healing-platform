@@ -89,6 +89,18 @@ prompted each one:
   recording, so the evidence showed no node deletion, replacement or recovery
   (Karpenter had deleted the node at 35s). The row now keeps recording them
   until its window ends; the verdict still comes from the abort line.
+- **R1, runner** (`eks-run2`): the Hubble relay port-forward was opened once
+  per run and did not survive two hours through the EKS API, and a failed
+  query was read as "no drops", so a working quarantine was judged an error
+  (Hubble had recorded the prober's `POLICY_DENY` drops). Every query now
+  re-opens the port-forward if needed, and a failed query raises instead of
+  returning nothing.
+- **R2, responder order** (`eks-run2`): the responder relabelled the pod out
+  of the Service before cordoning its node, and in the 0.2s between the two
+  the scheduler put the replacement pod on that same node. The security
+  group swap then cut the replacement off while it still reported Ready, so
+  about a third of requests failed for 100s (12.65%, a miss). The state
+  machine now cordons first.
 - **R2, runner** (`eks-run1`): the runner stopped polling once the responder
   had isolated the pod and stored evidence (170s), before `ListFindings`
   returned a finding GuardDuty had created at 155s and already delivered to
