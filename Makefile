@@ -1,8 +1,12 @@
-# Kubernetes Self-Healing Platform: phase 1, the portable core on kind.
+# Kubernetes Self-Healing Platform: the portable core on kind, and the AWS
+# module on EKS.
 #
 #   make up        kind + Cilium + every platform chart + bootstrap (zero spend)
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
+#
+#   EKS (docs/runbook-aws.md): make eks-plan, then the operator applies the
+#   saved plan; make eks-up; make demo TARGET=eks; teardown in four steps.
 #
 # The runner exits non-zero if any hardened row misses its threshold or
 # cannot be judged. It never skips a row.
@@ -11,9 +15,14 @@
 
 SHELL := /usr/bin/env bash
 KIND_CLUSTER := selfheal
-# A kubeconfig of its own: other clusters on this machine (and other sessions
-# switching the shared current-context) can never receive a lab command.
+# A kubeconfig of its own per target: other clusters on this machine (and other
+# sessions switching the shared current-context) can never receive a lab command.
+TARGET ?= kind
+ifeq ($(TARGET),eks)
+export KUBECONFIG := $(CURDIR)/.kube/eks
+else
 export KUBECONFIG := $(CURDIR)/.kube/config
+endif
 
 # Pinned chart versions (app version in the comment). Verified 2026-11-03.
 CILIUM_VERSION          := 1.20.4
@@ -29,6 +38,7 @@ FALCO_VERSION           := 9.2.2    # 0.45.2, Falcosidekick 2.35.1
 TALON_VERSION           := 0.5.0    # app 0.3.0 (alpha, pinned; actionner kubernetes:label)
 SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
+KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
 
 HELM := helm
 
@@ -112,8 +122,10 @@ down: ## Delete the kind cluster
 # --- the experiment ---------------------------------------------------------
 
 .PHONY: demo
-demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json)
-	TALON_VERSION=$(strip $(TALON_VERSION)) python3 scenarios/run.py $(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
+demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks for EKS
+	$(if $(filter eks,$(TARGET)),AWS_PROFILE=$(LAB_PROFILE) MGMT_PROFILE=$(MGMT_PROFILE),) \
+	TALON_VERSION=$(strip $(TALON_VERSION)) python3 scenarios/run.py --target $(TARGET) \
+		$(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
 
 .PHONY: profile
 profile: ## Switch profile by hand for exploration: make profile P=baseline|hardened
@@ -137,9 +149,96 @@ test: ## Unit-test the runner's honesty rules and the R2 responder's refusals (n
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 
 .PHONY: check
-check: test ## Static checks: both profiles render, shellcheck, pre-commit hooks
+check: test eks-check ## Static checks: every profile renders (kind and EKS), shellcheck, Terraform gates, pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
-	shellcheck scripts/*.sh cilium/*.sh
-	python3 -m py_compile app/app.py scenarios/run.py
+	scripts/render-eks-profiles.sh
+	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py scenarios/run.py infra/aws/responder/handler.py
 	pre-commit run --all-files
+
+# --- EKS: the AWS module ------------------------------------------------------
+# The credentialed apply and destroy are run by the operator from the saved
+# plans these targets print, so a human reads every plan first. Nothing here
+# applies or destroys infrastructure.
+#
+#   MGMT_PROFILE  credentials Terraform starts from (assumes into the lab and
+#                 security accounts; infra/aws/main.tf)
+#   LAB_PROFILE   credentials for the lab account (AWS CLI, runner)
+
+TFA := AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws
+MY_IP_CIDRS = -var='cluster_public_access_cidrs=["'"$$(curl -4 -s ifconfig.me)"'/32"]'
+CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(strip $(KARPENTER_VERSION)) \
+	METRICS_SERVER_VERSION=$(strip $(METRICS_SERVER_VERSION)) KPS_VERSION=$(strip $(KPS_VERSION)) \
+	CERT_MANAGER_VERSION=$(strip $(CERT_MANAGER_VERSION)) ESO_VERSION=$(strip $(ESO_VERSION)) \
+	ROLLOUTS_VERSION=$(strip $(ROLLOUTS_VERSION)) RELOADER_VERSION=$(strip $(RELOADER_VERSION)) \
+	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
+	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION))
+EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
+
+.PHONY: eks-check
+eks-check: ## Terraform gates (no credentials): fmt, validate, tflint, checkov, trivy, conftest
+	terraform -chdir=infra/aws fmt -check -recursive
+	infra/aws/rotation/build.sh >/dev/null
+	terraform -chdir=infra/aws init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/aws validate
+	tflint --chdir=infra/aws --recursive --minimum-failure-severity=warning
+	checkov -d infra/aws --framework terraform --quiet --compact --skip-path .terraform --baseline infra/aws/.checkov.baseline
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/aws/.terraform --skip-dirs infra/aws/build infra/aws
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/aws/*.tf infra/aws/modules/*/*.tf
+
+.PHONY: eks-lock
+eks-lock: ## Record provider hashes for CI (linux_amd64) and this Mac (darwin_arm64)
+	terraform -chdir=infra/aws providers lock -platform=linux_amd64 -platform=darwin_arm64
+
+.PHONY: eks-cost
+eks-cost: ## Infracost estimate of the full stack (before any live session)
+	infra/aws/rotation/build.sh >/dev/null
+	infracost breakdown --path infra/aws --terraform-var-file lab.auto.tfvars --show-skipped
+
+.PHONY: eks-preflight
+eks-preflight: ## Read-only checks: accounts, Config recorder, GuardDuty admin, leftovers, quota, IPv4
+	scripts/eks-preflight.sh
+
+.PHONY: eks-plan
+eks-plan: eks-preflight ## Write infra/aws/tfplan (API scoped to your IPv4 /32) and print the apply command
+	infra/aws/rotation/build.sh
+	$(TFA) init -input=false
+	$(TFA) plan -input=false -out=tfplan $(MY_IP_CIDRS)
+	@echo; echo "Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws apply $(CURDIR)/infra/aws/tfplan"
+
+.PHONY: eks-platform
+eks-platform: ## Kubeconfig, Cilium ENI, Karpenter, platform charts, responder RBAC (after the apply)
+	$(EKS_ENV) $(CHART_VERSIONS) scripts/eks-platform.sh
+
+.PHONY: eks-images
+eks-images: ## Build linux/amd64 images, push the git SHA tags to ECR, write the generated overlay
+	$(EKS_ENV) scripts/eks-images.sh
+
+.PHONY: eks-bootstrap
+eks-bootstrap: ## CA, partner key in Secrets Manager, S1b DB user and rotation, Git, Argo CD root app
+	$(EKS_ENV) scripts/eks-bootstrap.sh
+
+.PHONY: eks-up
+eks-up: eks-platform eks-images eks-bootstrap ## Everything after the apply, in order
+
+.PHONY: eks-runtime-off-plan
+eks-runtime-off-plan: ## Teardown 1 of 4: plan turning GuardDuty Runtime Monitoring off, print the apply command
+	$(TFA) plan -input=false -out=runtime-off.tfplan -var=runtime_monitoring=false $(MY_IP_CIDRS)
+	@echo; echo "Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws apply $(CURDIR)/infra/aws/runtime-off.tfplan"
+	@echo "Then:  make eks-predestroy"
+
+.PHONY: eks-predestroy
+eks-predestroy: ## Teardown 2 of 4: Karpenter nodes, protection, Cilium, GuardDuty leftovers, snapshots
+	$(EKS_ENV) scripts/eks-predestroy.sh
+
+.PHONY: eks-destroy-plan
+eks-destroy-plan: ## Teardown 3 of 4: write infra/aws/destroy.tfplan and print the command
+	infra/aws/rotation/build.sh >/dev/null
+	$(TFA) plan -destroy -input=false -out=destroy.tfplan -var=runtime_monitoring=false $(MY_IP_CIDRS)
+	@echo; echo "Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws apply $(CURDIR)/infra/aws/destroy.tfplan"
+	@echo "Then:  make eks-verify-gone"
+
+.PHONY: eks-verify-gone
+eks-verify-gone: ## Teardown 4 of 4: read-only proof nothing survived (every teardown gotcha)
+	LAB_PROFILE=$(LAB_PROFILE) scripts/eks-verify-gone.sh
