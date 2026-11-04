@@ -219,6 +219,16 @@ def row_a4(h, lab, profile: str, d: Path) -> dict:
 # S1b: two alternating-users rotations under live database traffic
 # --------------------------------------------------------------------------- #
 
+def rotation_finished(stages: dict, before: str) -> bool:
+    """AWSCURRENT moved off `before` and no other version is still pending.
+    Secrets Manager leaves AWSPENDING on the version that became AWSCURRENT
+    (eks-run1: both labels on one version long after finishSecret), so
+    "no AWSPENDING anywhere" never becomes true."""
+    cur = next((v for v, s in stages.items() if "AWSCURRENT" in s), before)
+    stray = any("AWSPENDING" in s and "AWSCURRENT" not in s for s in stages.values())
+    return cur != before and not stray
+
+
 def _rotate(secret: str) -> str:
     """Start a rotation and wait for it to finish. Returns the new
     AWSCURRENT version id."""
@@ -230,10 +240,8 @@ def _rotate(secret: str) -> str:
     deadline = time.time() + 240
     while time.time() < deadline:
         st = stages()
-        cur = next((v for v, s in st.items() if "AWSCURRENT" in s), before)
-        pending = any("AWSPENDING" in s for s in st.values())
-        if cur != before and not pending:
-            return cur
+        if rotation_finished(st, before):
+            return next(v for v, s in st.items() if "AWSCURRENT" in s)
         time.sleep(3)
     raise RuntimeError(f"rotation of {secret} did not finish within 240s")
 

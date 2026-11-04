@@ -6,6 +6,7 @@ Run: make test
 """
 import unittest
 
+from eks_rows import rotation_finished
 from judge import THRESHOLDS, classify, overall, verdict
 
 T = THRESHOLDS["kind"]
@@ -338,6 +339,26 @@ class EksThresholds(unittest.TestCase):
 
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])
+
+
+class RotationFinished(unittest.TestCase):
+    """S1b waits for each rotation with these labels (eks-run1 shape)."""
+
+    def test_pending_left_on_the_new_current_counts_as_finished(self):
+        st = {"713e": ["AWSPREVIOUS"], "ca4c": ["AWSCURRENT", "AWSPENDING"]}
+        self.assertTrue(rotation_finished(st, before="713e"))
+
+    def test_pending_on_another_version_is_still_rotating(self):
+        st = {"713e": ["AWSCURRENT"], "ca4c": ["AWSPENDING"]}
+        self.assertFalse(rotation_finished(st, before="713e"))
+
+    def test_current_not_moved_is_not_finished(self):
+        st = {"420f": ["AWSPREVIOUS"], "713e": ["AWSCURRENT"]}
+        self.assertFalse(rotation_finished(st, before="713e"))
+
+    def test_clean_finish(self):
+        st = {"713e": ["AWSPREVIOUS"], "ca4c": ["AWSCURRENT"]}
+        self.assertTrue(rotation_finished(st, before="713e"))
 
 
 if __name__ == "__main__":
