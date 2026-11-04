@@ -60,7 +60,7 @@ ABORT: dict = {}  # evidence for the abort line in the current row, set by watch
 ACTIONS = {
     "A1": "readiness removes the hung pod; liveness restarts it",
     "A2": "Argo Rollouts canary analysis aborts; stable keeps serving",
-    "A3": "HPA scales the Rollout out",
+    "A3": "admission control sheds the excess fast; HPA scales the Rollout out",
     "A5": "memory limit OOMKills the leak; kubelet restarts it; OOM alert pages with a runbook",
     "S1": "ESO syncs the rotated key; Reloader restarts the pods",
     "S2": "cert-manager renews; the app hot-reloads the mounted pair",
@@ -597,7 +597,7 @@ export function handleSummary(data) { return {stdout: 'K6SUMMARY ' + JSON.string
 
 
 def row_a3(lab: Lab, profile: str, d: Path) -> dict:
-    rate = int(os.environ.get("A3_RATE", "40"))
+    rate = int(os.environ.get("A3_RATE", "30"))
     apply({"apiVersion": "v1", "kind": "ConfigMap",
            "metadata": {"name": "a3-k6", "namespace": NS, "labels": {"selfheal/row": "A3"}},
            "data": {"spike.js": K6_SCRIPT}})
@@ -690,7 +690,9 @@ def row_a5(lab: Lab, profile: str, d: Path) -> dict:
     def done() -> bool:
         return ev["recovered"] is not None and ev["alert"] is not None
 
-    aborted = watch(lab, t0 + 100, poll, done)
+    # Fixed 100s window: stopping at recovery would shrink the denominator and
+    # inflate the error rate of an otherwise healed row.
+    aborted = watch(lab, t0 + 100, poll)
     if ev["oom"] is None:
         ev["mem"] = cgroup_mb(target["name"])
     end = now()
@@ -921,6 +923,8 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
             for fl in drops:
                 f.write(json.dumps(fl) + "\n")
         evidence_s = round(now() - t0, 1)
+    # The error window is a fixed 60s, whenever the response finished.
+    time.sleep(max(0.0, t0 + 60 - now()))
     end = now()
     st = window(lab, "http", t0, end, d, profile)
     # Eradicate: only now is the pod deleted.

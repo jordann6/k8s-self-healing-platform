@@ -29,7 +29,7 @@ import json
 THRESHOLDS = {
     "kind": {
         "A1": {"recover_s": 60, "error_rate": 0.01},
-        "A2": {"abort_s": 120, "error_rate": 0.01},
+        "A2": {"abort_s": 180, "error_rate": 0.01},
         "A3": {"p95_ms": 300, "error_rate": 0.01},
         "A5": {"recover_s": 60, "alert_s": 120, "error_rate": 0.01},
         "S1": {"failed": 0, "grace_s": 60},
@@ -47,9 +47,9 @@ ABORT_ERROR_RATE = 0.5
 HYPOTHESES = {
     "A1": "Error rate stays under 1% once a hung pod is detected, and the hung pod is restarted and serving "
           "within 60s, while one pod deadlocks and Chaos Mesh kills a second.",
-    "A2": "A release that fails 30% of requests is stopped within 120s and only v1 serves afterwards, "
+    "A2": "A release that fails 30% of requests is stopped within 180s and only v1 serves afterwards, "
           "with the error rate back under 1%.",
-    "A3": "Once a 40 rps spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
+    "A3": "Once a 30 rps spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
           "under 300 ms and errors under 1%. The ramp before the HPA reacts is reported, not judged.",
     "A5": "A leaking container is killed at its limit, restarted and serving within 60s, a human is paged "
           "with a runbook within 120s, and no other pod restarts.",

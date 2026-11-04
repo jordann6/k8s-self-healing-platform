@@ -26,6 +26,9 @@ row can only be "healed" if the same run's baseline showed impact.
 
 ## Consequences
 
+- Admission control for row A3 is the hardened manifest setting `MAX_INFLIGHT`;
+  the shedding code ships in the one image both profiles run, off by default.
+
 - The app hot-reloads its TLS pair in both runs, so row S2 measures who renews
   the certificate, not whether the app can load one.
 - The baseline still has a network policy (allow-all) under the same name, so

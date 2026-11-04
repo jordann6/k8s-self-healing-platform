@@ -104,6 +104,12 @@ METRICS = Metrics()
 HANG = threading.Event()
 LEAK: list[bytes] = []
 WORK_MS = float(os.environ.get("WORK_MS", "10"))
+# Admission control: at most MAX_INFLIGHT requests to / do work at once; the
+# rest get a fast 503. 0 = unlimited (the default, as most servers ship).
+# Health probes are never shed, so a busy pod stays Ready and keeps reporting
+# CPU to the HPA instead of dropping out of the Service.
+MAX_INFLIGHT = int(os.environ.get("MAX_INFLIGHT", "0"))
+INFLIGHT = threading.BoundedSemaphore(MAX_INFLIGHT) if MAX_INFLIGHT > 0 else None
 LEAK_CAP_MB = int(os.environ.get("LEAK_CAP_MB", "320"))
 LEAK_MB_PER_S = int(os.environ.get("LEAK_MB_PER_S", "16"))
 PARTNER_URL = os.environ.get("PARTNER_URL", "http://partner.selfheal.svc.cluster.local:8080/v1/check")
@@ -190,8 +196,15 @@ class WebHandler(Base):
         if path in ("/healthz", "/readyz"):
             code = 200
             self.reply(code, {"ok": True})
+        elif path == "/" and INFLIGHT is not None and not INFLIGHT.acquire(blocking=False):
+            code = 503
+            self.reply(code, {"error": "overloaded, shedding", "pod": POD})
         elif path == "/":
-            burn_cpu(WORK_MS)
+            try:
+                burn_cpu(WORK_MS)
+            finally:
+                if INFLIGHT is not None:
+                    INFLIGHT.release()
             if not PARTNER.valid():
                 code = 502
                 self.reply(code, {"error": "partner rejected the API key", "pod": POD})

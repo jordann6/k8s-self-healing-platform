@@ -52,6 +52,9 @@ spec:
             # CPU per request. With small pods, app work dominates the per-request
             # cost on the node, so a spike saturates pods, not the node (row A3).
             - {name: WORK_MS, value: "20"}
+            # Row A3: shed load past four concurrent requests instead of queueing
+            # it. Probes stay fast, the pod stays Ready, the HPA keeps its metrics.
+            - {name: MAX_INFLIGHT, value: "4"}
             - name: POD_NAME
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
             - name: PARTNER_API_KEY
