@@ -57,7 +57,8 @@ Two reference runs on the same commit (`evidence/kind-run5`, `evidence/kind-run7
 every baseline row showed impact, and hardened A1, A2, A5, S1, S2, S3 and R1
 healed in both. Hardened A3 met its error bar (0.3%) and scaled 3 to 8 and 3 to
 10 pods, but missed its 300 ms p95 bar (758 ms, 697 ms). The runner reports
-that as a FAIL and is meant to.
+that as a FAIL and is meant to: the 300 ms bar is not lowered for kind, and
+A3 latency is proven on EKS instead.
 
 ## What broke (and what it taught)
 
@@ -83,5 +84,6 @@ that as a FAIL and is meant to.
   server until the platform was trimmed (ESO CRDs and webhook, Argo CD watch
   scope, Hubble ring, no cAdvisor scrape), and the A3 latency bar is not
   reachable when every pod shares eight vCPUs with the control plane: even at
-  rest p95 is 130-230 ms. Whether A3 keeps a kind-specific latency bar or
-  proves latency only on the cloud targets is an open decision.
+  rest p95 is 130-230 ms. A3 keeps its 300 ms bar everywhere: on kind it is
+  recorded as errors healed, latency not reachable on one shared node, and
+  the latency claim is proven on EKS ([ADR-0003](docs/adr/0003-per-target-thresholds.md)).

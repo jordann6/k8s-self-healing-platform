@@ -24,3 +24,17 @@ against, next to each row.
   result aborted a healthy canary) and two failing measurements 10s apart. The
   user-facing criteria did not change: afterwards only v1 serves and the error
   rate is under 1%.
+
+## A3 latency on kind (decided 2026-11-04, no threshold change)
+
+The A3 latency bar stays at 300 ms on every target. On kind, hardened A3 met its
+error bar (0.3%) and the HPA scaled 3 to 8 and 3 to 10 pods in the two
+reference runs, but p95 was 758 ms and 697 ms. The kind node shares eight
+vCPUs between every pod and the control plane, and at-rest p95 there is
+already 130-230 ms, so the bar is not reachable on that hardware.
+
+The kind result is recorded as **errors healed, latency not reachable on one
+shared node**, and the runner keeps reporting it as a miss. The latency claim is
+proven on EKS, where worker nodes do not host the control plane. A kind-only
+relative bar was considered and rejected: it would be a second post-observation
+change, and a bar relative to an already degraded node proves little.
