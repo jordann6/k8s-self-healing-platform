@@ -1,0 +1,6 @@
+LAST SEEN   TYPE      REASON      OBJECT                     MESSAGE
+2m50s       Normal    Scheduled   pod/web-78f6bf5896-bsfcl   Successfully assigned selfheal/web-78f6bf5896-bsfcl to selfheal-control-plane
+2m49s       Normal    Pulled      pod/web-78f6bf5896-bsfcl   Container image "selfheal-app:v1" already present on machine and can be accessed by the pod
+2m49s       Normal    Created     pod/web-78f6bf5896-bsfcl   Container created
+2m48s       Normal    Started     pod/web-78f6bf5896-bsfcl   Container started
+2m46s       Warning   Unhealthy   pod/web-78f6bf5896-bsfcl   Readiness probe failed: Get "http://10.244.0.87:8080/readyz": dial tcp 10.244.0.87:8080: connect: connection refused

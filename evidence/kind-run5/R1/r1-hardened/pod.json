@@ -1,0 +1,291 @@
+{
+  "apiVersion": "v1",
+  "kind": "Pod",
+  "metadata": {
+    "creationTimestamp": "2026-11-04T06:20:30Z",
+    "generateName": "web-78f6bf5896-",
+    "generation": 1,
+    "labels": {
+      "app": "web",
+      "lab/pool": "quarantine",
+      "quarantine": "true",
+      "rollouts-pod-template-hash": "78f6bf5896"
+    },
+    "name": "web-78f6bf5896-d9zpj",
+    "namespace": "selfheal",
+    "resourceVersion": "12022",
+    "uid": "aff4de7b-0992-428a-a685-412c2ae7d6cc"
+  },
+  "spec": {
+    "automountServiceAccountToken": false,
+    "containers": [
+      {
+        "env": [
+          {
+            "name": "ROLE",
+            "value": "web"
+          },
+          {
+            "name": "WORK_MS",
+            "value": "20"
+          },
+          {
+            "name": "MAX_INFLIGHT",
+            "value": "4"
+          },
+          {
+            "name": "POD_NAME",
+            "valueFrom": {
+              "fieldRef": {
+                "apiVersion": "v1",
+                "fieldPath": "metadata.name"
+              }
+            }
+          },
+          {
+            "name": "PARTNER_API_KEY",
+            "valueFrom": {
+              "secretKeyRef": {
+                "key": "api-key",
+                "name": "partner-api-key"
+              }
+            }
+          }
+        ],
+        "image": "selfheal-app:v1",
+        "imagePullPolicy": "IfNotPresent",
+        "lifecycle": {
+          "preStop": {
+            "exec": {
+              "command": [
+                "sleep",
+                "5"
+              ]
+            }
+          }
+        },
+        "livenessProbe": {
+          "failureThreshold": 4,
+          "httpGet": {
+            "path": "/healthz",
+            "port": "http",
+            "scheme": "HTTP"
+          },
+          "periodSeconds": 5,
+          "successThreshold": 1,
+          "timeoutSeconds": 3
+        },
+        "name": "web",
+        "ports": [
+          {
+            "containerPort": 8080,
+            "name": "http",
+            "protocol": "TCP"
+          },
+          {
+            "containerPort": 8443,
+            "name": "https",
+            "protocol": "TCP"
+          }
+        ],
+        "readinessProbe": {
+          "failureThreshold": 3,
+          "httpGet": {
+            "path": "/readyz",
+            "port": "http",
+            "scheme": "HTTP"
+          },
+          "periodSeconds": 2,
+          "successThreshold": 1,
+          "timeoutSeconds": 2
+        },
+        "resources": {
+          "limits": {
+            "cpu": "200m",
+            "memory": "128Mi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "64Mi"
+          }
+        },
+        "securityContext": {
+          "allowPrivilegeEscalation": false,
+          "capabilities": {
+            "drop": [
+              "ALL"
+            ]
+          },
+          "readOnlyRootFilesystem": true
+        },
+        "terminationMessagePath": "/dev/termination-log",
+        "terminationMessagePolicy": "File",
+        "volumeMounts": [
+          {
+            "mountPath": "/tls",
+            "name": "tls",
+            "readOnly": true
+          }
+        ]
+      }
+    ],
+    "dnsPolicy": "ClusterFirst",
+    "enableServiceLinks": false,
+    "nodeName": "selfheal-control-plane",
+    "preemptionPolicy": "PreemptLowerPriority",
+    "priority": 0,
+    "restartPolicy": "Always",
+    "schedulerName": "default-scheduler",
+    "securityContext": {
+      "runAsGroup": 10001,
+      "runAsNonRoot": true,
+      "runAsUser": 10001,
+      "seccompProfile": {
+        "type": "RuntimeDefault"
+      }
+    },
+    "serviceAccount": "default",
+    "serviceAccountName": "default",
+    "terminationGracePeriodSeconds": 20,
+    "tolerations": [
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/not-ready",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      },
+      {
+        "effect": "NoExecute",
+        "key": "node.kubernetes.io/unreachable",
+        "operator": "Exists",
+        "tolerationSeconds": 300
+      }
+    ],
+    "volumes": [
+      {
+        "name": "tls",
+        "secret": {
+          "defaultMode": 420,
+          "secretName": "web-tls"
+        }
+      }
+    ]
+  },
+  "status": {
+    "allocatedResources": {
+      "cpu": "100m",
+      "memory": "64Mi"
+    },
+    "conditions": [
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2026-11-04T06:20:31Z",
+        "observedGeneration": 1,
+        "status": "True",
+        "type": "PodReadyToStartContainers"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2026-11-04T06:20:30Z",
+        "observedGeneration": 1,
+        "status": "True",
+        "type": "Initialized"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2026-11-04T06:20:38Z",
+        "observedGeneration": 1,
+        "status": "True",
+        "type": "Ready"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2026-11-04T06:20:38Z",
+        "observedGeneration": 1,
+        "status": "True",
+        "type": "ContainersReady"
+      },
+      {
+        "lastProbeTime": null,
+        "lastTransitionTime": "2026-11-04T06:20:30Z",
+        "observedGeneration": 1,
+        "status": "True",
+        "type": "PodScheduled"
+      }
+    ],
+    "containerStatuses": [
+      {
+        "allocatedResources": {
+          "cpu": "100m",
+          "memory": "64Mi"
+        },
+        "containerID": "containerd://4847dd6095024373b7cd8ba4b011f81d759ad22b6c45ea08c9e369c28807b7b1",
+        "image": "docker.io/library/selfheal-app:v1",
+        "imageID": "docker.io/library/import-2026-11-04@sha256:e0d3125343a7bf3d5e1032ac03ec6730904df8100d7aa22eb85a04e526d31499",
+        "lastState": {},
+        "name": "web",
+        "ready": true,
+        "resources": {
+          "limits": {
+            "cpu": "200m",
+            "memory": "128Mi"
+          },
+          "requests": {
+            "cpu": "100m",
+            "memory": "64Mi"
+          }
+        },
+        "restartCount": 0,
+        "started": true,
+        "state": {
+          "running": {
+            "startedAt": "2026-11-04T06:20:32Z"
+          }
+        },
+        "user": {
+          "linux": {
+            "gid": 10001,
+            "supplementalGroups": [
+              10001
+            ],
+            "uid": 10001
+          }
+        },
+        "volumeMounts": [
+          {
+            "mountPath": "/tls",
+            "name": "tls",
+            "readOnly": true,
+            "recursiveReadOnly": "Disabled"
+          }
+        ]
+      }
+    ],
+    "hostIP": "172.18.0.2",
+    "hostIPs": [
+      {
+        "ip": "172.18.0.2"
+      }
+    ],
+    "observedGeneration": 1,
+    "phase": "Running",
+    "podIP": "10.244.0.119",
+    "podIPs": [
+      {
+        "ip": "10.244.0.119"
+      }
+    ],
+    "qosClass": "Burstable",
+    "resources": {
+      "limits": {
+        "cpu": "200m",
+        "memory": "128Mi"
+      },
+      "requests": {
+        "cpu": "79m",
+        "memory": "64Mi"
+      }
+    },
+    "startTime": "2026-11-04T06:20:30Z"
+  }
+}

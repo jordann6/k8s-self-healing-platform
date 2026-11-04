@@ -1,0 +1,25 @@
+{
+  "hostname": "selfheal-control-plane",
+  "output": "06:24:05.009275059: Warning Shell in selfheal web pod (user=<NA> cmd=sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 & pod=web-78f6bf5896-d9zpj ns=selfheal container=4847dd609502 image=docker.io/library/import-2026-11-04) container_id=4847dd609502 container_name=web container_image_repository=docker.io/library/import-2026-11-04 container_image_tag=v1 k8s_pod_name=web-78f6bf5896-d9zpj k8s_ns_name=selfheal",
+  "output_fields": {
+    "container.id": "4847dd609502",
+    "container.image.repository": "docker.io/library/import-2026-11-04",
+    "container.image.tag": "v1",
+    "container.name": "web",
+    "evt.time": 1793773445009275059,
+    "k8s.ns.name": "selfheal",
+    "k8s.pod.name": "web-78f6bf5896-d9zpj",
+    "proc.cmdline": "sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 &",
+    "user.name": "<NA>"
+  },
+  "priority": "Warning",
+  "rule": "Shell spawned in selfheal web pod",
+  "source": "syscall",
+  "tags": [
+    "T1059",
+    "mitre_execution",
+    "selfheal"
+  ],
+  "time": "2026-11-04T06:24:05.009275059Z",
+  "_t": 1793773445.009275
+}

@@ -25,3 +25,6 @@ __pycache__/
 # scenario runs: only curated reference runs are committed (see evidence/README.md)
 evidence/*
 !evidence/README.md
+# Reference runs: identical config (runs 5 and 7), 7 of 8 rows healed in both.
+!evidence/kind-run5/
+!evidence/kind-run7/
