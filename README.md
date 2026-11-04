@@ -83,4 +83,5 @@ that as a FAIL and is meant to.
   server until the platform was trimmed (ESO CRDs and webhook, Argo CD watch
   scope, Hubble ring, no cAdvisor scrape), and the A3 latency bar is not
   reachable when every pod shares eight vCPUs with the control plane: even at
-  rest p95 is 130-230 ms. Latency under a spike is proven on EKS in phase 2.
+  rest p95 is 130-230 ms. Whether A3 keeps a kind-specific latency bar or
+  proves latency only on the cloud targets is an open decision.
