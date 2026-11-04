@@ -79,7 +79,9 @@ module "eks" {
       desired_size   = 2
       capacity_type  = "ON_DEMAND"
 
-      labels = { "lab/pool" = "system" }
+      # Node pool label; pods use their own lab/pool label for Service
+      # membership, so the node label lives under a separate key.
+      labels = { "selfheal.lab/nodes" = "system" }
 
       # Nothing but Cilium schedules until the agent is ready on the node and
       # removes this taint: the node half of the readiness gate.

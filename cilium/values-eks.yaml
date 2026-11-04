@@ -1,0 +1,18 @@
+# EKS overrides on top of values.yaml: AWS ENI IPAM, native routing, as in the
+# network segmentation lab. Pods get real VPC addresses from ENIs the Cilium
+# operator attaches; those ENIs carry the node's security groups, which is what
+# lets the R2 responder isolate a whole node by swapping its groups. No chaining
+# with the VPC CNI (aws-node is pinned to a label no node carries).
+ipam:
+  mode: eni
+eni:
+  enabled: true
+routingMode: native
+# Masquerade traffic leaving the VPC (internet via NAT); intra-VPC traffic keeps
+# the pod IP, so Hubble and the database logs see real pod addresses.
+egressMasqueradeInterfaces: eth+
+# The node pools are larger than the kind node; the default flow ring is fine.
+hubble:
+  eventBufferCapacity: "65535"
+operator:
+  replicas: 2

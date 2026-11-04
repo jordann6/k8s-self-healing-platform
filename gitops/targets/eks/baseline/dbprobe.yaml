@@ -1,0 +1,59 @@
+# Row S1b, baseline: the usual first wiring. The password is read once, from
+# environment variables, at pod start; ESO's default hourly refresh; only the
+# current version. After the second alternating rotation changes this user's
+# password, every new connection fails until someone restarts the pod.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db-app
+  namespace: selfheal
+spec:
+  refreshInterval: 1h
+  secretStoreRef: {name: backend, kind: SecretStore}
+  target: {name: db-app}
+  data:
+    - secretKey: username
+      remoteRef: {key: selfheal/db-app, property: username}
+    - secretKey: password
+      remoteRef: {key: selfheal/db-app, property: password}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbprobe
+  namespace: selfheal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: dbprobe}
+  template:
+    metadata:
+      labels: {app: dbprobe}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      nodeSelector: {selfheal.lab/nodes: system}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: dbprobe
+          image: selfheal-dbprobe
+          env:
+            - {name: CRED_MODE, value: env}
+            - name: DB_USER
+              valueFrom: {secretKeyRef: {name: db-app, key: username}}
+            - name: DB_PASSWORD
+              valueFrom: {secretKeyRef: {name: db-app, key: password}}
+          envFrom:
+            - configMapRef: {name: db-endpoint}
+          ports: [{name: http, containerPort: 8080}]
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

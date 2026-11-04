@@ -1,0 +1,49 @@
+# The R2 responder Lambda's Kubernetes identity. Its IAM role is mapped to the
+# group selfheal:responder by an EKS access entry (infra/aws/r2.tf). It can
+# read and relabel pods in the lab namespace and cordon nodes. It cannot
+# delete, exec, read secrets or touch any other namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: selfheal-responder-nodes
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: selfheal-responder-nodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: selfheal-responder-nodes
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: selfheal:responder
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: selfheal-responder-pods
+  namespace: selfheal
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: selfheal-responder-pods
+  namespace: selfheal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: selfheal-responder-pods
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind: Group
+    name: selfheal:responder

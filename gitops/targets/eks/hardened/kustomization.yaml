@@ -1,0 +1,18 @@
+# EKS, hardened: the shared hardened profile plus what only exists on EKS. Compare with
+# ../baseline: nodepool.yaml, dbprobe.yaml and the topology spread are
+# the EKS-only part of the difference between the runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+# No namespace here: the shared profile sets it on its own objects, and the
+# NodePool is cluster-scoped. EKS-only namespaced objects name it themselves.
+resources:
+  - ../../../profiles/hardened
+  - nodepool.yaml
+  - dbprobe.yaml
+components:
+  - ../common
+  # Written by `make eks-images` (ECR repository and git SHA tag), not committed.
+  - ../generated
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    path: topology.yaml

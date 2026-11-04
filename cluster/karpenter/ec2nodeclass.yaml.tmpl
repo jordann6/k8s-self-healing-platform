@@ -1,0 +1,46 @@
+# Workload nodes, rendered by `make eks-platform` (envsubst). Identical in both
+# profiles: everything the experiment varies on EKS lives in the NodePool,
+# which is in Git per profile.
+#
+# The AMI alias is pinned one release behind the newest at deploy time, so row
+# S5 can roll the pool to the newest release (Karpenter drift) the way a real
+# monthly AMI rotation would.
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: workload
+spec:
+  role: ${KARPENTER_NODE_ROLE}
+  amiSelectorTerms:
+    - alias: ${AMI_ALIAS}
+  subnetSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ${CLUSTER_NAME}
+  # The node group plus the S4 drift target (starts closed; row S4 opens it).
+  securityGroupSelectorTerms:
+    - tags:
+        karpenter.sh/discovery: ${CLUSTER_NAME}
+    - tags:
+        selfheal.lab/s4-target: "true"
+  # IMDSv2 only, hop limit 1: pods cannot reach node credentials.
+  metadataOptions:
+    httpEndpoint: enabled
+    httpTokens: required
+    httpPutResponseHopLimit: 1
+    httpProtocolIPv6: disabled
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs:
+        volumeSize: 30Gi
+        volumeType: gp3
+        encrypted: true
+        deleteOnTermination: true
+  # The FIS role, the R2 responder and the S4 automation only act on
+  # instances and groups that carry selfheal.lab/managed=true.
+  tags:
+    selfheal.lab/managed: "true"
+    Project: k8s-self-healing-platform
+    Environment: lab
+    Owner: jordann6
+    ManagedBy: karpenter
+    CostCenter: ${COST_CENTER}

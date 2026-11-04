@@ -1,0 +1,62 @@
+# Row S1b, hardened: both versions of the credential are mounted as files and
+# re-read on every new connection, current first, previous on an auth failure.
+# With alternating users the previous credential stays valid for a full
+# rotation period, so whichever version the kubelet has synced, one of them
+# logs in. ESO refreshes every 10s. No restart is needed or wanted: open
+# connections survive a password change in PostgreSQL.
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db-app
+  namespace: selfheal
+spec:
+  refreshInterval: 10s
+  secretStoreRef: {name: backend, kind: SecretStore}  # gitleaks:allow (a reference to a store, no secret material)
+  target: {name: db-app}
+  data:
+    - secretKey: current.json
+      remoteRef: {key: selfheal/db-app, version: AWSCURRENT}
+    - secretKey: previous.json
+      remoteRef: {key: selfheal/db-app, version: AWSPREVIOUS}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dbprobe
+  namespace: selfheal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: dbprobe}
+  template:
+    metadata:
+      labels: {app: dbprobe}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      nodeSelector: {selfheal.lab/nodes: system}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: dbprobe
+          image: selfheal-dbprobe
+          env:
+            - {name: CRED_MODE, value: files}
+          envFrom:
+            - configMapRef: {name: db-endpoint}
+          ports: [{name: http, containerPort: 8080}]
+          volumeMounts:
+            - {name: creds, mountPath: /creds, readOnly: true}
+          resources:
+            requests: {cpu: 20m, memory: 48Mi}
+            limits: {memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+      volumes:
+        - name: creds
+          secret: {secretName: db-app, defaultMode: 0440}

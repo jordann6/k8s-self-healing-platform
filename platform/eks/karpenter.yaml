@@ -1,0 +1,14 @@
+# Karpenter on the system nodes. NodeRepair is off by default even in v1.15
+# (ADR-0005); with it on, the node monitoring agent's conditions (KernelReady,
+# NetworkingReady, StorageReady, ContainerRuntimeReady) trigger replacement
+# after 30 minutes, stopping if more than 20% of the NodePool is unhealthy.
+# clusterName and interruptionQueue come from Terraform outputs (make eks-platform).
+settings:
+  featureGates:
+    nodeRepair: true
+nodeSelector:
+  selfheal.lab/nodes: system
+controller:
+  resources:
+    requests: {cpu: 100m, memory: 256Mi}
+    limits: {memory: 512Mi}

@@ -1,0 +1,11 @@
+# The runner reads S1b's numbers from the db probe, as it reads every other
+# row's from the prober.
+apiVersion: v1
+kind: Service
+metadata:
+  name: dbprobe
+  namespace: selfheal
+spec:
+  selector: {app: dbprobe}
+  ports:
+    - {name: http, port: 8080, targetPort: 8080}

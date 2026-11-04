@@ -1,0 +1,41 @@
+# Everything EKS changes for both profiles alike. Nothing here is a healing
+# control under test (ADR-0001): the secret backend is AWS Secrets Manager
+# instead of a namespace, and pods are placed on the right node pool.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - dbprobe-service.yaml
+patches:
+  # ESO reads Secrets Manager with its own Pod Identity role (infra/aws/data.tf):
+  # no auth block, no static keys.
+  - target: {kind: SecretStore, name: backend}
+    patch: |-
+      - op: replace
+        path: /spec/provider
+        value:
+          aws:
+            service: SecretsManager
+            region: us-east-1
+  - target: {kind: ExternalSecret, name: partner-api-key}
+    patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: selfheal/partner-api-key
+  # The web service under test runs on the tainted workload pool (the nodes
+  # rows A4, S5 and R2 act on); the user (prober) and the dependency
+  # (partner) run on the system pool, so a workload node fault never takes
+  # out the measurement itself.
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: workload}
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - {key: selfheal.lab/workload, operator: Exists, effect: NoSchedule}
+  - target: {kind: Deployment, name: "prober|partner"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: system}

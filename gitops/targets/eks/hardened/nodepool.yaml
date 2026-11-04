@@ -1,0 +1,40 @@
+# Hardened (rows A4, S5): one node out at a time, stated explicitly. The
+# default budget is 10% of nodes, which rounds up to one on a small pool but
+# grows with the pool.
+#
+# The template is identical in both profiles on purpose: a template change
+# makes Karpenter treat every node as drifted and replace it, which would turn
+# a profile switch into an unplanned row S5. Only disruption differs.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: workload
+spec:
+  template:
+    metadata:
+      labels: {selfheal.lab/nodes: workload}
+    spec:
+      nodeClassRef: {group: karpenter.k8s.aws, kind: EC2NodeClass, name: workload}
+      taints:
+        - {key: selfheal.lab/workload, value: "true", effect: NoSchedule}
+      # Nothing schedules until the Cilium agent is ready on the node.
+      startupTaints:
+        - {key: node.cilium.io/agent-not-ready, value: "true", effect: NoExecute}
+      # Compliance maximum age only. Expiry can bypass disruption budgets, so
+      # routine rotation is drift (row S5), never expiry.
+      expireAfter: 720h
+      # A stuck PDB can block a replacement for at most this long.
+      terminationGracePeriod: 30m
+      requirements:
+        - {key: kubernetes.io/arch, operator: In, values: [amd64]}
+        - {key: karpenter.sh/capacity-type, operator: In, values: [on-demand]}
+        - {key: karpenter.k8s.aws/instance-category, operator: In, values: [c, m]}
+        - {key: karpenter.k8s.aws/instance-size, operator: In, values: [large, xlarge]}
+        - {key: topology.kubernetes.io/zone, operator: In, values: [us-east-1a, us-east-1b]}
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 10m
+    budgets:
+      - nodes: "1"
+  limits:
+    cpu: "24"

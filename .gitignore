@@ -32,3 +32,6 @@ evidence/*
 # Terraform saved plans and Lambda build output
 *.tfplan
 infra/aws/build/
+
+# Written by make eks-images (ECR repository URLs and the git SHA tag)
+gitops/targets/eks/generated/

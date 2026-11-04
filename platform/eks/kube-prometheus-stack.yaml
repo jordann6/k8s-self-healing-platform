@@ -1,0 +1,45 @@
+# EKS overrides on top of ../kube-prometheus-stack.yaml. The in-cluster
+# Prometheus still evaluates the Sloth rules and the canary analysis (the same
+# PromQL as on kind); it also remote-writes everything to Amazon Managed
+# Prometheus, where Grafana reads it. Both authenticate with EKS Pod Identity
+# (roles in infra/aws/data.tf), no keys. remoteWrite URL and the Grafana data
+# source URL come from Terraform outputs (make eks-platform).
+prometheus:
+  serviceAccount:
+    create: true
+    name: kps-prometheus
+  prometheusSpec:
+    remoteWrite:
+      - url: AMP_REMOTE_WRITE_URL
+        sigv4:
+          region: us-east-1
+        queueConfig:
+          maxSamplesPerSend: 1000
+          capacity: 2500
+grafana:
+  enabled: true
+  serviceAccount:
+    create: true
+    name: kps-grafana
+  defaultDashboardsEnabled: true
+  sidecar:
+    datasources:
+      defaultDatasourceEnabled: true
+  grafana.ini:
+    auth:
+      sigv4_auth_enabled: true
+  additionalDataSources:
+    - name: Amazon Managed Prometheus
+      type: prometheus
+      access: proxy
+      url: AMP_QUERY_URL
+      jsonData:
+        sigV4Auth: true
+        sigV4AuthType: default
+        sigV4Region: us-east-1
+        httpMethod: POST
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+# On EKS the kubelet and cAdvisor scrape is affordable again (kind trimmed it).
+kubelet:
+  enabled: true
