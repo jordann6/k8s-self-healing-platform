@@ -52,7 +52,7 @@ NS = "selfheal"
 ROWS = ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"]
 TALON_VERSION = os.environ.get("TALON_VERSION", "0.5.0")
 K6_IMAGE = "grafana/k6:2.3.0"
-HTTP_RPS, TLS_RPS = 10, 5
+HTTP_RPS, TLS_RPS = 5, 2  # must match gitops/base/prober.yaml
 # Abort line: if more than half the prober's requests in the last 10s failed,
 # the injection is stopped. Baseline: that is the impact. Hardened: a miss.
 ABORT_ERROR_RATE = 0.5
@@ -584,10 +584,10 @@ const RATE = parseInt(__ENV.RATE);
 export const options = {
   discardResponseBodies: true,
   scenarios: {
-    ramp: {executor: 'ramping-arrival-rate', startRate: 10, timeUnit: '1s', preAllocatedVUs: 50, maxVUs: 250,
+    ramp: {executor: 'ramping-arrival-rate', startRate: 10, timeUnit: '1s', preAllocatedVUs: 20, maxVUs: 120,
            stages: [{target: RATE, duration: '40s'}]},
     sustain: {executor: 'constant-arrival-rate', rate: RATE, timeUnit: '1s', duration: '120s', startTime: '40s',
-              preAllocatedVUs: 50, maxVUs: 250},
+              preAllocatedVUs: 20, maxVUs: 120},
   },
   thresholds: {'http_req_duration{scenario:sustain}': ['p(95)<300'], 'http_req_failed{scenario:sustain}': ['rate<0.01']},
 };
@@ -597,7 +597,7 @@ export function handleSummary(data) { return {stdout: 'K6SUMMARY ' + JSON.string
 
 
 def row_a3(lab: Lab, profile: str, d: Path) -> dict:
-    rate = int(os.environ.get("A3_RATE", "60"))
+    rate = int(os.environ.get("A3_RATE", "40"))
     apply({"apiVersion": "v1", "kind": "ConfigMap",
            "metadata": {"name": "a3-k6", "namespace": NS, "labels": {"selfheal/row": "A3"}},
            "data": {"spike.js": K6_SCRIPT}})
@@ -611,8 +611,8 @@ def row_a3(lab: Lab, profile: str, d: Path) -> dict:
                         "containers": [{"name": "k6", "image": K6_IMAGE, "imagePullPolicy": "IfNotPresent",
                                         "args": ["run", "-q", "--no-color", "/scripts/spike.js"],
                                         "env": [{"name": "RATE", "value": str(rate)}],
-                                        "resources": {"requests": {"cpu": "500m", "memory": "128Mi"},
-                                                      "limits": {"cpu": "2", "memory": "512Mi"}},
+                                        "resources": {"requests": {"cpu": "200m", "memory": "64Mi"},
+                                                      "limits": {"cpu": "1", "memory": "256Mi"}},
                                         "securityContext": sc,
                                         "volumeMounts": [{"name": "s", "mountPath": "/scripts"},
                                                          {"name": "tmp", "mountPath": "/tmp"}]}],

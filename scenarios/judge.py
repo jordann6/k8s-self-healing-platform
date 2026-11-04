@@ -49,7 +49,7 @@ HYPOTHESES = {
           "within 60s, while one pod deadlocks and Chaos Mesh kills a second.",
     "A2": "A release that fails 30% of requests is stopped within 120s and only v1 serves afterwards, "
           "with the error rate back under 1%.",
-    "A3": "Once a 60 rps spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
+    "A3": "Once a 40 rps spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
           "under 300 ms and errors under 1%. The ramp before the HPA reacts is reported, not judged.",
     "A5": "A leaking container is killed at its limit, restarted and serving within 60s, a human is paged "
           "with a runbook within 120s, and no other pod restarts.",

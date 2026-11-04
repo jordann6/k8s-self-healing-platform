@@ -15,10 +15,9 @@ spec:
     - type: Resource
       resource:
         name: cpu
-        # 120% of the 100m request. Idle prober traffic already runs a small
-        # pod near 90%, so a 60% target would scale out at rest; a saturated
-        # pod sits at its 200m limit (200%) and scales out at once.
-        target: {type: Utilization, averageUtilization: 120}
+        # 100% of the 100m request. Idle prober traffic runs a pod near 40%;
+        # a saturated pod sits at its 200m limit (200%) and scales out at once.
+        target: {type: Utilization, averageUtilization: 100}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0

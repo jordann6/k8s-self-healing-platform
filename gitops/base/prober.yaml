@@ -23,6 +23,10 @@ spec:
           image: selfheal-app
           env:
             - {name: ROLE, value: prober}
+            # 5 HTTP + 2 TLS requests/s: 300 samples a minute, light enough that
+            # the user is not a meaningful share of a small pod's load.
+            - {name: PROBE_HTTP_RPS, value: "5"}
+            - {name: PROBE_TLS_RPS, value: "2"}
           ports: [{name: http, containerPort: 8080}]
           readinessProbe:
             httpGet: {path: /healthz, port: http}

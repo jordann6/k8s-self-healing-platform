@@ -28,6 +28,9 @@ spec:
           image: selfheal-app
           env:
             - {name: ROLE, value: web}
+            # CPU per request. With small pods, app work dominates the per-request
+            # cost on the node, so a spike saturates pods, not the node (row A3).
+            - {name: WORK_MS, value: "20"}
             - name: POD_NAME
               valueFrom: {fieldRef: {fieldPath: metadata.name}}
             - name: PARTNER_API_KEY
