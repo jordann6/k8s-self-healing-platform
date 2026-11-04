@@ -89,6 +89,11 @@ prompted each one:
   recording, so the evidence showed no node deletion, replacement or recovery
   (Karpenter had deleted the node at 35s). The row now keeps recording them
   until its window ends; the verdict still comes from the abort line.
+- **A4, runner** (`eks-run2-rows`): the runner tagged the target node for
+  FIS but never removed the tag, and FIS picks one of the tagged running
+  instances at random. A tag left by an interrupted run made FIS terminate a
+  different node (judged an error). The runner now clears every A4 target
+  tag before tagging and after the experiment.
 - **R1, runner** (`eks-run2`): the Hubble relay port-forward was opened once
   per run and did not survive two hours through the EKS API, and a failed
   query was read as "no drops", so a working quarantine was judged an error

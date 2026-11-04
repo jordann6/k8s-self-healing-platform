@@ -161,12 +161,24 @@ class MetricRelay:
         self.thread.join(timeout=15)
 
 
+def _clear_a4_tags(keep: str | None) -> None:
+    res = aws("ec2", "describe-instances", "--filters", "Name=tag:selfheal.lab/a4-target,Values=true",
+              "Name=instance-state-name,Values=pending,running,stopping,stopped")
+    ids = [i["InstanceId"] for r in res.get("Reservations", []) for i in r["Instances"] if i["InstanceId"] != keep]
+    if ids:
+        aws("ec2", "delete-tags", "--resources", *ids, "--tags", "Key=selfheal.lab/a4-target")
+
+
 def row_a4(h, lab, profile: str, d: Path) -> dict:
     o = outputs()
     serving = [p for p in h.pods() if p["ready"]]
     node, n_web = Counter(p["node"] for p in serving).most_common(1)[0]
     iid = instance_of(h, node)
     desired = len(serving)
+    # FIS picks COUNT(1) among tagged running instances, so the target must be
+    # the only one carrying the tag (eks-run2-rows: a tag left by an earlier,
+    # interrupted A4 made FIS terminate a different node).
+    _clear_a4_tags(keep=None)
     aws("ec2", "create-tags", "--resources", iid, "--tags", "Key=selfheal.lab/a4-target,Value=true")
     with MetricRelay(h, lab):
         h.wait_for(lambda: aws("cloudwatch", "describe-alarms", "--alarm-names", o["prober_alarm"])
@@ -210,6 +222,7 @@ def row_a4(h, lab, profile: str, d: Path) -> dict:
         # Fixed window (phase 1 lesson: stopping early inflates error rates).
         time.sleep(max(0.0, t0 + 300 - h.now()))
         end = h.now()
+    _clear_a4_tags(keep=None)  # never leave a target for a later experiment
     st = h.window(lab, "http", t0, end, d, profile)
     final = aws("fis", "get-experiment", "--id", exp)["experiment"]["state"]
     rel = lambda t: None if t is None else round(t - t0, 1)  # noqa: E731
