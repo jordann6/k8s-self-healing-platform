@@ -107,6 +107,16 @@ locals {
           Action   = ["aps:RemoteWrite"]
           Resource = aws_prometheus_workspace.this.arn
         },
+        # The workspace is encrypted with the lab's data key, so AMP needs
+        # the caller's KMS permission too (a 403 on kms:GenerateDataKey on
+        # every remote write in the first live session without it).
+        {
+          Sid       = "WorkspaceKeyThroughAmp"
+          Effect    = "Allow"
+          Action    = ["kms:GenerateDataKey", "kms:Decrypt"]
+          Resource  = aws_kms_key.data.arn
+          Condition = { StringEquals = { "kms:ViaService" = "aps.${var.region}.amazonaws.com" } }
+        },
       ]
     }
     grafana = {
@@ -118,6 +128,13 @@ locals {
           Effect   = "Allow"
           Action   = ["aps:QueryMetrics", "aps:GetLabels", "aps:GetSeries", "aps:GetMetricMetadata"]
           Resource = aws_prometheus_workspace.this.arn
+        },
+        {
+          Sid       = "WorkspaceKeyThroughAmp"
+          Effect    = "Allow"
+          Action    = ["kms:Decrypt"]
+          Resource  = aws_kms_key.data.arn
+          Condition = { StringEquals = { "kms:ViaService" = "aps.${var.region}.amazonaws.com" } }
         },
       ]
     }
