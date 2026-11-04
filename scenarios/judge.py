@@ -22,6 +22,8 @@ Honesty rules (each one has a test):
 """
 from __future__ import annotations
 
+import json
+
 # Per-cloud thresholds. Repair clocks differ by design across clouds (ADR-0003),
 # so each target gets its own numbers and the report prints them.
 THRESHOLDS = {
@@ -45,7 +47,7 @@ HYPOTHESES = {
           "within 60s, while one pod deadlocks and Chaos Mesh kills a second.",
     "A2": "A release that fails 30% of requests is stopped within 120s and only v1 serves afterwards, "
           "with the error rate back under 1%.",
-    "A3": "Once a traffic spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
+    "A3": "Once a 60 rps spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
           "under 300 ms and errors under 1%. The ramp before the HPA reacts is reported, not judged.",
     "A5": "A leaking container is killed at its limit, restarted and serving within 60s, a human is paged "
           "with a runbook within 120s, and no other pod restarts.",
@@ -101,6 +103,19 @@ def judge_a2(o: dict, t: dict):
     if not o.get("v2_seen"):
         return False, "the bad release never served a request, so nothing was tested", False, False
     err, rel = o["error_rate_final"], o.get("releases_final", [])
+    if o.get("aborted_s") is not None:
+        # The abort must come from a measured error rate. An analysis that
+        # failed on empty results (no data yet) aborts any canary, good or bad,
+        # and proves nothing about the bad release.
+        measured = []
+        for v in (o.get("analysis") or {}).get("values", []):
+            try:
+                measured += [float(x) for x in json.loads(v or "[]")]
+            except (ValueError, TypeError):
+                pass
+        if not any(x >= 0.05 for x in measured):
+            return False, (f"the canary was aborted, but no measurement showed an error rate >= 5% "
+                           f"(values {(o.get('analysis') or {}).get('values')}): aborted for the wrong reason"), False, False
     impact = err >= t["error_rate"] or "v2" in rel
     healed = le(o.get("aborted_s"), t["abort_s"]) and rel == ["v1"] and err < t["error_rate"]
     why = (f"final error rate {err:.2%}, serving {','.join(rel) or 'nothing'}; "

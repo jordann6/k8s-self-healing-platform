@@ -460,14 +460,17 @@ def steady(lab: Lab) -> None:
     wait_for(clean, 240, step=10, what="10s of clean prober traffic")
 
 
-def watch(lab: Lab, until: float, poll, done=None, kind: str = "http", step: float = 2.0) -> float | None:
+def watch(lab: Lab, until: float, poll, done=None, kind: str = "http", step: float = 2.0,
+          since: float | None = None) -> float | None:
     """Poll until `until` or `done()`. Returns the time the abort line was hit,
-    or None. The caller stops the injection either way."""
+    or None. The caller stops the injection either way. The abort line only
+    looks at samples from `since` on, so it never judges data from before the
+    window the row is judged on."""
     while now() < until:
         poll(now())
         if done and done():
             return None
-        st = lab.stats(kind, now() - 10, now())
+        st = lab.stats(kind, max(now() - 10, since or 0), now())
         if st["n"] >= 10 and st["error_rate"] is not None and st["error_rate"] > ABORT_ERROR_RATE:
             log(f"  abort line: {st['error_rate']:.0%} {kind} errors in the last 10s")
             return now()
@@ -555,12 +558,15 @@ def _row_a2(lab: Lab, profile: str, d: Path) -> dict:
     full = window(lab, "http", t0, end, d, profile)
     final = lab.stats("http", end - 30, end)
     runs = kj("-n", NS, "get", "analysisrun").get("items", [])
-    last = sorted(runs, key=lambda r: r["metadata"]["creationTimestamp"])[-1] if runs else {}
+    mine = [r for r in runs if r["metadata"]["creationTimestamp"] >= rfc3339(t0 - 5)]
+    last = sorted(mine, key=lambda r: r["metadata"]["creationTimestamp"])[-1] if mine else {}
+    values = [x.get("value") for m in last.get("status", {}).get("metricResults", []) for x in m.get("measurements", [])]
     rel = lambda t: None if t is None else round(t - t0, 1)  # noqa: E731
     return {"t0": t0, "aborted_s": rel(ev["aborted"]), "fully_rolled_s": rel(ev["full"]), "v2_seen": ev["v2_seen"],
             "abort_line": aborted_line is not None, "error_rate_final": final["error_rate"] or 0.0,
             "releases_final": final.get("releases", []), "samples": final["n"], "expected": 30 * HTTP_RPS,
-            "analysis": {"phase": last.get("status", {}).get("phase"), "message": last.get("status", {}).get("message")},
+            "analysis": {"phase": last.get("status", {}).get("phase"), "message": last.get("status", {}).get("message"),
+                         "values": values},
             "window": "last 30s of the observation", "impact": full}
 
 
@@ -583,7 +589,7 @@ export function handleSummary(data) { return {stdout: 'K6SUMMARY ' + JSON.string
 
 
 def row_a3(lab: Lab, profile: str, d: Path) -> dict:
-    rate = int(os.environ.get("A3_RATE", "120"))
+    rate = int(os.environ.get("A3_RATE", "60"))
     apply({"apiVersion": "v1", "kind": "ConfigMap",
            "metadata": {"name": "a3-k6", "namespace": NS, "labels": {"selfheal/row": "A3"}},
            "data": {"spike.js": K6_SCRIPT}})
@@ -622,7 +628,7 @@ def row_a3(lab: Lab, profile: str, d: Path) -> dict:
         poll(now())
         time.sleep(3)
     ramp = lab.stats("http", t0, t0 + 100)
-    aborted = watch(lab, t0 + 162, poll, step=3)
+    aborted = watch(lab, t0 + 162, poll, step=3, since=t0 + 100)
     end = now()
     sustain = window(lab, "http", t0 + 100, max(end, t0 + 101), d, profile)
     k("-n", NS, "wait", "--for=condition=complete", "job/a3-spike", "--timeout=60s", timeout=70)

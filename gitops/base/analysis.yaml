@@ -10,7 +10,10 @@ spec:
     - name: canary-hash
   metrics:
     - name: canary-error-rate
-      initialDelay: 20s
+      # New canary pods need discovery plus two scrapes before rate()[30s]
+      # returns a sample. Judged earlier, an empty result fails the analysis
+      # and aborts a healthy canary (found in phase 1).
+      initialDelay: 45s
       interval: 10s
       failureLimit: 1
       consecutiveErrorLimit: 3

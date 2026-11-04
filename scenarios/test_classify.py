@@ -53,6 +53,18 @@ class NoDataIsNeverAPass(unittest.TestCase):
              "releases_final": ["v1"], "aborted_s": None}
         self.assertEqual(verdict("A2", "hardened", o, "impact")["status"], "error")
 
+    def test_canary_aborted_on_no_data_is_error(self):
+        o = {"samples": 300, "expected": 300, "v2_seen": True, "error_rate_final": 0.0, "releases_final": ["v1"],
+             "aborted_s": 30, "analysis": {"values": ["[]", "[]"]}}
+        v = verdict("A2", "hardened", o, "impact")
+        self.assertEqual(v["status"], "error")
+        self.assertIn("wrong reason", v["reason"])
+
+    def test_canary_aborted_on_measured_errors_is_healed(self):
+        o = {"samples": 300, "expected": 300, "v2_seen": True, "error_rate_final": 0.0, "releases_final": ["v1"],
+             "aborted_s": 60, "analysis": {"values": ["[0.31]", "[0.24]"]}}
+        self.assertEqual(verdict("A2", "hardened", o, "impact")["status"], "healed")
+
     def test_falco_silent_is_error_not_healed(self):
         o = {"samples": 600, "expected": 600, "detected_s": None, "reachable_before": True,
              "isolated_s": 5, "hubble_policy_drops": 3, "evidence_s": 20, "pod_kept_for_capture": True,

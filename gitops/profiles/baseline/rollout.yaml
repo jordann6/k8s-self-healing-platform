@@ -36,8 +36,11 @@ spec:
             - {name: http, containerPort: 8080}
             - {name: https, containerPort: 8443}
           resources:
-            requests: {cpu: 250m, memory: 64Mi}
-            limits: {cpu: 500m}
+            # Small pods on purpose: on one shared node, a spike must saturate the
+            # pods long before it saturates the node, or scale-out has nothing to
+            # scale into (row A3).
+            requests: {cpu: 100m, memory: 64Mi}
+            limits: {cpu: 200m}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

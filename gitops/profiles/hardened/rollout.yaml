@@ -76,9 +76,10 @@ spec:
             preStop:
               exec: {command: [sleep, "5"]}
           resources:
-            requests: {cpu: 250m, memory: 64Mi}
+            # Small pods on purpose (see the baseline profile, row A3).
+            requests: {cpu: 100m, memory: 64Mi}
             # Row A5: a leak is killed at the limit instead of eating the node.
-            limits: {cpu: 500m, memory: 128Mi}
+            limits: {cpu: 200m, memory: 128Mi}
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
