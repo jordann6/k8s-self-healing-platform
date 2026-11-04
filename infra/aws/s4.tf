@@ -106,10 +106,12 @@ resource "aws_config_config_rule" "sg_open" {
     source_identifier = "VPC_SG_OPEN_ONLY_TO_AUTHORIZED_PORTS"
   }
 
+  # Tag only: Config rejects a scope that names both resource types and a tag
+  # (found on the first apply). The managed rule only evaluates security
+  # groups, and the recorder only records them.
   scope {
-    compliance_resource_types = ["AWS::EC2::SecurityGroup"]
-    tag_key                   = "selfheal.lab/managed"
-    tag_value                 = "true"
+    tag_key   = "selfheal.lab/managed"
+    tag_value = "true"
   }
 
   depends_on = [aws_config_configuration_recorder_status.this]

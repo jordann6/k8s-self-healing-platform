@@ -65,9 +65,12 @@ resource "aws_db_parameter_group" "this" {
   family = "postgres17"
 
   # TLS only: the rotation function and the db prober both verify the RDS CA.
+  # Static parameter: AWS stores it as pending-reboot (the default is 1 on
+  # postgres17 anyway), so it is declared that way to keep plans clean.
   parameter {
-    name  = "rds.force_ssl"
-    value = "1"
+    name         = "rds.force_ssl"
+    value        = "1"
+    apply_method = "pending-reboot"
   }
 
   # Connection and auth failures are the S1b evidence on the server side.

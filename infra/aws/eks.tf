@@ -40,7 +40,30 @@ module "eks" {
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
+  # Module v21 creates the cluster with bootstrap_self_managed_addons = false,
+  # so nothing installs the VPC CNI, kube-proxy or CoreDNS unless they are
+  # listed here. Without a CNI the system nodes stay NotReady and the node
+  # group create fails (found on the first apply). The VPC CNI is only the
+  # bootstrap network: eks-platform pins aws-node to a label no node carries
+  # before Cilium takes over, and restarts the pods it addressed.
   addons = {
+    vpc-cni = {
+      before_compute = true
+    }
+    kube-proxy = {
+      before_compute = true
+    }
+    # CoreDNS is a Deployment: without this toleration it would wait for
+    # Cilium to lift the startup taint, and the add-on create would time out.
+    # It starts on a VPC CNI address and is restarted under Cilium.
+    coredns = {
+      configuration_values = jsonencode({
+        tolerations = [
+          { key = "CriticalAddonsOnly", operator = "Exists" },
+          { key = "node.cilium.io/agent-not-ready", operator = "Exists", effect = "NoExecute" },
+        ]
+      })
+    }
     # Pod Identity is how every workload gets AWS access (Karpenter, ESO,
     # Prometheus remote write, the prober's CloudWatch metric). No IRSA.
     eks-pod-identity-agent = {

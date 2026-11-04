@@ -38,6 +38,17 @@ resource "aws_guardduty_member_detector_feature" "runtime" {
     name   = "EKS_ADDON_MANAGEMENT"
     status = var.runtime_monitoring ? "ENABLED" : "DISABLED"
   }
+
+  # Not used by the lab, stated so the plan matches what the API returns
+  # (otherwise every later plan shows a no-op update).
+  additional_configuration {
+    name   = "ECS_FARGATE_AGENT_MANAGEMENT"
+    status = "DISABLED"
+  }
+  additional_configuration {
+    name   = "EC2_AGENT_MANAGEMENT"
+    status = "DISABLED"
+  }
 }
 
 # --- evidence custody -------------------------------------------------------------------

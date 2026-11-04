@@ -46,6 +46,16 @@ kubectl -n kube-system patch daemonset aws-node --type=strategic \
 make -C "$root" --no-print-directory repos
 helm upgrade --install cilium cilium/cilium --version "$CILIUM_VERSION" -n kube-system \
 	-f "$root/cilium/values.yaml" -f "$root/cilium/values-eks.yaml" >/dev/null
+cilium status --wait --wait-duration 6m >/dev/null
+# Pods that started before Cilium (CoreDNS, any add-on) hold VPC CNI
+# addresses and no Cilium endpoint, so policy would not apply to them.
+# Delete them; their controllers recreate them under Cilium.
+kubectl get pods -A -o json | jq -r '.items[] | select(.spec.hostNetwork != true)
+	| select(.metadata.deletionTimestamp == null) | "\(.metadata.namespace) \(.metadata.name)"' |
+	while read -r ns name; do
+		kubectl -n "$ns" get ciliumendpoint "$name" >/dev/null 2>&1 ||
+			kubectl -n "$ns" delete pod "$name" --wait=false >/dev/null
+	done
 "$root/cilium/readiness-gate.sh"
 
 echo "eks-platform: Karpenter $KARPENTER_VERSION"

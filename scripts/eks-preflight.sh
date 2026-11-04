@@ -54,14 +54,22 @@ else
 fi
 
 echo "preflight: leftovers from an earlier session"
-[[ -z "$(aws eks list-clusters --query "clusters[?@=='selfheal']" --output text)" ]] &&
-	ok "no selfheal cluster" || bad "a selfheal cluster already exists"
-eps="$(aws ec2 describe-vpc-endpoints --filters "Name=service-name,Values=com.amazonaws.$region.guardduty-data" \
-	--query 'VpcEndpoints[].VpcEndpointId' --output text)"
-[[ -z "$eps" ]] && ok "no GuardDuty agent endpoints" || bad "GuardDuty endpoints still exist: $eps"
-snaps="$(aws ec2 describe-snapshots --owner-ids self --filters Name=tag:selfheal.lab/managed,Values=true \
-	--query 'Snapshots[].SnapshotId' --output text)"
-[[ -z "$snaps" ]] && ok "no evidence snapshots" || bad "evidence snapshots from an earlier session: $snaps"
+# A cluster in this root's own state is the session in progress (a re-plan
+# mid-session), not a leftover; the checks below then only report.
+# (Captured first: grep -q under pipefail would SIGPIPE terraform and fail.)
+state="$(AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" state list 2>/dev/null || true)"
+if grep -qx 'module.eks.aws_eks_cluster.this\[0\]' <<<"$state"; then
+	ok "session in progress (the cluster is in this root's state): re-plan, leftover checks skipped"
+else
+	[[ -z "$(aws eks list-clusters --query "clusters[?@=='selfheal']" --output text)" ]] &&
+		ok "no selfheal cluster" || bad "a selfheal cluster already exists"
+	eps="$(aws ec2 describe-vpc-endpoints --filters "Name=service-name,Values=com.amazonaws.$region.guardduty-data" \
+		--query 'VpcEndpoints[].VpcEndpointId' --output text)"
+	[[ -z "$eps" ]] && ok "no GuardDuty agent endpoints" || bad "GuardDuty endpoints still exist: $eps"
+	snaps="$(aws ec2 describe-snapshots --owner-ids self --filters Name=tag:selfheal.lab/managed,Values=true \
+		--query 'Snapshots[].SnapshotId' --output text)"
+	[[ -z "$snaps" ]] && ok "no evidence snapshots" || bad "evidence snapshots from an earlier session: $snaps"
+fi
 
 echo "preflight: capacity"
 vcpu="$(aws service-quotas get-service-quota --service-code ec2 --quota-code L-1216C47A --query 'Quota.Value' --output text)"
