@@ -110,5 +110,19 @@ cluster, instances (Karpenter's included), NAT gateways, the VPC, Cilium
 ENIs, Runtime Monitoring and its endpoint and security group, the lab's
 Config recorder, rule and document, AMP, Grafana, FIS templates and running
 experiments, evidence snapshots, RDS, secrets, functions, state machines, ECR,
-buckets, and KMS keys not pending deletion. Every line must say "gone"; the
-two KMS keys stay in their 7-day deletion window, which is expected.
+buckets, and KMS keys not pending deletion. Every line must say "gone" or
+"kept"; the KMS keys that were deleted stay in their 7-day deletion window,
+which is expected.
+
+"Kept" lines are the lab's Config recorder, rule, delivery bucket and the key
+of its delivery channel: the organization's SCP denies removing Config in
+member accounts, so the destroy apply ends with an `AccessDeniedException` on
+`config:DeleteConfigRule`. That error is expected. Then restore the kept
+bucket's hardening (the destroy removed it) and re-run the check:
+
+```bash
+AWS_PROFILE=$MGMT_PROFILE terraform -chdir=$PWD/infra/aws plan -target=module.config_bucket -out=keep.tfplan \
+  -var='cluster_public_access_cidrs=["'"$(curl -4 -s ifconfig.me)"'/32"]'
+AWS_PROFILE=$MGMT_PROFILE terraform -chdir=$PWD/infra/aws apply $PWD/infra/aws/keep.tfplan
+make eks-verify-gone
+```

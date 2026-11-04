@@ -36,7 +36,24 @@ GuardDuty-created security group) would block the VPC delete. Teardown is:
    through Karpenter, remove Karpenter and Cilium, delete whatever the GuardDuty
    agent left, delete the evidence snapshots;
 3. the destroy plan, applied by the operator;
-4. `make eks-verify-gone`, read-only, every line must say "gone".
+4. `make eks-verify-gone`, read-only, every line must say "gone" or "kept".
+
+"Kept" is the lab's AWS Config recorder, rule, delivery bucket and the data
+key its delivery channel encrypts with. The organization's SCP
+(`deny-disable-detective`) denies deleting Config recorders, delivery
+channels and rules in member accounts, so the destroy stops at them (found in
+the first live session). They stay in Terraform state and the next session
+reuses them; about $1 a month, for the key. After a destroy, re-apply the
+bucket's hardening, which the destroy removes:
+`terraform plan -target=module.config_bucket`, then apply that plan.
+Removing them for good needs an SCP exemption made in the landing zone's own
+code, not a change from this lab.
+
+The drain in step 2 deletes the lab app and its PDB first. With the NodePool
+deleted and the PDB still in place, no replacement replica can schedule, the
+PDB allows 0 disruptions and Karpenter's drain blocks; the first session
+removed Karpenter at that point and stranded two running nodes. Step 2 now
+stops with an error, Karpenter still installed, if any node survives.
 
 ### Node pools
 

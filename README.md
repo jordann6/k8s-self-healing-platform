@@ -5,10 +5,10 @@ threat, proven with before/after experiments. The third lab in the arc after
 the EKS Attack Range (gain access, detect) and the Kubernetes Network
 Segmentation Lab (contain): this one responds and recovers.
 
-**Status:** phase 1 (portable core on kind, zero cloud spend) proven. Phase 2,
-the AWS module (`infra/aws/`, rows A4, S1b, S4, S5 and R2 on EKS), is built
-and passes every static gate; its live session has not run yet. Azure and GCP
-come after.
+**Status:** phase 1 (portable core on kind, zero cloud spend) and phase 2 (the
+AWS module, `infra/aws/`, every row on EKS) have both run live. On EKS 11 of 13
+hardened rows healed, one missed and one was inconclusive (see below); the
+cluster was then destroyed. Azure and GCP come after.
 
 ## The experiment
 
@@ -77,7 +77,90 @@ healed in both. Hardened A3 met its error bar (0.3%) and scaled 3 to 8 and 3 to
 that as a FAIL and is meant to: the 300 ms bar is not lowered for kind, and
 A3 latency is proven on EKS instead.
 
+## Phase 2 result (EKS)
+
+One bounded live session on 2026-11-04 (EKS 1.34, two t3.large system nodes,
+Karpenter c6a.large workload nodes, about $6 for roughly ten hours up). Reference evidence:
+`evidence/eks-run2` (every row), `evidence/eks-run2-rows` and
+`evidence/eks-run2-a4r1` (the rows rerun after fixes). Every fix made after a
+run was observed is listed in [ADR-0003](docs/adr/0003-per-target-thresholds.md)
+with the run that prompted it; no threshold was changed.
+
+| Row | Hardened result on EKS | Run |
+|---|---|---|
+| A1 | healed: 0.00% errors after detection, hung pod serving again at 35s | eks-run2 |
+| A2 | healed: canary aborted at 67s on measured errors, only v1 after, 0.00% | eks-run2 |
+| A3 | healed: sustained-spike p95 **267 ms** (bar 300), 0.00% errors, HPA 3 to 8 | eks-run2 |
+| A4 | **inconclusive**: hardened met every criterion twice (0.00% and 0.13% errors, every replica serving at 78s), but neither same-run baseline showed impact (one errored on a stale FIS tag, one had its pods spread already) | eks-run2-rows, eks-run2-a4r1 |
+| A5 | healed: OOMKilled at 10s, serving and paged at 14s | eks-run2 |
+| S1 | healed: 0 failed of 1856 across a key rotation | eks-run2 |
+| S1b | healed: 0 failed queries, 0 dropped connections across two alternating-user rotations; the original password was rejected | eks-run2-rows |
+| S2 | healed: 0 TLS errors, renewed certificate served at 86s | eks-run2 |
+| S3 | healed: policy restored at 2s, hand edit reverted at 4s | eks-run2 |
+| S4 | healed: Config flagged the open group at 108s, the SSM document revoked it at 132s (bar 600) | eks-run2 |
+| S5 | healed: all 3 workload nodes replaced for a new AMI in 256s, 0 failed, never more than 1 disrupted | eks-run2 |
+| R1 | **miss**: isolated at 34.6s against 30s (`eks-run2-rows`); 16.1s in `eks-run2-a4r1` | eks-run2-rows |
+| R2 | healed: GuardDuty finding at 144s, pod and node isolated at 155s, evidence (snapshot, Run Command capture, manifest) at 172s, 0.00% errors | eks-run2-rows |
+
+A3 is the row kind could not prove: on worker nodes that do not host the
+control plane, the same 300 ms bar holds. A4's hardened behaviour is measured
+and recorded, but the runner only claims a heal against a baseline impact in
+the same run, and the baseline has no spread rule, so whether its replicas
+share a node depends on how many workload nodes already exist; `eks-run2`'s
+baseline is the one that shows the failure (all three replicas on the killed
+node, 56% errors). R1 met 30s once and missed once on EKS: Talon labels the pod
+within 2s, and the rest is Cilium applying the quarantine identity plus the
+runner proving unreachability through `kubectl exec` over the internet.
+
 ## What broke (and what it taught)
+
+### On AWS (phase 2)
+
+- **Module v21 installs no CNI.** terraform-aws-modules/eks v21 creates
+  clusters with `bootstrap_self_managed_addons = false`, so the VPC CNI,
+  kube-proxy and CoreDNS never appeared, the nodes stayed NotReady and the node
+  group failed after 30 minutes. They are now explicit add-ons (CoreDNS
+  tolerates the Cilium startup taint, and pods it started are restarted under
+  Cilium).
+- **A replacement pod landed on the node being quarantined.** The R2 responder
+  relabelled the pod out of the Service, the Rollout created a replacement at
+  once, and the scheduler bound it to the same node 0.2s before the cordon.
+  The security group swap then cut it off while it still reported Ready
+  (security groups are stateful, so the kubelet's API connection survived),
+  and a third of requests failed for 100s. Cordon first, then relabel.
+- **Topology spread without `minDomains` spreads nothing.** With one workload
+  node, `DoNotSchedule` on hostname saw one domain and a skew of 0, so all
+  three replicas sat on it and a node kill took every one. `minDomains` makes
+  the missing nodes count, so the extra replicas go Pending and Karpenter
+  launches a node for each.
+- **AMP on a customer-managed key needs the caller's KMS permission.** Remote
+  write returned 403 on `kms:GenerateDataKey`; after the fix AMP kept serving
+  a cached denial for about four minutes.
+- **Secrets Manager leaves `AWSPENDING` on the new current version.** Waiting
+  for the label to disappear waited out every rotation.
+- **ListFindings lags EventBridge.** The responder had acted on the GuardDuty
+  event before the finding was listable, so the runner now waits for the
+  finding itself and times detection from its `CreatedAt`.
+- **A baseline can be broken before the fault.** Earlier runs had rotated the
+  database password, so the baseline probe was failing for 30 minutes before
+  S1b began. The runner now requires a clean window before T0, and the judge
+  rejects an impact that was already there.
+- **The laptop is part of the experiment.** It slept during a rerun and froze
+  the runner while the cluster carried on; port-forwards through the EKS API
+  also die over a two-hour run. `make demo` now holds an idle-sleep assertion
+  and the Hubble query reconnects and fails loudly. Two runners on one cluster
+  (run by hand, by mistake) contaminated each other; those runs are not
+  evidence.
+- **A PDB can strand nodes at teardown.** With the NodePool deleted, the web
+  PDB allowed 0 disruptions, Karpenter's drain blocked, and the teardown
+  removed Karpenter with two nodes still running. Predestroy now deletes the
+  app first and stops if any node survives.
+- **The organization keeps Config.** The landing zone's SCP denies deleting
+  Config recorders, delivery channels and rules in member accounts, so the
+  lab's recorder, rule, delivery bucket and its key stay after teardown (about
+  $1 a month) and `eks-verify-gone` reports them as kept.
+
+### On kind (phase 1)
 
 - **Reloader silently never restarted the Rollout.** Its chart grants RBAC on
   `rollouts.argoproj.io` only if that API exists at install time. Installed

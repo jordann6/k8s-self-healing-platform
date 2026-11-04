@@ -68,8 +68,11 @@ pricing pages on the date above.
   monitored VPC. Both must be gone before the VPC can be deleted, so Runtime
   Monitoring is turned off in a separate step before the destroy plan.
 - The lab account had no AWS Config recorder when this was checked (the landing
-  zone's recorder lives in the security account), so the lab creates and removes
-  its own.
+  zone's recorder lives in the security account), so the lab creates its own.
+  **Correction (first live session):** it cannot remove it. The organization's
+  SCP `deny-disable-detective`, attached at the root, denies deleting or
+  stopping Config recorders, delivery channels and rules in every member
+  account, and this check did not look at SCPs. See ADR-0006, teardown.
 
 ## Decision
 
