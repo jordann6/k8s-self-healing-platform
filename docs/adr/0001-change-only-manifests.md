@@ -33,3 +33,32 @@ row can only be "healed" if the same run's baseline showed impact.
   the certificate, not whether the app can load one.
 - The baseline still has a network policy (allow-all) under the same name, so
   row S3 deletes the same object in both runs.
+
+## Addendum: EKS (2026-11-04)
+
+On EKS a profile switch changes the same two things, with the Argo CD path at
+`targets/eks/apps/<profile>` (which composes `gitops/profiles/<profile>` with
+the EKS overlay in `gitops/targets/eks/`), plus two AWS-side switches that are
+policy, not infrastructure:
+
+3. The EventBridge rule that routes GuardDuty runtime findings to the R2
+   responder: disabled for the baseline, enabled for the hardened run.
+4. The `Automatic` flag of the AWS Config remediation for row S4: off for the
+   baseline, on for the hardened run.
+
+Terraform creates both in their hardened state and ignores these two fields
+(`lifecycle.ignore_changes`), so the runner owns them during a session and a
+later plan does not fight it. Everything else on AWS (the Config rule, the
+remediation document, the state machine, FIS, Karpenter, the node monitoring
+agent and node repair) exists identically in both runs.
+
+The EKS-only manifests that differ between profiles:
+
+- The Karpenter NodePool's disruption budget (`100%` against `1`). Its template
+  is identical, because any template change makes Karpenter treat every node
+  as drifted.
+- Topology spread for the web Rollout (hardened only). Without it Karpenter
+  bin-packs the three replicas onto one node.
+- How the S1b database client reads its credential: once from environment
+  variables (baseline) or from both mounted secret versions, re-read per
+  connection (hardened).

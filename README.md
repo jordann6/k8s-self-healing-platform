@@ -5,8 +5,10 @@ threat, proven with before/after experiments. The third lab in the arc after
 the EKS Attack Range (gain access, detect) and the Kubernetes Network
 Segmentation Lab (contain): this one responds and recovers.
 
-**Status:** phase 1 (portable core on kind, zero cloud spend). The AWS, Azure
-and GCP modules come next.
+**Status:** phase 1 (portable core on kind, zero cloud spend) proven. Phase 2,
+the AWS module (`infra/aws/`, rows A4, S1b, S4, S5 and R2 on EKS), is built
+and passes every static gate; its live session has not run yet. Azure and GCP
+come after.
 
 ## The experiment
 
@@ -26,6 +28,21 @@ metrics.
 | S2 | Certificate reaches its renewal window | see [ADR-0004](docs/adr/0004-in-cluster-git-and-forced-renewal.md) | cert-manager renewal + TLS hot reload |
 | S3 | Network policy deleted, Deployment hand-edited | kubectl | Argo CD self-heal |
 | R1 | Shell spawned in a web pod | kubectl exec | Falco -> Falcosidekick -> Talon relabel -> quarantine CiliumNetworkPolicy; evidence captured before the pod is deleted |
+
+On EKS (phase 2) the same eight rows run unchanged, plus five that need a cloud:
+
+| Row | Fault | Injected with | Healing control |
+|---|---|---|---|
+| A4 | The node hosting the most web pods dies | AWS FIS instance terminate, stopped by a CloudWatch alarm on the prober's error rate | Karpenter replacement, PDB, topology spread across zones |
+| S1b | Database password rotated twice | Secrets Manager alternating-users rotation | both secret versions mounted and re-read per connection |
+| S4 | Lab security group opened to 0.0.0.0/0 | an ingress rule | AWS Config rule + custom SSM Automation revoke (any port) |
+| S5 | Every workload node replaced for a new AMI | EC2NodeClass AMI alias change | Karpenter drift, one node at a time, PDB |
+| R2 | Runtime threat in a web pod | DNS lookup of GuardDuty's C2 test domain | GuardDuty Runtime Monitoring -> EventBridge -> Step Functions: quarantine pod and node, snapshot, Run Command capture, evidence to SSE-KMS S3 |
+
+The AWS design is in [ADR-0006](docs/adr/0006-aws-module-design.md), the facts
+it rests on in [ADR-0005](docs/adr/0005-aws-build-time-verification.md), and
+the live session (apply from saved plans, a four-step teardown, verify-gone)
+in [docs/runbook-aws.md](docs/runbook-aws.md).
 
 The runner exits non-zero unless every hardened row is healed. A hardened row
 counts as healed only if the same run's baseline showed impact; a row that

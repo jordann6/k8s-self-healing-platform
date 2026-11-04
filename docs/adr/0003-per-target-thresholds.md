@@ -38,3 +38,21 @@ shared node**, and the runner keeps reporting it as a miss. The latency claim is
 proven on EKS, where worker nodes do not host the control plane. A kind-only
 relative bar was considered and rejected: it would be a second post-observation
 change, and a bar relative to an already degraded node proves little.
+
+## EKS thresholds (set 2026-11-04, before the first EKS run)
+
+The rows shared with kind keep the kind numbers, A3's 300 ms included. The
+AWS-native rows carry service latency the lab does not control, so their
+clocks are longer, and the numbers were chosen from documented behaviour, not
+from a run:
+
+| Row | Threshold | Why this number |
+|---|---|---|
+| A4 | all replicas serving within 300s, errors under 1% | a Karpenter replacement node is Ready in about 1 to 2 minutes; 300s leaves room for the pods to start and pass readiness |
+| S1b | 0 failed queries, 0 dropped connections | the point of alternating users is that nothing fails |
+| S4 | revoked within 600s | Config evaluates on change, typically within minutes, then the remediation retries every 60s |
+| S5 | 0 failed requests, every node replaced within 1200s, at most 1 disrupted at a time | two or three nodes, one at a time, each launch, drain and terminate within a few minutes |
+| R2 | isolated within 600s, evidence within 900s | GuardDuty runtime findings reach EventBridge within minutes; the state machine itself takes about a minute |
+
+Like A2 on kind, any change after a run has been observed will be listed here
+with the run that prompted it.
