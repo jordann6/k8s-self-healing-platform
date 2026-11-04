@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # eks-verify-gone.sh: read-only proof that nothing from the session survived.
-# Every line must say "gone". Covers the teardown gotchas: GuardDuty Runtime
+# Every line must say "gone" (or "kept", for the Config items the organization's
+# SCP protects). Covers the teardown gotchas: GuardDuty Runtime
 # Monitoring off AND its VPC endpoint gone, the lab's Config recorder, rule and
 # remediation, AMP, Grafana, FIS templates, evidence snapshots, KMS keys.
 # Values are read from AWS, never from Terraform state or outputs: after a
@@ -10,6 +11,20 @@ set -uo pipefail
 export AWS_PROFILE="$LAB_PROFILE" AWS_REGION="${AWS_REGION:-us-east-1}"
 r="$AWS_REGION"
 left=0
+
+# The organization's SCP (deny-disable-detective, attached at the root) denies
+# deleting or stopping Config recorders, delivery channels and rules in every
+# member account, so the lab's own Config recorder, rule, delivery bucket and
+# the key that encrypts it stay by design (ADR-0006). They are reported as
+# "kept", by exact name; anything else of the lab's that survives is LEFT.
+kept() { # name, value (empty = already gone)
+	if [[ -z "$2" || "$2" == "None" ]]; then
+		printf '  gone     %s
+' "$1"
+	else
+		printf '  kept     %s: %s (org SCP keeps Config in member accounts)\n' "$1" "$2"
+	fi
+}
 
 check() { # name, value (empty = gone)
 	if [[ -z "$2" || "$2" == "None" ]]; then
@@ -42,9 +57,9 @@ check "GuardDuty agent VPC endpoints" "$(q aws ec2 describe-vpc-endpoints \
 check "GuardDuty managed security groups" "$(q aws ec2 describe-security-groups \
 	--filters Name=group-name,Values='GuardDutyManagedSecurityGroup*' --query 'SecurityGroups[].GroupId' --output text)"
 
-check "Config recorder (lab)" "$(q aws configservice describe-configuration-recorders \
+kept "Config recorder (lab)" "$(q aws configservice describe-configuration-recorders \
 	--query "ConfigurationRecorders[?name=='selfheal-recorder'].name" --output text)"
-check "Config rule" "$(q aws configservice describe-config-rules \
+kept "Config rule" "$(q aws configservice describe-config-rules \
 	--query "ConfigRules[?ConfigRuleName=='selfheal-sg-open-to-internet'].ConfigRuleName" --output text)"
 check "SSM remediation document" "$(q aws ssm list-documents --filters Key=Owner,Values=Self \
 	Key=Name,Values=selfheal-RevokePublicIngress --query 'DocumentIdentifiers[].Name' --output text)"
@@ -68,7 +83,13 @@ check "Step Functions" "$(q aws stepfunctions list-state-machines \
 check "ECR repositories" "$(q aws ecr describe-repositories \
 	--query "repositories[?starts_with(repositoryName, 'selfheal/')].repositoryName" --output text)"
 check "lab buckets" "$(q aws s3api list-buckets \
-	--query "Buckets[?starts_with(Name, 'selfheal-')].Name" --output text)"
+	--query "Buckets[?starts_with(Name, 'selfheal-') && !starts_with(Name, 'selfheal-config-')].Name" --output text)"
+config_bucket="$(q aws s3api list-buckets --query "Buckets[?starts_with(Name, 'selfheal-config-')].Name" --output text)"
+kept "Config delivery bucket" "$config_bucket"
+# The delivery channel encrypts what it writes with the lab's data key, so
+# that key stays with it.
+config_key="$(q aws configservice describe-delivery-channels \
+	--query "DeliveryChannels[?name=='selfheal-delivery'].s3KmsKeyArn" --output text)"
 
 # Keys cannot be deleted at once: scheduled deletion (7 days) is the expected end
 # state, an enabled key is not. Found by tag, because the aliases go first.
@@ -77,6 +98,10 @@ for k in $(aws resourcegroupstaggingapi get-resources --resource-type-filters km
 	--tag-filters Key=Project,Values=k8s-self-healing-platform --query 'ResourceTagMappingList[].ResourceARN' \
 	--output text 2>/dev/null); do
 	st="$(aws kms describe-key --key-id "$k" --query 'KeyMetadata.KeyState' --output text 2>/dev/null)"
+	if [[ -n "$config_key" && "${config_key##*/}" == "${k##*/}" ]]; then
+		kept "KMS key of the Config delivery channel" "${k##*/}($st)"
+		continue
+	fi
 	[[ "$st" != "PendingDeletion" ]] && enabled="$enabled ${k##*/}($st)"
 done
 check "KMS keys not pending deletion" "${enabled# }"
