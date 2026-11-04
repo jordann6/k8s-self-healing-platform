@@ -200,6 +200,13 @@ def row_a4(h, lab, profile: str, d: Path) -> dict:
             return ev["recovered"] is not None and ev["replacement"] is not None and h.now() - ev["recovered"] > 20
 
         h.watch(lab, t0 + 420, poll, done, step=5)
+        # The abort line ends watch() early but cannot undo a terminated node,
+        # so keep recording node deletion, replacement and recovery for the
+        # evidence (eks-run2 stopped at 24.6s and showed none of them). The
+        # verdict still comes from the abort line.
+        while not done() and h.now() < t0 + 420:
+            poll(h.now())
+            time.sleep(5)
         # Fixed window (phase 1 lesson: stopping early inflates error rates).
         time.sleep(max(0.0, t0 + 300 - h.now()))
         end = h.now()

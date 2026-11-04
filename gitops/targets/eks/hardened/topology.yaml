@@ -1,16 +1,25 @@
 # Rows A4 and S5, hardened: replicas spread across both zones and across
 # nodes, so losing one node (or replacing one) never takes more than one
 # replica. Without this, Karpenter bin-packs all three onto one node.
+#
+# minDomains is what makes the spread real when fewer nodes exist than
+# replicas: the scheduler only counts existing eligible nodes as domains, so
+# with one workload node the skew was 0 and all three replicas landed on it
+# (eks-run2, hardened A4: the node kill took every replica). With minDomains
+# the missing domains count as empty, the extra replicas stay Pending, and
+# Karpenter launches a node for each.
 - op: add
   path: /spec/template/spec/topologySpreadConstraints
   value:
     - maxSkew: 1
       topologyKey: topology.kubernetes.io/zone
       whenUnsatisfiable: DoNotSchedule
+      minDomains: 2
       labelSelector:
         matchLabels: {app: web, lab/pool: serving}
     - maxSkew: 1
       topologyKey: kubernetes.io/hostname
       whenUnsatisfiable: DoNotSchedule
+      minDomains: 3
       labelSelector:
         matchLabels: {app: web, lab/pool: serving}

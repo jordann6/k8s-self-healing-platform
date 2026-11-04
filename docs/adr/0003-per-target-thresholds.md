@@ -79,6 +79,16 @@ prompted each one:
   requires 30s of clean logins before T0 (forcing an ESO sync and restarting
   the probe on proof of failures), and the judge returns an error, never
   impact, when the probe was failing before the fault.
+- **A4, hardened manifest** (`eks-run2`): the hardened topology spread
+  (`DoNotSchedule` on zone and hostname) only counted the nodes that existed.
+  With one workload node the skew was 0, all three replicas stayed on it, and
+  the node kill took every replica (a miss, 56% errors at 24.6s). The spread
+  now sets `minDomains` (3 nodes, 2 zones), so missing nodes count as empty
+  domains and Karpenter launches one for each extra replica.
+- **A4, runner** (`eks-run2`): after the abort line the row stopped
+  recording, so the evidence showed no node deletion, replacement or recovery
+  (Karpenter had deleted the node at 35s). The row now keeps recording them
+  until its window ends; the verdict still comes from the abort line.
 - **R2, runner** (`eks-run1`): the runner stopped polling once the responder
   had isolated the pod and stored evidence (170s), before `ListFindings`
   returned a finding GuardDuty had created at 155s and already delivered to
