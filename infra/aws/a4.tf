@@ -1,6 +1,6 @@
-# Row A4: a workload node dies. AWS FIS terminates one Karpenter-launched node;
-# Karpenter replaces it, the PDB and topology spread keep two replicas serving
-# in the meantime.
+# Row A4: a workload node dies. AWS FIS terminates the Karpenter-launched node
+# that hosts the most web pods; Karpenter replaces it, and the PDB and topology
+# spread keep the other replicas serving in the meantime.
 #
 # Stop condition: FIS checks a CloudWatch alarm, but the SLO lives in
 # Prometheus. The runner relays the independent prober's error rate as a
@@ -106,6 +106,15 @@ resource "aws_fis_experiment_template" "node_kill" {
 
     resource_tag {
       key   = "selfheal.lab/managed"
+      value = "true"
+    }
+
+    # Set by the runner on the node hosting the most web pods, just before
+    # the experiment starts. A random pick could hit a node with no web pod,
+    # and a kill that touches nothing under test proves nothing (the judge
+    # treats it as an error).
+    resource_tag {
+      key   = "selfheal.lab/a4-target"
       value = "true"
     }
 

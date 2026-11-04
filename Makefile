@@ -132,8 +132,9 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 		| python3 scripts/slo-wrap.py > gitops/base/slo-rules.yaml
 
 .PHONY: test
-test: ## Unit-test the runner's honesty rules (no cluster needed)
+test: ## Unit-test the runner's honesty rules and the R2 responder's refusals (no cluster, no AWS)
 	cd scenarios && python3 -m unittest -v test_classify
+	cd infra/aws/responder && python3 -m unittest -v test_handler
 
 .PHONY: check
 check: test ## Static checks: both profiles render, shellcheck, pre-commit hooks

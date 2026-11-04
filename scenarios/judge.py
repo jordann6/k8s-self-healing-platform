@@ -36,7 +36,27 @@ THRESHOLDS = {
         "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
         "S3": {"revert_s": 60},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
-    }
+    },
+    # Set before the first EKS run (ADR-0003). The rows shared with kind keep
+    # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
+    # reach on one shared node. The AWS-native rows carry service latency the
+    # lab does not control (Config evaluation, GuardDuty finding delivery), so
+    # their clocks are longer and say so in the report.
+    "eks": {
+        "A1": {"recover_s": 60, "error_rate": 0.01},
+        "A2": {"abort_s": 180, "error_rate": 0.01},
+        "A3": {"p95_ms": 300, "error_rate": 0.01},
+        "A4": {"recover_s": 300, "error_rate": 0.01},
+        "A5": {"recover_s": 60, "alert_s": 120, "error_rate": 0.01},
+        "S1": {"failed": 0, "grace_s": 60},
+        "S1b": {"failed": 0, "dropped": 0},
+        "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
+        "S3": {"revert_s": 60},
+        "S4": {"revert_s": 600},
+        "S5": {"failed": 0, "replaced_s": 1200, "max_disrupted": 1},
+        "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "R2": {"isolate_s": 600, "evidence_s": 900, "error_rate": 0.01},
+    },
 }
 
 # Minimum share of the expected prober samples a window must hold to be judged.
@@ -58,6 +78,16 @@ HYPOTHESES = {
     "S3": "A deleted network policy and a hand-edited Deployment are reverted to Git within 60s.",
     "R1": "A shell in a web pod is isolated within 30s and evidence is preserved within 90s, "
           "with the pod kept for capture rather than killed.",
+    "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
+          "web replica is serving again, on a replacement node, within 300s.",
+    "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
+           "0 dropped connections.",
+    "S4": "A lab security group opened to 0.0.0.0/0 is closed again by the remediation automation "
+          "within 600s.",
+    "S5": "Replacing every workload node for a new AMI causes 0 failed requests and never takes more "
+          "than one node out at a time.",
+    "R2": "A runtime threat GuardDuty reports in a web pod is isolated at pod and node level within 600s "
+          "and evidence is preserved within 900s, with the pod and node kept for investigation.",
 }
 
 
@@ -215,8 +245,101 @@ def judge_r1(o: dict, t: dict):
     return True, why, impact, healed
 
 
-JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A5": judge_a5,
-          "S1": judge_s1, "S2": judge_s2, "S3": judge_s3, "R1": judge_r1}
+fmt_s = lambda v: f"{v:.0f}s" if v is not None else "never"  # noqa: E731
+
+
+def judge_a4(o: dict, t: dict):
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    if not o.get("terminated"):
+        return False, f"the FIS experiment did not terminate a node ({o.get('experiment_state')})", False, False
+    # A kill that touched no web pod tests nothing about the web service.
+    if not o.get("web_pods_on_node"):
+        return False, "the terminated node ran no web pod, so nothing under test was hit", False, False
+    err, rec = o["error_rate"], o.get("recovered_s")
+    impact = err >= t["error_rate"] or rec is None
+    healed = (le(rec, t["recover_s"]) and err < t["error_rate"] and bool(o.get("replacement_node"))
+              and not o.get("stopped_by_alarm"))
+    why = (f"killed {o.get('instance_id')} ({o.get('web_pods_on_node')} web pods), errors {err:.2%}, "
+           f"all replicas serving {fmt_s(rec)}, replacement node {o.get('replacement_node') or 'none'}"
+           + (", FIS stopped by the error-rate alarm" if o.get("stopped_by_alarm") else ""))
+    return True, why, impact, healed
+
+
+def judge_s1b(o: dict, t: dict):
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"db probe window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    if (o.get("rotations") or 0) < 2:
+        return False, (f"only {o.get('rotations')} of 2 rotations completed; the original user's password "
+                       f"was never changed"), False, False
+    # Proof the test had teeth: the credential the run started with must have
+    # stopped working. Otherwise 0 failures says nothing about rotation.
+    if o.get("original_credential_rejected") is not True:
+        return False, "the pre-rotation credential still logs in, so the rotation invalidated nothing", False, False
+    failed, dropped = o["failed"], o["dropped"]
+    impact = failed > t["failed"] or dropped > t["dropped"]
+    healed = failed <= t["failed"] and dropped <= t["dropped"]
+    why = (f"{failed} failed of {o['samples']} queries, {dropped} dropped connections, "
+           f"{o['rotations']} rotations, users seen {','.join(o.get('users_seen') or []) or 'none'}")
+    return True, why, impact, healed
+
+
+def judge_s4(o: dict, t: dict):
+    if not o.get("injected"):
+        return False, "the public ingress rule was never confirmed on the group", False, False
+    rev = o.get("reverted_s")
+    # A revert only counts if the remediation automation did it. Anything else
+    # (a cleanup, a person, another tool) is not the control under test.
+    if rev is not None and not o.get("reverted_by_automation"):
+        return False, (f"the rule disappeared at {rev:.0f}s but no remediation execution succeeded: "
+                       f"reverted by something other than the control"), False, False
+    impact = rev is None
+    healed = le(rev, t["revert_s"])
+    why = (f"non-compliant {fmt_s(o.get('noncompliant_s'))}, remediation {o.get('remediation_state') or 'none'}, "
+           f"rule revoked {fmt_s(rev)}")
+    return True, why, impact, healed
+
+
+def judge_s5(o: dict, t: dict):
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    if not o.get("drifted"):
+        return False, "Karpenter never marked a node as drifted, so no replacement was triggered", False, False
+    failed, rep, conc = o["failed"], o.get("replaced_s"), o.get("max_disrupted")
+    impact = failed > t["failed"] or rep is None
+    healed = failed <= t["failed"] and le(rep, t["replaced_s"]) and le(conc, t["max_disrupted"])
+    why = (f"{failed} failed of {o['samples']}; {o.get('nodes_before')} nodes replaced {fmt_s(rep)}, "
+           f"at most {conc} disrupted at once, AMI {o.get('ami_before')} -> {o.get('ami_after')}")
+    return True, why, impact, healed
+
+
+def judge_r2(o: dict, t: dict):
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    f = o.get("finding") or {}
+    # The row measures the real detector. A synthetic or sample finding would
+    # prove only that the plumbing accepts an event.
+    if f.get("source") != "aws.guardduty" or f.get("sample"):
+        return False, f"no real GuardDuty finding for the attack (got {f or 'none'})", False, False
+    if not o.get("reachable_before"):
+        return False, "the target was not reachable before the attack, so isolation proves nothing", False, False
+    iso, ev = o.get("isolated_s"), o.get("evidence_s")
+    if iso is not None and o.get("reachable_after"):
+        return False, "isolation was reported but the pod still answered the prober", False, False
+    impact = iso is None
+    healed = (le(iso, t["isolate_s"]) and le(ev, t["evidence_s"]) and o.get("pod_kept") is True
+              and o.get("termination_protected") is True and (o.get("snapshots") or 0) >= 1
+              and (o.get("capture_bytes") or 0) > 0 and o["error_rate"] < t["error_rate"])
+    why = (f"{f.get('type')} seen {fmt_s(o.get('finding_s'))}, isolated {fmt_s(iso)} "
+           f"(pod relabelled, node cordoned, quarantine group), evidence {fmt_s(ev)} "
+           f"({o.get('snapshots', 0)} snapshots, {o.get('capture_bytes', 0)} B captured), "
+           f"errors {o['error_rate']:.2%}")
+    return True, why, impact, healed
+
+
+JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
+          "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
+          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:
