@@ -50,3 +50,37 @@ Cilium 1.20.4, Argo CD v3.5.7, Argo Rollouts v1.10.1, External Secrets
 v2.14.0, Reloader v1.4.23, cert-manager v1.21.3, Falco 0.45.2 + Falcosidekick
 2.35.1 + Falco Talon 0.3.0, kube-prometheus-stack 92.17.1, Sloth v0.13.0,
 Chaos Mesh 2.8.7, k6 v2.3.0. CI: platform-guardrails v1.10.0.
+
+## Phase 1 result (kind)
+
+Two reference runs on the same commit (`evidence/kind-run5`, `evidence/kind-run7`):
+every baseline row showed impact, and hardened A1, A2, A5, S1, S2, S3 and R1
+healed in both. Hardened A3 met its error bar (0.3%) and scaled 3 to 8 and 3 to
+10 pods, but missed its 300 ms p95 bar (758 ms, 697 ms). The runner reports
+that as a FAIL and is meant to.
+
+## What broke (and what it taught)
+
+- **Reloader silently never restarted the Rollout.** Its chart grants RBAC on
+  `rollouts.argoproj.io` only if that API exists at install time. Installed
+  before Argo Rollouts, it logged `forbidden` forever and the rotated key never
+  reached the pods. Install order is now fixed and commented.
+- **An empty metric result aborted healthy canaries.** The analysis judged new
+  canary pods before Prometheus had two samples for them. It now waits 45s, and
+  the judge only accepts an abort driven by a measured error rate.
+- **A strict readiness probe starved the autoscaler.** Busy pods failed
+  readiness, left the Service, pushed their load onto the rest, and the HPA
+  ignored their CPU. Then a 1s liveness probe killed busy, healthy pods and
+  turned a spike into a restart storm. Fix: forgiving probes plus load
+  shedding (`MAX_INFLIGHT`), so overload gets fast 503s instead of a queue.
+- **`ignoreDifferences` outlived the HPA.** With the replica count ignored for
+  the HPA's sake, switching to a profile without an HPA froze the Rollout at
+  the HPA's last count. Only the profile that has an HPA ignores replicas now.
+- **Cilium identity allocation dominated time-to-isolate.** Talon labelled the
+  pod within 2s, but a brand-new identity took 16-38s to allocate through a
+  loaded API server. The quarantine identity is now pre-allocated (ADR-0002).
+- **A single laptop node is the ceiling.** The full stack starved its own API
+  server until the platform was trimmed (ESO CRDs and webhook, Argo CD watch
+  scope, Hubble ring, no cAdvisor scrape), and the A3 latency bar is not
+  reachable when every pod shares eight vCPUs with the control plane: even at
+  rest p95 is 130-230 ms. Latency under a spike is proven on EKS in phase 2.
