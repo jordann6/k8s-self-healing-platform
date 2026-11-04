@@ -457,7 +457,10 @@ def row_r2(h, lab, profile: str, d: Path) -> dict:
         if ev["finding"] is None:
             mine = [f for f in _findings_since(t0) if _matches(f, target)]
             if mine:
-                ev["finding"], ev["finding_t"] = mine[0], t
+                # Detection time is GuardDuty's own CreatedAt: ListFindings
+                # lags the EventBridge delivery the responder acts on.
+                created = _epoch(mine[0]["CreatedAt"]) if mine[0].get("CreatedAt") else t
+                ev["finding"], ev["finding_t"] = mine[0], min(t, created)
         if ev["exec"] is None:
             ex = aws("stepfunctions", "list-executions", "--state-machine-arn", o["responder_arn"],
                      "--max-results", "10")["executions"]
@@ -470,7 +473,10 @@ def row_r2(h, lab, profile: str, d: Path) -> dict:
             ls = aws("s3api", "list-objects-v2", "--bucket", o["evidence_bucket"], "--prefix", prefix, check=False)
             if any(x["Key"].endswith("/manifest.json") for x in ls.get("Contents", [])):
                 ev["evidence"] = t
-        if ev["evidence"] is not None and ev["isolated"] is not None:
+        # The finding is part of the proof: keep polling for it after the
+        # responder has acted (eks-run1 stopped at 170s, before ListFindings
+        # returned a finding created at 155s).
+        if ev["evidence"] is not None and ev["isolated"] is not None and ev["finding"] is not None:
             break
         time.sleep(10)
     end = h.now()
