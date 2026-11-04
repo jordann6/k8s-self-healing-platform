@@ -138,6 +138,22 @@ class Thresholds(unittest.TestCase):
         self.assertEqual(verdict("S3", "hardened", o, "impact")["status"], "miss")
 
 
+class AbortLine(unittest.TestCase):
+    AB = {"n": 40, "errors": 30, "error_rate": 0.75, "at_s": 14, "kind": "http"}
+
+    def test_abort_in_baseline_is_impact_even_with_a_short_window(self):
+        o = {"samples": 20, "expected": 300, "v2_seen": True, "abort_evidence": self.AB}
+        self.assertEqual(verdict("A2", "baseline", o, None)["status"], "impact")
+
+    def test_abort_in_hardened_is_miss(self):
+        o = {"samples": 20, "expected": 300, "abort_evidence": self.AB}
+        self.assertEqual(verdict("A3", "hardened", o, "impact")["status"], "miss")
+
+    def test_abort_with_too_few_samples_is_not_evidence(self):
+        o = {"samples": 5, "expected": 300, "v2_seen": True, "abort_evidence": {**self.AB, "n": 6}}
+        self.assertEqual(verdict("A2", "baseline", o, None)["status"], "error")
+
+
 class Overall(unittest.TestCase):
     def test_all_healed_passes(self):
         self.assertTrue(overall({"A1": {"baseline": {"status": "impact"}, "hardened": {"status": "healed"}}}))

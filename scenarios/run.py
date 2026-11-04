@@ -56,6 +56,7 @@ HTTP_RPS, TLS_RPS = 10, 5
 # Abort line: if more than half the prober's requests in the last 10s failed,
 # the injection is stopped. Baseline: that is the impact. Hardened: a miss.
 ABORT_ERROR_RATE = 0.5
+ABORT: dict = {}  # evidence for the abort line in the current row, set by watch()
 ACTIONS = {
     "A1": "readiness removes the hung pod; liveness restarts it",
     "A2": "Argo Rollouts canary analysis aborts; stable keeps serving",
@@ -439,8 +440,13 @@ def steady(lab: Lab) -> None:
         if not p["ready"] or not p["running"]:
             k("-n", NS, "delete", "pod", p["name"], "--wait=false")
     wait_for(lambda: rollout_healthy("v1"), 300, step=3, what="web Rollout Healthy on v1")
-    wait_for(lambda: (rollout().get("status", {}).get("readyReplicas") or 0) <= 3
-             and len([p for p in pods() if p["ready"]]) == 3, 240, step=5, what="three Ready web pods")
+    def settled() -> bool:
+        want = rollout().get("spec", {}).get("replicas", 3)
+        hpa = kj("-n", NS, "get", "hpa", "web").get("status", {})
+        hpa_ok = not hpa or hpa.get("desiredReplicas") == hpa.get("currentReplicas") == want
+        return hpa_ok and want <= 4 and len([p for p in pods() if p["ready"]]) == want
+
+    wait_for(settled, 300, step=5, what="web settled at its minimum replica count")
     lab.reconnect()
 
     # Pods still on a stale key (after an unhealed S1) are restarted, but only
@@ -473,6 +479,8 @@ def watch(lab: Lab, until: float, poll, done=None, kind: str = "http", step: flo
         st = lab.stats(kind, max(now() - 10, since or 0), now())
         if st["n"] >= 10 and st["error_rate"] is not None and st["error_rate"] > ABORT_ERROR_RATE:
             log(f"  abort line: {st['error_rate']:.0%} {kind} errors in the last 10s")
+            ABORT.update({"t": now(), "kind": kind, "n": st["n"], "errors": st["errors"],
+                          "error_rate": st["error_rate"], "error_kinds": st.get("error_kinds")})
             return now()
         time.sleep(step)
     return None
@@ -1058,7 +1066,10 @@ def main() -> int:
                 log(f"{profile} {row}: {HYPOTHESES[row]}")
                 try:
                     steady(lab)
+                    ABORT.clear()
                     obs = RUNNERS[row](lab, profile, d)
+                    if ABORT:
+                        obs["abort_evidence"] = {**ABORT, "at_s": round(ABORT["t"] - obs.get("t0", ABORT["t"]), 1)}
                     obs["alerts_fired"] = alerts_fired(lab, obs.get("t0", now()))
                 except Exception as e:  # noqa: BLE001 - recorded as error, never skipped
                     obs = {"exception": f"{type(e).__name__}: {e}", "traceback": traceback.format_exc()}

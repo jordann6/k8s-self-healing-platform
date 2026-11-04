@@ -41,6 +41,8 @@ THRESHOLDS = {
 
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
+# Must match run.py: more than this share of failures in 10s stops an injection.
+ABORT_ERROR_RATE = 0.5
 
 HYPOTHESES = {
     "A1": "Error rate stays under 1% once a hung pod is detected, and the hung pod is restarted and serving "
@@ -219,8 +221,16 @@ JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A5": judge_a5,
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:
     t = THRESHOLDS[target][row]
+    ab = obs.get("abort_evidence")
     if obs.get("exception"):
         status, why = "error", f"runner exception: {obs['exception']}"
+    elif ab and ab.get("n", 0) >= 10 and (ab.get("error_rate") or 0) > ABORT_ERROR_RATE:
+        # The abort line is evidence on its own: at least 10 samples in a 10s
+        # window with more than half failing. Impact in the baseline, a miss
+        # in the hardened run (still subject to the baseline-impact rule).
+        why = (f"abort line hit at {ab.get('at_s')}s: {ab['error_rate']:.0%} of {ab['n']} {ab.get('kind', 'http')} "
+               f"requests failed in 10s")
+        status, why = classify(profile, True, why, True, False, baseline_status)
     else:
         ok, why, impact, healed = JUDGES[row](obs, t)
         status, why = classify(profile, ok, why, impact, healed, baseline_status)
