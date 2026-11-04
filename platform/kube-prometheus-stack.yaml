@@ -16,6 +16,10 @@ kubeScheduler: {enabled: false}
 kubeControllerManager: {enabled: false}
 kubeProxy: {enabled: false}
 coreDns: {enabled: false}
+# No row reads kubelet or cAdvisor series (A5 uses kube-state-metrics and the
+# container's own cgroup), and they are most of Prometheus' memory on kind.
+kubelet:
+  enabled: false
 kube-state-metrics:
   resources:
     requests: {cpu: 20m, memory: 48Mi}

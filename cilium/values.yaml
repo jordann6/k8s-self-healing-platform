@@ -13,7 +13,9 @@ hubble:
     enabled: true
   ui:
     enabled: false
-  eventBufferCapacity: "65535"
+  # Per-node flow ring. R1 reads one pod's drops within a minute of the attack;
+  # 16383 covers that with room, 65535 cost ~700 MB of agent memory on a laptop.
+  eventBufferCapacity: "16383"
 operator:
   replicas: 1
 resources:

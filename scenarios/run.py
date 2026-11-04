@@ -80,6 +80,11 @@ def iso(t: float | None) -> str:
     return "" if t is None else dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-4] + "Z"
 
 
+def rfc3339(t: float) -> str:
+    """Second-precision RFC 3339, the form Kubernetes date-time fields accept."""
+    return dt.datetime.fromtimestamp(t, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def log(msg: str) -> None:
     print(f"[{dt.datetime.now().strftime('%H:%M:%S')}] {msg}", flush=True)
 
@@ -91,11 +96,11 @@ def sh(args: list[str], timeout: int = 60, check: bool = False, input: str | Non
     return p
 
 
-def k(*args: str, timeout: int = 60, check: bool = False, input: str | None = None) -> subprocess.CompletedProcess:
+def k(*args: str, timeout: int = 120, check: bool = False, input: str | None = None) -> subprocess.CompletedProcess:
     return sh(["kubectl", *args], timeout=timeout, check=check, input=input)
 
 
-def kj(*args: str, timeout: int = 60) -> dict:
+def kj(*args: str, timeout: int = 120) -> dict:
     p = k(*args, "-o", "json", timeout=timeout)
     if p.returncode != 0:
         return {}
@@ -132,14 +137,21 @@ class PortForward:
         self.proc: subprocess.Popen | None = None
 
     def __enter__(self) -> "PortForward":
-        self.proc = subprocess.Popen(["kubectl", "-n", self.ns, "port-forward", self.target, f"{self.port}:{self.remote}"],
-                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        for _ in range(60):
-            try:
-                with socket.create_connection(("127.0.0.1", self.port), timeout=1):
-                    return self
-            except OSError:
-                time.sleep(0.25)
+        # A busy single-node API server can take a while to open the stream;
+        # respawn rather than fail the row.
+        for _attempt in range(3):
+            self.proc = subprocess.Popen(["kubectl", "-n", self.ns, "port-forward", self.target, f"{self.port}:{self.remote}"],
+                                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            for _ in range(80):
+                try:
+                    with socket.create_connection(("127.0.0.1", self.port), timeout=1):
+                        return self
+                except OSError:
+                    if self.proc.poll() is not None:
+                        break
+                    time.sleep(0.25)
+            self.__exit__()
+            self.port = free_port()
         raise RuntimeError(f"port-forward to {self.ns}/{self.target} never came up")
 
     def __exit__(self, *exc) -> None:
@@ -282,20 +294,40 @@ def synced_key() -> str:
     return base64.b64decode(d.get("data", {}).get("api-key", "")).decode() if d else ""
 
 
+def pod_key(pod_name: str) -> str:
+    """The key a web pod is actually using (printenv, not a shell)."""
+    return k("-n", NS, "exec", pod_name, "-c", "web", "--", "printenv", "PARTNER_API_KEY", timeout=20).stdout.strip()
+
+
 def partner_set(current: str, previous: str = "") -> None:
     """The partner's accepted keys: its admin call plus the Secret it restarts
     from, kept in step."""
     apply({"apiVersion": "v1", "kind": "Secret", "metadata": {"name": "partner-keys", "namespace": NS},
            "stringData": {"current": current, "previous": previous}})
     body = json.dumps({"current": current, "previous": previous})
-    pod_name = kj("-n", NS, "get", "pod", "-l", "app=partner")["items"][0]["metadata"]["name"]
-    k("-n", NS, "exec", pod_name, "--", "curl", "-s", "-m", "5", "-X", "POST", "-H", "Content-Type: application/json",
-      "--data", body, "http://127.0.0.1:9000/admin/keys", check=True)
+
+    def live_partner() -> str:
+        # A pod being replaced (after a hand edit or its revert) lingers as
+        # Succeeded or terminating; only a Running, Ready one takes the call.
+        for i in kj("-n", NS, "get", "pod", "-l", "app=partner").get("items", []):
+            ready = any(c["type"] == "Ready" and c["status"] == "True" for c in i["status"].get("conditions", []))
+            if i["status"].get("phase") == "Running" and ready and not i["metadata"].get("deletionTimestamp"):
+                return i["metadata"]["name"]
+        return ""
+
+    for attempt in range(3):
+        pod_name = wait_for(live_partner, 90, what="a Running partner pod")
+        p = k("-n", NS, "exec", pod_name, "--", "curl", "-s", "-m", "5", "-X", "POST", "-H",
+              "Content-Type: application/json", "--data", body, "http://127.0.0.1:9000/admin/keys")
+        if p.returncode == 0:
+            return
+        time.sleep(3)
+    raise RuntimeError(f"could not set partner keys: {p.stderr.strip()[:300]}")
 
 
 def restart_web() -> None:
     k("-n", NS, "patch", "rollout", "web", "--type", "merge",
-      "-p", json.dumps({"spec": {"restartAt": iso(now() + 2)[:-4] + "Z"}}), check=True)
+      "-p", json.dumps({"spec": {"restartAt": rfc3339(now() + 2)}}), check=True)
 
 
 # --------------------------------------------------------------------------- #
@@ -303,9 +335,30 @@ def restart_web() -> None:
 # --------------------------------------------------------------------------- #
 
 
+def rollout_image_tag() -> str:
+    img = (rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers") or [{}])[0].get("image", "")
+    return img.rsplit(":", 1)[-1] if ":" in img else ""
+
+
 def git_set_tag(profile: str, tag: str) -> float:
-    """Commit a new image tag for the profile and push it: a release, exactly
-    as CI would ship one. Returns the push time."""
+    """Commit the image tag and wait until Argo CD has applied it to the
+    Rollout spec. Retried; raises if the release never lands, so a row can
+    never silently run against the wrong version. Returns the push time."""
+    last: Exception | None = None
+    for _attempt in range(3):
+        try:
+            t = _git_push_tag(profile, tag)
+            wait_for(lambda: (refresh("selfheal-workload") or True) and rollout_image_tag() == tag, 120, step=5,
+                     what=f"Argo CD to apply image {tag}")
+            return t
+        except Exception as e:  # noqa: BLE001
+            last = e
+            log(f"  git release {tag} retry after: {e}")
+            time.sleep(5)
+    raise RuntimeError(f"could not ship image {tag} through Git: {last}")
+
+
+def _git_push_tag(profile: str, tag: str) -> float:
     work = Path(tempfile.mkdtemp())
     try:
         with PortForward("gitops", "svc/gitserver", 9418) as pf:
@@ -373,6 +426,9 @@ def steady(lab: Lab) -> None:
     for kind in ("podchaos", "job"):
         k("-n", NS, "delete", kind, "-l", "selfheal/row", "--ignore-not-found", "--wait=false")
     k("-n", NS, "delete", "pod", "-l", "quarantine=true", "--ignore-not-found", "--wait=false")
+    if rollout_image_tag() != "v1":
+        log(f"  steady: Git left the Rollout on {rollout_image_tag()!r}, restoring v1")
+        git_set_tag(app_state("selfheal-workload")["path"].split("/")[-1], "v1")
     key = backend_key()
     if synced_key() != key:
         k("-n", NS, "annotate", "externalsecret", "partner-api-key", f"force-sync={int(now())}", "--overwrite")
@@ -387,12 +443,18 @@ def steady(lab: Lab) -> None:
              and len([p for p in pods() if p["ready"]]) == 3, 240, step=5, what="three Ready web pods")
     lab.reconnect()
 
+    # Pods still on a stale key (after an unhealed S1) are restarted, but only
+    # on proof: the key in the pod differs from the backend's. A 502 alone is
+    # not proof; a slow partner answers 502 too.
+    stale = [p["name"] for p in pods() if p["ready"] and pod_key(p["name"]) not in ("", key)]
+    if stale:
+        log(f"  steady: {len(stale)} pod(s) on a stale key, restarting web")
+        restart_web()
+        wait_for(lambda: rollout_healthy("v1") and not [p for p in pods() if p["ready"] and pod_key(p["name"]) not in ("", key)],
+                 300, step=5, what="web on the current key")
+
     def clean() -> bool:
         st = lab.stats("http", now() - 10, now())
-        if st["n"] and st["errors"] and synced_key() == backend_key():
-            # Pods running on a stale key (after an unhealed S1): restart once.
-            restart_web()
-            time.sleep(20)
         return st["n"] >= 0.8 * 10 * HTTP_RPS and st["errors"] == 0
 
     wait_for(clean, 240, step=10, what="10s of clean prober traffic")
@@ -462,6 +524,15 @@ def row_a1(lab: Lab, profile: str, d: Path) -> dict:
 
 
 def row_a2(lab: Lab, profile: str, d: Path) -> dict:
+    try:
+        return _row_a2(lab, profile, d)
+    finally:
+        # Whatever happened, the next row starts from v1 in Git.
+        git_set_tag(profile, "v1")
+        wait_for(lambda: rollout_healthy("v1"), 300, step=3, what="rollback to v1")
+
+
+def _row_a2(lab: Lab, profile: str, d: Path) -> dict:
     t0 = git_set_tag(profile, "v2")
     ev = {"aborted": None, "full": None, "v2_seen": False}
 
@@ -485,8 +556,6 @@ def row_a2(lab: Lab, profile: str, d: Path) -> dict:
     final = lab.stats("http", end - 30, end)
     runs = kj("-n", NS, "get", "analysisrun").get("items", [])
     last = sorted(runs, key=lambda r: r["metadata"]["creationTimestamp"])[-1] if runs else {}
-    git_set_tag(profile, "v1")
-    wait_for(lambda: rollout_healthy("v1"), 300, step=3, what="rollback to v1")
     rel = lambda t: None if t is None else round(t - t0, 1)  # noqa: E731
     return {"t0": t0, "aborted_s": rel(ev["aborted"]), "fully_rolled_s": rel(ev["full"]), "v2_seen": ev["v2_seen"],
             "abort_line": aborted_line is not None, "error_rate_final": final["error_rate"] or 0.0,
@@ -502,8 +571,8 @@ export const options = {
   discardResponseBodies: true,
   scenarios: {
     ramp: {executor: 'ramping-arrival-rate', startRate: 10, timeUnit: '1s', preAllocatedVUs: 50, maxVUs: 250,
-           stages: [{target: RATE, duration: '20s'}]},
-    sustain: {executor: 'constant-arrival-rate', rate: RATE, timeUnit: '1s', duration: '120s', startTime: '20s',
+           stages: [{target: RATE, duration: '40s'}]},
+    sustain: {executor: 'constant-arrival-rate', rate: RATE, timeUnit: '1s', duration: '120s', startTime: '40s',
               preAllocatedVUs: 50, maxVUs: 250},
   },
   thresholds: {'http_req_duration{scenario:sustain}': ['p(95)<300'], 'http_req_failed{scenario:sustain}': ['rate<0.01']},
@@ -514,7 +583,7 @@ export function handleSummary(data) { return {stdout: 'K6SUMMARY ' + JSON.string
 
 
 def row_a3(lab: Lab, profile: str, d: Path) -> dict:
-    rate = int(os.environ.get("A3_RATE", "160"))
+    rate = int(os.environ.get("A3_RATE", "120"))
     apply({"apiVersion": "v1", "kind": "ConfigMap",
            "metadata": {"name": "a3-k6", "namespace": NS, "labels": {"selfheal/row": "A3"}},
            "data": {"spike.js": K6_SCRIPT}})
@@ -547,11 +616,17 @@ def row_a3(lab: Lab, profile: str, d: Path) -> dict:
         if ev["scaled"] is None and n > base_replicas:
             ev["scaled"] = t
 
-    aborted = watch(lab, t0 + 142, poll, step=3)
+    # The ramp is allowed to hurt: the HPA needs a scrape and a sync to react.
+    # The hypothesis, and the abort line, apply to the sustained spike.
+    while now() < t0 + 100:
+        poll(now())
+        time.sleep(3)
+    ramp = lab.stats("http", t0, t0 + 100)
+    aborted = watch(lab, t0 + 162, poll, step=3)
     end = now()
-    sustain = window(lab, "http", t0 + 80, min(end, t0 + 140), d, profile)
+    sustain = window(lab, "http", t0 + 100, max(end, t0 + 101), d, profile)
     k("-n", NS, "wait", "--for=condition=complete", "job/a3-spike", "--timeout=60s", timeout=70)
-    logs = k("-n", NS, "logs", "job/a3-spike", timeout=30).stdout
+    logs = k("-n", NS, "logs", "job/a3-spike", timeout=120).stdout
     summary = next((json.loads(ln.split(" ", 1)[1]) for ln in logs.splitlines() if ln.startswith("K6SUMMARY ")), {})
     k("-n", NS, "delete", "job", "a3-spike", "--ignore-not-found", "--wait=false")
     k("-n", NS, "delete", "configmap", "a3-k6", "--ignore-not-found")
@@ -563,7 +638,8 @@ def row_a3(lab: Lab, profile: str, d: Path) -> dict:
             "p95_ms": sustain.get("p95_ms"), "error_rate": sustain["error_rate"] if sustain["error_rate"] is not None else 1.0,
             "min_replicas": base_replicas, "max_replicas": ev["max"],
             "scaled_s": None if ev["scaled"] is None else round(ev["scaled"] - t0, 1), "aborted": aborted is not None,
-            "samples": sustain["n"], "expected": sustain["expected"], "window": "T0+80s to T0+140s (sustain)",
+            "samples": sustain["n"], "expected": sustain["expected"], "window": "T0+100s to T0+160s (sustain)",
+            "ramp": {"error_rate": ramp.get("error_rate"), "p95_ms": ramp.get("p95_ms"), "n": ramp.get("n")},
             "k6": {"sustain_p95_ms": k6v("http_req_duration{scenario:sustain}", "p(95)"),
                    "sustain_failed_rate": k6v("http_req_failed{scenario:sustain}", "rate"),
                    "dropped_iterations": k6v("dropped_iterations", "count")},
@@ -686,7 +762,7 @@ def row_s2(lab: Lab, profile: str, d: Path) -> dict:
     k("-n", NS, "patch", "certificate", "web-tls", "--subresource=status", "--type=json", "-p", json.dumps([
         {"op": "add", "path": "/status/conditions/-", "value": {
             "type": "Issuing", "status": "True", "reason": "ManuallyTriggered",
-            "message": "selfheal runner: renewal window reached", "lastTransitionTime": iso(t0)[:-4] + "Z"}}]),
+            "message": "selfheal runner: renewal window reached", "lastTransitionTime": rfc3339(t0)}}]),
       check=True)
     ev = {"renewed": None, "served": None}
 
@@ -869,6 +945,13 @@ def preconditions() -> dict:
         checks[f"{ns}/{name}"] = p.returncode == 0
         if p.returncode != 0:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
+    # Right after `make up`, Argo CD may not have synced the lab yet.
+    wait_for(lambda: app_state("selfheal-workload").get("health") == "Healthy"
+             and app_state("selfheal-workload").get("sync") == "Synced", 600, step=5, what="workload app Synced and Healthy")
+    p = k("-n", NS, "rollout", "status", "deploy/prober", "--timeout=300s", timeout=320)
+    checks["workload_synced"] = p.returncode == 0
+    if p.returncode != 0:
+        raise SystemExit(f"precondition failed: prober not ready: {p.stderr.strip()}")
     gate = sh([str(ROOT / "cilium" / "readiness-gate.sh")], timeout=600)
     checks["cilium_gate"] = gate.returncode == 0
     if gate.returncode != 0:

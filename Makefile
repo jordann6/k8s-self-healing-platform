@@ -84,10 +84,13 @@ platform: repos ## Install every platform chart (order matters: Prometheus CRDs 
 		-n cert-manager --create-namespace -f platform/cert-manager.yaml --wait
 	$(HELM) upgrade --install external-secrets external-secrets/external-secrets --version $(ESO_VERSION) \
 		-n external-secrets --create-namespace -f platform/external-secrets.yaml --wait
-	$(HELM) upgrade --install reloader stakater/reloader --version $(RELOADER_VERSION) \
-		-n reloader --create-namespace -f platform/reloader.yaml --wait
 	$(HELM) upgrade --install argo-rollouts argo/argo-rollouts --version $(ROLLOUTS_VERSION) \
 		-n argo-rollouts --create-namespace -f platform/argo-rollouts.yaml --wait
+	# Reloader after Rollouts: its chart grants RBAC on rollouts.argoproj.io only
+	# if that API exists at install time. Installed first, it silently gets no
+	# permission and never restarts a Rollout (found in run 1, row S1).
+	$(HELM) upgrade --install reloader stakater/reloader --version $(RELOADER_VERSION) \
+		-n reloader --create-namespace -f platform/reloader.yaml --wait
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 	$(HELM) upgrade --install chaos-mesh chaos-mesh/chaos-mesh --version $(CHAOS_MESH_VERSION) \

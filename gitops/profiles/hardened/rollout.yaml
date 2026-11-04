@@ -57,12 +57,15 @@ spec:
             - {name: http, containerPort: 8080}
             - {name: https, containerPort: 8443}
           # Row A1: readiness takes a hung pod out of the Service within a few
-          # seconds; liveness restarts it.
+          # seconds; liveness restarts it. A 2s timeout and three misses, so a
+          # pod that is merely busy under a spike (row A3) is not pulled out of
+          # the Service, which would push its load onto the rest and starve
+          # the HPA of metrics from Ready pods.
           readinessProbe:
             httpGet: {path: /readyz, port: http}
             periodSeconds: 2
-            timeoutSeconds: 1
-            failureThreshold: 2
+            timeoutSeconds: 2
+            failureThreshold: 3
           livenessProbe:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 5

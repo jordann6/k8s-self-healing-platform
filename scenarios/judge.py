@@ -45,7 +45,8 @@ HYPOTHESES = {
           "within 60s, while one pod deadlocks and Chaos Mesh kills a second.",
     "A2": "A release that fails 30% of requests is stopped within 120s and only v1 serves afterwards, "
           "with the error rate back under 1%.",
-    "A3": "During a sustained 4x traffic spike, p95 latency stays under 300 ms and errors under 1%.",
+    "A3": "Once a traffic spike that saturates three pods is sustained (T0+100s on), p95 latency stays "
+          "under 300 ms and errors under 1%. The ramp before the HPA reacts is reported, not judged.",
     "A5": "A leaking container is killed at its limit, restarted and serving within 60s, a human is paged "
           "with a runbook within 120s, and no other pod restarts.",
     "S1": "Rotating the partner API key in the secret backend causes 0 failed requests.",

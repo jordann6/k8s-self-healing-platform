@@ -11,6 +11,37 @@ configs:
     server.insecure: true
   cm:
     timeout.reconciliation: 60s
+    # Watch only the kinds the lab deploys. By default the controller caches
+    # every resource in the cluster, which on a laptop costs hundreds of MB in
+    # the controller and a watch per kind on the API server.
+    resource.inclusions: |
+      - apiGroups: [""]
+        kinds: [Service, Pod]
+        clusters: ["*"]
+      - apiGroups: [apps]
+        kinds: [Deployment, ReplicaSet]
+        clusters: ["*"]
+      - apiGroups: [autoscaling]
+        kinds: [HorizontalPodAutoscaler]
+        clusters: ["*"]
+      - apiGroups: [policy]
+        kinds: [PodDisruptionBudget]
+        clusters: ["*"]
+      - apiGroups: [argoproj.io]
+        kinds: [Application, Rollout, AnalysisTemplate, AnalysisRun]
+        clusters: ["*"]
+      - apiGroups: [cilium.io]
+        kinds: [CiliumNetworkPolicy]
+        clusters: ["*"]
+      - apiGroups: [external-secrets.io]
+        kinds: [ExternalSecret, SecretStore]
+        clusters: ["*"]
+      - apiGroups: [cert-manager.io]
+        kinds: [Certificate]
+        clusters: ["*"]
+      - apiGroups: [monitoring.coreos.com]
+        kinds: [PrometheusRule, PodMonitor]
+        clusters: ["*"]
 controller:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
