@@ -43,13 +43,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from judge import HYPOTHESES, THRESHOLDS, overall, verdict  # noqa: E402
+import eks_rows  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
-CONTEXT = "kind-selfheal"
+# Set from --target in main(). Everything that differs between kind and EKS
+# keys off TARGET; the rows shared by both are the same code on both.
 TARGET = "kind"
+CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks"}
 NS = "selfheal"
-ROWS = ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"]
+ROWS_BY_TARGET = {
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"],
+    # R2 last: it quarantines a node, which the runner then replaces.
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
+}
+ROWS = ROWS_BY_TARGET["kind"]
+# Release tags. On kind the images are loaded as :v1 and :v2; on EKS they are
+# immutable ECR tags :<git sha>-v1 and :<git sha>-v2 (scripts/eks-images.sh).
+TAG = {"v1": "v1", "v2": "v2"}
 TALON_VERSION = os.environ.get("TALON_VERSION", "0.5.0")
 K6_IMAGE = "grafana/k6:2.3.0"
 HTTP_RPS, TLS_RPS = 5, 2  # must match gitops/base/prober.yaml
@@ -66,6 +77,7 @@ ACTIONS = {
     "S2": "cert-manager renews; the app hot-reloads the mounted pair",
     "S3": "Argo CD self-heal re-applies Git",
     "R1": "Falco -> Falcosidekick -> Talon labels the pod; quarantine CiliumNetworkPolicy isolates it",
+    **eks_rows.ACTIONS,
 }
 
 # --------------------------------------------------------------------------- #
@@ -254,6 +266,7 @@ def pods(selector: str = "app=web,lab/pool=serving") -> list[dict]:
             "created": dt.datetime.strptime(p["metadata"]["creationTimestamp"], "%Y-%m-%dT%H:%M:%SZ")
                          .replace(tzinfo=dt.timezone.utc).timestamp(),
             "image": next((c["image"] for c in p["spec"]["containers"] if c["name"] == "web"), ""),
+            "node": p["spec"].get("nodeName", ""),
         })
     return sorted(out, key=lambda x: x["name"])
 
@@ -266,7 +279,8 @@ def rollout() -> dict:
     return kj("-n", NS, "get", "rollout", "web")
 
 
-def rollout_healthy(image_tag: str = "v1") -> bool:
+def rollout_healthy(image_tag: str | None = None) -> bool:
+    image_tag = image_tag or TAG["v1"]
     r = rollout()
     st = r.get("status", {})
     if not r or str(st.get("observedGeneration")) != str(r["metadata"]["generation"]):
@@ -284,9 +298,23 @@ def exec_curl(pod_name: str, *args: str, timeout: int = 15) -> subprocess.Comple
 
 
 def backend_key() -> str:
+    """The key in the secret backend: a namespace on kind, Secrets Manager on EKS."""
+    if TARGET == "eks":
+        s = eks_rows.aws("secretsmanager", "get-secret-value", "--secret-id", eks_rows.outputs()["partner_secret"])
+        return json.loads(s["SecretString"])["api-key"]
     import base64
     d = kj("-n", "secret-backend", "get", "secret", "partner-api-key")
     return base64.b64decode(d["data"]["api-key"]).decode()
+
+
+def backend_put(key: str) -> None:
+    """Rotate the key in the backend (the provider issuing a new key)."""
+    if TARGET == "eks":
+        eks_rows.aws("secretsmanager", "put-secret-value", "--secret-id", eks_rows.outputs()["partner_secret"],
+                     "--secret-string", json.dumps({"api-key": key}))
+        return
+    k("-n", "secret-backend", "patch", "secret", "partner-api-key", "--type", "merge",
+      "-p", json.dumps({"stringData": {"api-key": key}}), check=True)
 
 
 def synced_key() -> str:
@@ -359,15 +387,34 @@ def git_set_tag(profile: str, tag: str) -> float:
     raise RuntimeError(f"could not ship image {tag} through Git: {last}")
 
 
+def release_file(profile: str) -> str:
+    """Where a release is committed: the profile's kustomization on kind, the
+    generated image component on EKS (it holds the ECR repository)."""
+    return f"profiles/{profile}/kustomization.yaml" if TARGET == "kind" else "targets/eks/generated/kustomization.yaml"
+
+
+def set_web_tag(text: str, tag: str) -> str:
+    """Set newTag on the selfheal-app image entry only (the EKS component also
+    names the db probe image)."""
+    out, in_web = [], TARGET == "kind"
+    for ln in text.splitlines():
+        if ln.strip().startswith("- name:"):
+            in_web = ln.strip() == "- name: selfheal-app"
+        if in_web and ln.strip().startswith("newTag:"):
+            ln = ln[: len(ln) - len(ln.lstrip())] + f"newTag: {tag}"
+        out.append(ln)
+    return "\n".join(out) + "\n"
+
+
 def _git_push_tag(profile: str, tag: str) -> float:
     work = Path(tempfile.mkdtemp())
     try:
         with PortForward("gitops", "svc/gitserver", 9418) as pf:
             url = f"git://127.0.0.1:{pf.port}/lab.git"
             sh(["git", "clone", "-q", url, str(work / "r")], check=True)
-            kz = work / "r" / "profiles" / profile / "kustomization.yaml"
+            kz = work / "r" / release_file(profile)
             text = kz.read_text()
-            new = "\n".join(f"    newTag: {tag}" if ln.strip().startswith("newTag:") else ln for ln in text.splitlines()) + "\n"
+            new = set_web_tag(text, tag)
             if new == text:
                 return now()
             kz.write_text(new)
@@ -408,16 +455,20 @@ def apply_profile(lab: Lab, profile: str) -> None:
         "--reuse-values", "--set-file", f"config.rulesOverride={ROOT / 'platform' / 'talon' / (profile + '.yaml')}",
         "--wait", "--timeout", "3m"], timeout=240, check=True)
     k("-n", "falco", "rollout", "status", "deploy/falco-talon", "--timeout=120s", timeout=150, check=True)
+    apps, workload = (f"apps/{profile}", f"profiles/{profile}") if TARGET == "kind" else \
+        (f"targets/eks/apps/{profile}", f"targets/eks/{profile}")
     k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"apps/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": apps}}}), check=True)
     refresh("selfheal-root")
-    wait_for(lambda: app_state("selfheal-workload")["path"] == f"profiles/{profile}", 120, what="workload app path")
+    wait_for(lambda: app_state("selfheal-workload")["path"] == workload, 120, what="workload app path")
     refresh("selfheal-workload")
     want_hpa = profile == "hardened"
     wait_for(lambda: (k("-n", NS, "get", "hpa", "web").returncode == 0) == want_hpa, 180, what="profile objects")
     wait_for(lambda: app_state("selfheal-workload")["sync"] == "Synced", 300, what="workload Synced")
     rule_present = lambda: ("WebContainerOOMKilled" in lab.rules()) == want_hpa  # noqa: E731
     wait_for(rule_present, 180, step=5, what="Prometheus rules for the profile")
+    if TARGET == "eks":
+        eks_rows.set_profile(sys.modules[__name__], profile)
     steady(lab)
 
 
@@ -427,9 +478,11 @@ def steady(lab: Lab) -> None:
     for kind in ("podchaos", "job"):
         k("-n", NS, "delete", kind, "-l", "selfheal/row", "--ignore-not-found", "--wait=false")
     k("-n", NS, "delete", "pod", "-l", "quarantine=true", "--ignore-not-found", "--wait=false")
-    if rollout_image_tag() != "v1":
+    if rollout_image_tag() != TAG["v1"]:
         log(f"  steady: Git left the Rollout on {rollout_image_tag()!r}, restoring v1")
-        git_set_tag(app_state("selfheal-workload")["path"].split("/")[-1], "v1")
+        git_set_tag(app_state("selfheal-workload")["path"].split("/")[-1], TAG["v1"])
+    if TARGET == "eks":
+        eks_rows.steady(sys.modules[__name__])
     key = backend_key()
     if synced_key() != key:
         k("-n", NS, "annotate", "externalsecret", "partner-api-key", f"force-sync={int(now())}", "--overwrite")
@@ -439,7 +492,7 @@ def steady(lab: Lab) -> None:
     for p in pods("app=web"):
         if not p["ready"] or not p["running"]:
             k("-n", NS, "delete", "pod", p["name"], "--wait=false")
-    wait_for(lambda: rollout_healthy("v1"), 300, step=3, what="web Rollout Healthy on v1")
+    wait_for(lambda: rollout_healthy(), 300, step=3, what="web Rollout Healthy on v1")
     def settled() -> bool:
         want = rollout().get("spec", {}).get("replicas", 3)
         hpa = kj("-n", NS, "get", "hpa", "web").get("status", {})
@@ -456,7 +509,7 @@ def steady(lab: Lab) -> None:
     if stale:
         log(f"  steady: {len(stale)} pod(s) on a stale key, restarting web")
         restart_web()
-        wait_for(lambda: rollout_healthy("v1") and not [p for p in pods() if p["ready"] and pod_key(p["name"]) not in ("", key)],
+        wait_for(lambda: rollout_healthy() and not [p for p in pods() if p["ready"] and pod_key(p["name"]) not in ("", key)],
                  300, step=5, what="web on the current key")
 
     def clean() -> bool:
@@ -539,12 +592,12 @@ def row_a2(lab: Lab, profile: str, d: Path) -> dict:
         return _row_a2(lab, profile, d)
     finally:
         # Whatever happened, the next row starts from v1 in Git.
-        git_set_tag(profile, "v1")
-        wait_for(lambda: rollout_healthy("v1"), 300, step=3, what="rollback to v1")
+        git_set_tag(profile, TAG["v1"])
+        wait_for(lambda: rollout_healthy(), 300, step=3, what="rollback to v1")
 
 
 def _row_a2(lab: Lab, profile: str, d: Path) -> dict:
-    t0 = git_set_tag(profile, "v2")
+    t0 = git_set_tag(profile, TAG["v2"])
     ev = {"aborted": None, "full": None, "v2_seen": False}
 
     def poll(t: float) -> None:
@@ -713,8 +766,7 @@ def row_s1(lab: Lab, profile: str, d: Path) -> dict:
     old, new = backend_key(), secrets.token_hex(24)
     partner_set(new, old)  # the provider issues the new key; the old one stays valid for the grace window
     t0 = now()
-    k("-n", "secret-backend", "patch", "secret", "partner-api-key", "--type", "merge",
-      "-p", json.dumps({"stringData": {"api-key": new}}), check=True)
+    backend_put(new)
     ev = {"synced": None, "rolled": None, "revoked": None}
 
     def poll(t: float) -> None:
@@ -888,7 +940,7 @@ def warm_quarantine_identity(target: dict) -> None:
            "spec": {"automountServiceAccountToken": False, "enableServiceLinks": False,
                     "securityContext": {"runAsNonRoot": True, "runAsUser": 10001, "runAsGroup": 10001,
                                         "seccompProfile": {"type": "RuntimeDefault"}},
-                    "containers": [{"name": "standby", "image": "selfheal-app:v1", "command": ["sleep", "3600"],
+                    "containers": [{"name": "standby", "image": target["image"], "command": ["sleep", "3600"],
                                     "resources": {"requests": {"cpu": "1m", "memory": "8Mi"}, "limits": {"memory": "32Mi"}},
                                     "securityContext": {"allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
                                                         "capabilities": {"drop": ["ALL"]}}}]}})
@@ -961,11 +1013,13 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
             "window": "T0 to end", "impact": st}
 
 
-RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3, "R1": row_r1}
+RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3, "R1": row_r1,
+           **{r: (lambda f: lambda lab, prof, d: f(sys.modules[__name__], lab, prof, d))(f)
+              for r, f in eks_rows.ROWS.items()}}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
-            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s"}
+            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", **eks_rows.DETECTED}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
-             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s"}
+             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", **eks_rows.RECOVERED}
 
 # --------------------------------------------------------------------------- #
 # preconditions, report, main
@@ -974,10 +1028,12 @@ RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "re
 
 def preconditions() -> dict:
     ctx = k("config", "current-context").stdout.strip()
-    if ctx != CONTEXT:
-        raise SystemExit(f"refusing to run: kube context is {ctx!r}, expected {CONTEXT!r} (KUBECONFIG={os.environ['KUBECONFIG']})")
+    if ctx != CONTEXTS[TARGET]:
+        raise SystemExit(f"refusing to run: kube context is {ctx!r}, expected {CONTEXTS[TARGET]!r} "
+                         f"(KUBECONFIG={os.environ['KUBECONFIG']})")
     checks = {"context": ctx}
-    for ns, kind, name in [("kube-system", "deploy", "metrics-server"), ("monitoring", "deploy", "kps-operator"),
+    extra = [("kube-system", "deploy", "karpenter")] if TARGET == "eks" else []
+    for ns, kind, name in extra + [("kube-system", "deploy", "metrics-server"), ("monitoring", "deploy", "kps-operator"),
                            ("cert-manager", "deploy", "cert-manager"), ("external-secrets", "deploy", "external-secrets"),
                            ("reloader", "deploy", "reloader-reloader"), ("argo-rollouts", "deploy", "argo-rollouts"),
                            ("argocd", "statefulset", "argocd-application-controller"), ("chaos-mesh", "deploy", "chaos-controller-manager"),
@@ -1003,13 +1059,20 @@ def preconditions() -> dict:
 
 def versions() -> dict:
     out = {}
-    for ns, kind, name in [("kube-system", "daemonset", "cilium"), ("falco", "daemonset", "falco"),
-                           ("falco", "deploy", "falco-talon"), ("argo-rollouts", "deploy", "argo-rollouts"),
-                           ("external-secrets", "deploy", "external-secrets"), ("cert-manager", "deploy", "cert-manager"),
-                           ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader")]:
+    components = [("kube-system", "daemonset", "cilium"), ("falco", "daemonset", "falco"),
+                  ("falco", "deploy", "falco-talon"), ("argo-rollouts", "deploy", "argo-rollouts"),
+                  ("external-secrets", "deploy", "external-secrets"), ("cert-manager", "deploy", "cert-manager"),
+                  ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader")]
+    if TARGET == "eks":
+        components.append(("kube-system", "deploy", "karpenter"))
+    for ns, kind, name in components:
         d = kj("-n", ns, "get", kind, name)
         out[name] = (d.get("spec", {}).get("template", {}).get("spec", {}).get("containers") or [{}])[0].get("image")
     out["kubernetes"] = json.loads(k("version", "-o", "json").stdout or "{}").get("serverVersion", {}).get("gitVersion")
+    if TARGET == "eks":
+        out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
+        nc = kj("get", "ec2nodeclass", "workload")
+        out["workload_ami"] = [a["id"] for a in nc.get("status", {}).get("amis", [])]
     return out
 
 
@@ -1050,7 +1113,9 @@ def write_report(outdir: Path, doc: dict) -> None:
     L.append("## Environment\n")
     L.append("```json\n" + json.dumps({"preconditions": doc["preconditions"], "versions": doc["versions"]}, indent=2) + "\n```")
     L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
-             "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`.")
+             "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
+             + (", the R2 bundle (manifest, capture, audit window, finding, execution history) in `R2/r2-hardened/`."
+                if doc["target"] == "eks" else "."))
     (outdir / "report.md").write_text("\n".join(L) + "\n")
 
 
@@ -1064,15 +1129,24 @@ def alerts_fired(lab: Lab, since: float) -> list[str]:
 
 
 def main() -> int:
+    global TARGET, ROWS
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run-id", default=dt.datetime.now().strftime("kind-%Y%m%d-%H%M%S"))
-    ap.add_argument("--rows", default=",".join(ROWS))
+    ap.add_argument("--target", choices=sorted(ROWS_BY_TARGET), default="kind")
+    ap.add_argument("--run-id")
+    ap.add_argument("--rows")
     ap.add_argument("--only-profile", choices=["baseline", "hardened"])
     args = ap.parse_args()
-    rows = [r.strip().upper() for r in args.rows.split(",") if r.strip()]
-    bad = [r for r in rows if r not in RUNNERS]
+    TARGET, ROWS = args.target, ROWS_BY_TARGET[args.target]
+    if TARGET == "eks":
+        sha = (ROOT / "gitops" / "targets" / "eks" / "generated" / "IMAGE_SHA").read_text().strip()
+        TAG.update({"v1": f"{sha}-v1", "v2": f"{sha}-v2"})
+    args.run_id = args.run_id or dt.datetime.now().strftime(f"{TARGET}-%Y%m%d-%H%M%S")
+    # Rows are case-sensitive only in S1b; accept any case on the command line.
+    by_upper = {r.upper(): r for r in ROWS}
+    rows = [by_upper.get(r.strip().upper(), r.strip()) for r in (args.rows or ",".join(ROWS)).split(",") if r.strip()]
+    bad = [r for r in rows if r not in ROWS]
     if bad:
-        raise SystemExit(f"unknown rows: {bad}")
+        raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
 
     checks = preconditions()
     if args.only_profile:

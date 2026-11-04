@@ -9,6 +9,10 @@ apiVersion: karpenter.k8s.aws/v1
 kind: EC2NodeClass
 metadata:
   name: workload
+  annotations:
+    # Row S5 swings the alias between this release and @latest, so the
+    # baseline and the hardened run both have a real AMI change to roll out.
+    selfheal.lab/pinned-alias: ${AMI_ALIAS}
 spec:
   role: ${KARPENTER_NODE_ROLE}
   amiSelectorTerms:
