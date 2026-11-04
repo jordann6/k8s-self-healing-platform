@@ -39,6 +39,10 @@ spec:
         runAsNonRoot: true
         runAsUser: 10001
         runAsGroup: 10001
+        # The secret volume is root:root 0440; fsGroup makes its files group
+        # 10001 so the probe can read them (eks-run1-s1b: "no credential
+        # available", 230 of 230 queries failed).
+        fsGroup: 10001
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: dbprobe
