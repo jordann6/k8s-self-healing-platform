@@ -17,11 +17,6 @@ spec:
     automated:
       prune: true
       selfHeal: false
-    syncOptions:
-      - RespectIgnoreDifferences=true
-  # The HPA owns the replica count; without this, self-heal and the autoscaler
-  # would fight over it.
-  ignoreDifferences:
-    - group: argoproj.io
-      kind: Rollout
-      jsonPointers: [/spec/replicas]
+  # No ignoreDifferences on /spec/replicas here: the baseline has no HPA, so
+  # Git owns the replica count. Keeping the ignore after the HPA is gone would
+  # freeze the Rollout at the HPA's last value (found in phase 1).
