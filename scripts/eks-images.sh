@@ -27,15 +27,16 @@ registry="${registry%%/*}"
 aws ecr get-login-password | docker login --username AWS --password-stdin "$registry" >/dev/null
 
 push() { # repository-key tag context [build args...]
-	local r t
-	r="$(repo "$1")"
+	local k r t
+	k="$1"
+	r="$(repo "$k")"
 	t="$2"
 	shift 2
 	if aws ecr describe-images --repository-name "${r#*/}" --image-ids "imageTag=$t" >/dev/null 2>&1; then
-		echo "  $1:$t exists"
+		echo "  $k:$t exists"
 		return
 	fi
-	echo "  $1:$t"
+	echo "  $k:$t"
 	docker buildx build --platform linux/amd64 --provenance=false -q -t "$r:$t" --push "$@" >/dev/null
 }
 
