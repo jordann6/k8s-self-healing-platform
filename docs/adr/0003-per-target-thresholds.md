@@ -72,6 +72,13 @@ prompted each one:
   read its own mounted credential files (`root:root`, mode `0440`, probe
   running as UID 10001), so every query failed with "no credential
   available". The pod now sets `fsGroup: 10001`.
+- **S1b, steady state and judge** (`eks-run2`): the baseline probe had failed
+  every login for 30 minutes before T0. Earlier runs had rotated the
+  password, and in the baseline ESO refreshes the probe's Secret only hourly,
+  so a restarted probe started on an invalidated credential. The runner now
+  requires 30s of clean logins before T0 (forcing an ESO sync and restarting
+  the probe on proof of failures), and the judge returns an error, never
+  impact, when the probe was failing before the fault.
 - **R2, runner** (`eks-run1`): the runner stopped polling once the responder
   had isolated the pod and stored evidence (170s), before `ListFindings`
   returned a finding GuardDuty had created at 155s and already delivered to
@@ -81,5 +88,4 @@ prompted each one:
 Three runs from that session are not reference evidence and are not
 committed: `eks-run1`, `eks-run1-s1b` and `eks-run1-rerun` overlapped on the
 same cluster (two runners switching profiles under each other), and an
-in-cluster Git re-seed landed during `eks-run1`'s hardened A2. The rows they
-measured before the overlap agree with the reference run.
+in-cluster Git re-seed landed during `eks-run1`'s hardened A2.
