@@ -10,16 +10,14 @@ spec:
     kind: Rollout
     name: web
   minReplicas: 3
-  maxReplicas: 12
+  maxReplicas: 10
   metrics:
     - type: Resource
       resource:
         name: cpu
-        # 70% of the 100m request: scale for latency headroom, not just for
-        # saturation. At 100% the HPA settled with every pod at its target and
-        # p95 drifted to 750 ms (run 5). Idle prober traffic runs a pod near 40%,
-        # so this still holds three pods at rest.
-        target: {type: Utilization, averageUtilization: 70}
+        # 100% of the 100m request. Idle prober traffic runs a pod near 40%;
+        # a saturated pod sits at its 200m limit (200%) and scales out at once.
+        target: {type: Utilization, averageUtilization: 100}
   behavior:
     scaleUp:
       stabilizationWindowSeconds: 0
