@@ -874,6 +874,28 @@ def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
     return out
 
 
+def warm_quarantine_identity(target: dict) -> None:
+    """Pre-allocate the Cilium identity a quarantined copy of `target` will
+    carry, with a standby pod holding exactly those labels. On kind, allocating
+    a new identity goes through the API server and took 16-38s under load
+    (runs 1, 3, 4), which measured the API server, not the response. The
+    standby is outside the Service and ReplicaSet (pool=quarantine) and is
+    itself isolated by the quarantine policy (ADR-0002). Both profiles get it."""
+    labels = {k: v for k, v in target["labels"].items()}
+    labels.update({"quarantine": "true", "lab/pool": "quarantine"})
+    apply({"apiVersion": "v1", "kind": "Pod",
+           "metadata": {"name": "quarantine-standby", "namespace": NS, "labels": labels},
+           "spec": {"automountServiceAccountToken": False, "enableServiceLinks": False,
+                    "securityContext": {"runAsNonRoot": True, "runAsUser": 10001, "runAsGroup": 10001,
+                                        "seccompProfile": {"type": "RuntimeDefault"}},
+                    "containers": [{"name": "standby", "image": "selfheal-app:v1", "command": ["sleep", "3600"],
+                                    "resources": {"requests": {"cpu": "1m", "memory": "8Mi"}, "limits": {"memory": "32Mi"}},
+                                    "securityContext": {"allowPrivilegeEscalation": False, "readOnlyRootFilesystem": True,
+                                                        "capabilities": {"drop": ["ALL"]}}}]}})
+    wait_for(lambda: (kj("-n", NS, "get", "ciliumendpoint", "quarantine-standby").get("status", {})
+                      .get("identity", {}).get("id")), 180, step=2, what="the quarantine identity")
+
+
 def row_r1(lab: Lab, profile: str, d: Path) -> dict:
     serving = [p for p in pods() if p["ready"]]
     target = serving[0]
@@ -881,6 +903,7 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
     url_in = f"http://{target['ip']}:8080/healthz"
     url_out = "http://partner.selfheal.svc.cluster.local:8080/healthz"
     reachable_before = reach(prober, "prober", url_in) and reach(target["name"], "web", url_out)
+    warm_quarantine_identity(target)
     t0 = now()
     # The attack: a shell in the pod reads the token path and leaves a process
     # behind (the implant the responder must preserve, not kill).
@@ -929,6 +952,7 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
     st = window(lab, "http", t0, end, d, profile)
     # Eradicate: only now is the pod deleted.
     k("-n", NS, "delete", "pod", target["name"], "--wait=false")
+    k("-n", NS, "delete", "pod", "quarantine-standby", "--ignore-not-found", "--wait=false")
     rel = lambda t: None if t is None else round(t - t0, 1)  # noqa: E731
     return {"t0": t0, "target_pod": target["name"], "reachable_before": reachable_before,
             "detected_s": rel(ev["detected"]), "labelled_s": rel(ev["labelled"]), "isolated_s": rel(ev["isolated"]),

@@ -72,11 +72,14 @@ spec:
             periodSeconds: 2
             timeoutSeconds: 2
             failureThreshold: 3
+          # Liveness only for a pod that is truly stuck: about 20s of no answer.
+          # A 1s timeout killed busy, healthy pods mid-spike (row A3) and turned
+          # an overload into a restart storm.
           livenessProbe:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 5
-            timeoutSeconds: 1
-            failureThreshold: 3
+            timeoutSeconds: 3
+            failureThreshold: 4
           # Endpoints drop the pod before it stops listening.
           lifecycle:
             preStop:

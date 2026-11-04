@@ -34,3 +34,18 @@ in-cluster responder, and it is alpha.
 - Cilium enforces the label change through an identity update, so isolation is
   only as fast as the agent's policy regeneration. The runner proves it with
   Hubble policy-drop flows, not just failed curls.
+
+## Addendum: the quarantine identity is pre-allocated (phase 1 finding)
+
+Cilium enforces a relabel by moving the pod to the security identity of its
+new label set. When that identity does not exist yet, the agent allocates it
+through the API server (CRD identity mode). On the single kind node under load
+this took 16s, 22s and 38s across runs 1, 3 and 4, with "Key allocation attempt
+failed" retries in the agent log, while Talon had labelled the pod within 2s.
+That measured the API server, not the response chain.
+
+The runner now starts a standby pod with exactly the quarantined label set
+before the attack (both profiles), so the identity exists and isolation costs
+only the endpoint regeneration. The 30s threshold is unchanged. Production
+equivalent: a kvstore-backed identity allocator, or a quarantine label set that
+is pre-provisioned, so incident response never waits on identity creation.
