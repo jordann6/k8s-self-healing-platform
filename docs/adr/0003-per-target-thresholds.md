@@ -110,4 +110,14 @@ prompted each one:
 Three runs from that session are not reference evidence and are not
 committed: `eks-run1`, `eks-run1-s1b` and `eks-run1-rerun` overlapped on the
 same cluster (two runners switching profiles under each other), and an
-in-cluster Git re-seed landed during `eks-run1`'s hardened A2.
+in-cluster Git re-seed landed during `eks-run1`'s hardened A2. A fourth,
+`eks-run2-rerun`, is not reference evidence either: the operator's laptop slept
+from 25 minutes in, freezing the runner (its port-forwards died and its polls
+stopped) while the cluster kept going. `make demo` now holds a macOS idle-sleep
+assertion for the length of a run.
+
+The prober records every request inside the cluster, so a paused runner
+cannot hide errors; it only observes recoveries late. Where the laptop slept
+during `eks-run2` (06:25 to 06:28, 07:32 to 07:38 and 07:54 to 07:57 local
+time, during baseline S1, hardened S1 and hardened R2), the measured times
+are upper bounds.

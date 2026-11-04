@@ -121,10 +121,15 @@ down: ## Delete the kind cluster
 
 # --- the experiment ---------------------------------------------------------
 
+# A sleeping laptop freezes the runner (port-forwards die, polls stop) while
+# the cluster keeps going; on macOS the run holds an idle-sleep assertion.
+# A closed lid still sleeps.
+KEEP_AWAKE := $(if $(shell command -v caffeinate 2>/dev/null),caffeinate -i,)
+
 .PHONY: demo
 demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks for EKS
 	$(if $(filter eks,$(TARGET)),AWS_PROFILE=$(LAB_PROFILE) MGMT_PROFILE=$(MGMT_PROFILE),) \
-	TALON_VERSION=$(strip $(TALON_VERSION)) python3 scenarios/run.py --target $(TARGET) \
+	TALON_VERSION=$(strip $(TALON_VERSION)) $(KEEP_AWAKE) python3 scenarios/run.py --target $(TARGET) \
 		$(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
 
 .PHONY: profile
