@@ -34,6 +34,14 @@ repos:
         args:
           - --args=--quiet
           - --args=--compact
+          # Terraform only (the manifests are rendered and checked by make
+          # check). The only accepted finding is CKV_TF_1, registry modules
+          # pinned by version range rather than commit hash, the same
+          # exception infra/aws/.checkov.baseline records for CI.
+          - --args=--framework terraform
+          - --args=--skip-check CKV_TF_1
+          # Downloaded registry modules are scanned upstream, not here.
+          - --args=--skip-path .terraform
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1

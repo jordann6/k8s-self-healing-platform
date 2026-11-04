@@ -1,0 +1,65 @@
+schemaVersion: "0.3"
+description: |-
+  Revoke every inbound rule that admits 0.0.0.0/0 or ::/0, on any port and
+  protocol, from one lab security group. The AWS-managed
+  AWS-DisablePublicAccessForSecurityGroup only covers ports 22 and 3389.
+
+  Refuses groups without the selfheal.lab/managed=true tag (the remediation
+  role's IAM policy enforces the same boundary). Other CIDRs, prefix lists and
+  group references in the same rule are left in place.
+assumeRole: "{{ AutomationAssumeRole }}"
+parameters:
+  AutomationAssumeRole:
+    type: String
+    description: Role the automation runs as.
+  GroupId:
+    type: String
+    description: Security group to clean.
+    allowedPattern: "^sg-[a-z0-9]{8,17}$"
+mainSteps:
+  - name: RevokePublicIngress
+    action: aws:executeScript
+    timeoutSeconds: 120
+    inputs:
+      Runtime: python3.11
+      Handler: handler
+      InputPayload:
+        GroupId: "{{ GroupId }}"
+      Script: |-
+        import boto3
+
+        PUBLIC_V4 = "0.0.0.0/0"
+        PUBLIC_V6 = "::/0"
+
+
+        def handler(event, context):
+            ec2 = boto3.client("ec2")
+            group_id = event["GroupId"]
+            group = ec2.describe_security_groups(GroupIds=[group_id])["SecurityGroups"][0]
+            tags = {t["Key"]: t["Value"] for t in group.get("Tags", [])}
+            if tags.get("selfheal.lab/managed") != "true":
+                raise Exception(f"{group_id} is not a lab group (selfheal.lab/managed tag missing); refusing")
+
+            revoke = []
+            for perm in group.get("IpPermissions", []):
+                v4 = [r for r in perm.get("IpRanges", []) if r.get("CidrIp") == PUBLIC_V4]
+                v6 = [r for r in perm.get("Ipv6Ranges", []) if r.get("CidrIpv6") == PUBLIC_V6]
+                if not v4 and not v6:
+                    continue
+                entry = {"IpProtocol": perm["IpProtocol"]}
+                for key in ("FromPort", "ToPort"):
+                    if key in perm:
+                        entry[key] = perm[key]
+                if v4:
+                    entry["IpRanges"] = [{"CidrIp": PUBLIC_V4}]
+                if v6:
+                    entry["Ipv6Ranges"] = [{"CidrIpv6": PUBLIC_V6}]
+                revoke.append(entry)
+
+            if revoke:
+                ec2.revoke_security_group_ingress(GroupId=group_id, IpPermissions=revoke)
+            return {"GroupId": group_id, "RevokedRules": len(revoke)}
+    outputs:
+      - Name: RevokedRules
+        Selector: $.Payload.RevokedRules
+        Type: Integer

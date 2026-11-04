@@ -1,0 +1,236 @@
+{
+  "Comment": "R2: GuardDuty runtime finding -> isolate the pod and node, preserve evidence, investigate. Eradication is a human decision.",
+  "TimeoutSeconds": 3600,
+  "StartAt": "Resolve",
+  "States": {
+    "Resolve": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "resolve", "event.$": "$"},
+      "ResultPath": "$.ctx",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2, "IntervalSeconds": 3}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "ShouldAct"
+    },
+    "ShouldAct": {
+      "Type": "Choice",
+      "Choices": [{"Variable": "$.ctx.act", "BooleanEquals": true, "Next": "InitSteps"}],
+      "Default": "NoAction"
+    },
+    "NoAction": {"Type": "Succeed"},
+    "InitSteps": {"Type": "Pass", "Result": {}, "ResultPath": "$.steps", "Next": "IsolatePod"},
+
+    "IsolatePod": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "isolate_pod", "ctx.$": "$.ctx"},
+      "ResultPath": "$.steps.isolate_pod",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 3, "IntervalSeconds": 2}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "CordonNode"
+    },
+    "CordonNode": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "cordon", "ctx.$": "$.ctx"},
+      "ResultPath": "$.steps.cordon",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 3, "IntervalSeconds": 2}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "ProtectInstance"
+    },
+    "ProtectInstance": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ec2:modifyInstanceAttribute",
+      "Parameters": {"InstanceId.$": "$.ctx.instance_id", "DisableApiTermination": {"Value": true}},
+      "ResultPath": null,
+      "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 2}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "DescribeInstance"
+    },
+    "DescribeInstance": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ec2:describeInstances",
+      "Parameters": {"InstanceIds.$": "States.Array($.ctx.instance_id)"},
+      "ResultSelector": {
+        "enis.$": "$.Reservations[0].Instances[0].NetworkInterfaces[*].NetworkInterfaceId",
+        "tags.$": "$.Reservations[0].Instances[0].Tags"
+      },
+      "ResultPath": "$.instance",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 2}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "QuarantineNode"
+    },
+    "QuarantineNode": {
+      "Type": "Map",
+      "ItemsPath": "$.instance.enis",
+      "ItemSelector": {"eni.$": "$$.Map.Item.Value"},
+      "ItemProcessor": {
+        "ProcessorConfig": {"Mode": "INLINE"},
+        "StartAt": "SwapGroups",
+        "States": {
+          "SwapGroups": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:ec2:modifyNetworkInterfaceAttribute",
+            "Parameters": {"NetworkInterfaceId.$": "$.eni", "Groups": ["${quarantine_sg}"]},
+            "ResultSelector": {"done": true},
+            "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 2}],
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.steps.quarantine",
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "SnapshotVolumes"
+    },
+    "SnapshotVolumes": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ec2:createSnapshots",
+      "Parameters": {
+        "InstanceSpecification": {"InstanceId.$": "$.ctx.instance_id", "ExcludeBootVolume": false},
+        "Description": "selfheal R2 evidence (point in time at isolation)",
+        "TagSpecifications": [{
+          "ResourceType": "snapshot",
+          "Tags": [
+            {"Key": "${lab_tag_key}", "Value": "true"},
+            {"Key": "selfheal.lab/evidence", "Value": "source"},
+            {"Key": "Project", "Value": "k8s-self-healing-platform"}
+          ]
+        }]
+      },
+      "ResultSelector": {"snapshot_ids.$": "$.Snapshots[*].SnapshotId"},
+      "ResultPath": "$.steps.snapshot",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 5}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "CaptureVolatile"
+    },
+    "CaptureVolatile": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ssm:sendCommand",
+      "Parameters": {
+        "InstanceIds.$": "States.Array($.ctx.instance_id)",
+        "DocumentName": "AWS-RunShellScript",
+        "Comment": "selfheal R2 volatile capture (read-only)",
+        "TimeoutSeconds": ${capture_timeout},
+        "Parameters": {"commands.$": "$.ctx.capture_commands"}
+      },
+      "ResultSelector": {"command_id.$": "$.Command.CommandId"},
+      "ResultPath": "$.steps.capture",
+      "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 4, "IntervalSeconds": 5}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.capture_error", "Next": "RevokeSessions"}],
+      "Next": "WaitCapture"
+    },
+    "WaitCapture": {"Type": "Wait", "Seconds": 5, "Next": "CaptureStatus"},
+    "CaptureStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:ssm:getCommandInvocation",
+      "Parameters": {"CommandId.$": "$.steps.capture.command_id", "InstanceId.$": "$.ctx.instance_id"},
+      "ResultSelector": {"status.$": "$.Status"},
+      "ResultPath": "$.capture_status",
+      "Retry": [{"ErrorEquals": ["Ssm.InvocationDoesNotExistException"], "MaxAttempts": 5, "IntervalSeconds": 2}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.capture_error", "Next": "RevokeSessions"}],
+      "Next": "CaptureDone"
+    },
+    "CaptureDone": {
+      "Type": "Choice",
+      "Choices": [{
+        "Or": [
+          {"Variable": "$.capture_status.status", "StringEquals": "Pending"},
+          {"Variable": "$.capture_status.status", "StringEquals": "InProgress"},
+          {"Variable": "$.capture_status.status", "StringEquals": "Delayed"}
+        ],
+        "Next": "WaitCapture"
+      }],
+      "Default": "RevokeSessions"
+    },
+    "RevokeSessions": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "revoke", "ctx.$": "$.ctx"},
+      "ResultPath": "$.steps.revoke",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2, "IntervalSeconds": 3}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "WriteManifest"
+    },
+    "WriteManifest": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "collect", "state": {"ctx.$": "$.ctx", "steps.$": "$.steps"}},
+      "ResultPath": "$.steps.manifest",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2, "IntervalSeconds": 3}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "CustodyCopies"
+    },
+
+    "CustodyCopies": {
+      "Type": "Map",
+      "ItemsPath": "$.steps.snapshot.snapshot_ids",
+      "ItemSelector": {"snap.$": "$$.Map.Item.Value"},
+      "ItemProcessor": {
+        "ProcessorConfig": {"Mode": "INLINE"},
+        "StartAt": "CheckSource",
+        "States": {
+          "CheckSource": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:ec2:describeSnapshots",
+            "Parameters": {"SnapshotIds.$": "States.Array($.snap)"},
+            "ResultSelector": {"state.$": "$.Snapshots[0].State"},
+            "ResultPath": "$.src",
+            "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 5}],
+            "Next": "SourceReady"
+          },
+          "SourceReady": {
+            "Type": "Choice",
+            "Choices": [
+              {"Variable": "$.src.state", "StringEquals": "completed", "Next": "CopyToEvidenceKey"},
+              {"Variable": "$.src.state", "StringEquals": "error", "Next": "SourceFailed"}
+            ],
+            "Default": "WaitSource"
+          },
+          "WaitSource": {"Type": "Wait", "Seconds": 20, "Next": "CheckSource"},
+          "SourceFailed": {"Type": "Pass", "Result": {"error": "source snapshot failed"}, "ResultPath": "$.copy", "End": true},
+          "CopyToEvidenceKey": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:ec2:copySnapshot",
+            "Parameters": {
+              "SourceSnapshotId.$": "$.snap",
+              "SourceRegion": "${region}",
+              "Encrypted": true,
+              "KmsKeyId": "${evidence_kms}",
+              "Description": "selfheal R2 evidence (custody copy under the evidence key)",
+              "TagSpecifications": [{
+                "ResourceType": "snapshot",
+                "Tags": [
+                  {"Key": "${lab_tag_key}", "Value": "true"},
+                  {"Key": "selfheal.lab/evidence", "Value": "custody"},
+                  {"Key": "Project", "Value": "k8s-self-healing-platform"}
+                ]
+              }]
+            },
+            "ResultSelector": {"snapshot_id.$": "$.SnapshotId"},
+            "ResultPath": "$.copy",
+            "Retry": [{"ErrorEquals": ["States.ALL"], "MaxAttempts": 3, "IntervalSeconds": 10}],
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.copies",
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "Next": "RecordCustody"
+    },
+    "RecordCustody": {
+      "Type": "Task",
+      "Resource": "${function_arn}",
+      "Parameters": {"action": "custody", "state": {"ctx.$": "$.ctx", "copies.$": "$.copies"}},
+      "ResultPath": "$.steps.custody",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed"], "MaxAttempts": 2, "IntervalSeconds": 3}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "ResponseFailed"}],
+      "End": true
+    },
+
+    "ResponseFailed": {
+      "Type": "Fail",
+      "Error": "ResponderFailed",
+      "Cause": "A response step failed; the execution history and $.error hold the step and reason."
+    }
+  }
+}

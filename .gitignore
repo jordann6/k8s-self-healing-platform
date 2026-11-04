@@ -28,3 +28,7 @@ evidence/*
 # Reference runs: identical config (runs 5 and 7), 7 of 8 rows healed in both.
 !evidence/kind-run5/
 !evidence/kind-run7/
+
+# Terraform saved plans and Lambda build output
+*.tfplan
+infra/aws/build/

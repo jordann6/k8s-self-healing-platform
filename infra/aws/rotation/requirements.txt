@@ -1,0 +1,5 @@
+# Hash-pinned so every runner builds the same package: the post-apply re-plan runs
+# on a fresh runner, and a different build would read as a perpetual diff.
+# The wheel bundles libpq, so nothing is compiled for the Lambda runtime.
+psycopg2-binary==2.9.13 \
+    --hash=sha256:f04ada42bcd537adbaf8b7f3140237a204e452a88d0c1831cfce69f7d2e59f4e
