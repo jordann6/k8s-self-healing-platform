@@ -10,6 +10,16 @@ AWS module, `infra/aws/`, every row on EKS) have both run live. On EKS 11 of 13
 hardened rows healed, one missed and one was inconclusive (see below); the
 cluster was then destroyed. Azure and GCP come after.
 
+![Self-healing platform on EKS](docs/architecture.png)
+
+*The EKS module. Blue edges are the availability loop (probes, canary
+analysis, Karpenter, a CloudWatch stop condition on the node kill), orange is
+drift (secret and database rotation, a Config rule with a custom SSM revoke),
+red is runtime threat response (Falco to a Cilium quarantine, GuardDuty to a
+Step Functions responder that cordons, isolates and captures evidence). The
+dashed grey edges are the scenario runner injecting faults from outside.
+Source: `docs/diagram.py`.*
+
 ## The experiment
 
 Every row states a steady-state hypothesis, injects one fault, and runs twice:
