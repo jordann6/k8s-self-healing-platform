@@ -154,7 +154,7 @@ test: ## Unit-test the runner's honesty rules and the R2 responder's refusals (n
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 
 .PHONY: check
-check: test eks-check ## Static checks: every profile renders (kind and EKS), shellcheck, Terraform gates, pre-commit
+check: test eks-check aks-check ## Static checks: every profile renders (kind and EKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	scripts/render-eks-profiles.sh
@@ -247,3 +247,21 @@ eks-destroy-plan: ## Teardown 3 of 4: write infra/aws/destroy.tfplan and print t
 .PHONY: eks-verify-gone
 eks-verify-gone: ## Teardown 4 of 4: read-only proof nothing survived (every teardown gotcha)
 	LAB_PROFILE=$(LAB_PROFILE) scripts/eks-verify-gone.sh
+
+# --- AKS: the Azure module ----------------------------------------------------
+# Same rule as EKS: these targets plan, check and print; the operator applies
+# every saved plan.
+
+.PHONY: aks-check
+aks-check: ## Azure Terraform gates (no credentials): fmt, validate, tflint, checkov, trivy, conftest
+	terraform -chdir=infra/azure fmt -check -recursive
+	terraform -chdir=infra/azure init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/azure validate
+	tflint --chdir=infra/azure --recursive --minimum-failure-severity=warning
+	checkov -d infra/azure --framework terraform --quiet --compact --skip-path .terraform
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/azure/.terraform infra/azure
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/azure/*.tf
+
+.PHONY: aks-lock
+aks-lock: ## Record Azure provider hashes for CI (linux_amd64) and this Mac (darwin_arm64)
+	terraform -chdir=infra/azure providers lock -platform=linux_amd64 -platform=darwin_arm64

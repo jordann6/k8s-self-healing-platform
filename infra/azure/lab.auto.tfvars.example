@@ -1,0 +1,7 @@
+# Copy to lab.auto.tfvars (gitignored) and fill in. The subscription ID stays
+# out of the public repo; Terraform loads *.auto.tfvars automatically.
+subscription_id = "00000000-0000-0000-0000-000000000000" # the lab subscription (az account show --query id -o tsv)
+
+# make aks-plan passes the operator's IPv4 /32 on the command line; set it
+# here only to plan by hand.
+# api_authorized_cidrs = ["203.0.113.10/32"]
