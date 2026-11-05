@@ -1,0 +1,116 @@
+# The AKS R2 worker (app/r2worker): takes Defender incidents off the queue,
+# cordons the node, then relabels the pod into quarantine (ADR-0007 D6).
+# Rendered with envsubst by make aks-platform from the Terraform outputs.
+#
+# Kubernetes identity: its own service account, bound to a narrow ClusterRole
+# (get/patch nodes) and a Role in the lab namespace (get/patch pods). It
+# cannot list secrets, exec, delete or drain. Azure identity: workload
+# identity federated to responder:responder (infra/azure/identity.tf), which
+# holds only queue processor and blob contributor on the one queue and the
+# one container.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: responder
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: responder
+  namespace: responder
+  annotations:
+    azure.workload.identity/client-id: "${RESPONDER_CLIENT_ID}"
+automountServiceAccountToken: true
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: selfheal-r2-worker-nodes
+rules:
+  - apiGroups: [""]
+    resources: [nodes]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: selfheal-r2-worker-nodes
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: selfheal-r2-worker-nodes
+subjects:
+  - kind: ServiceAccount
+    name: responder
+    namespace: responder
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: selfheal-r2-worker-pods
+  namespace: selfheal
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: selfheal-r2-worker-pods
+  namespace: selfheal
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: selfheal-r2-worker-pods
+subjects:
+  - kind: ServiceAccount
+    name: responder
+    namespace: responder
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r2-worker
+  namespace: responder
+  labels: {app: r2-worker}
+spec:
+  replicas: 1
+  # One worker, replaced not surged: two would race for the same incident.
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: r2-worker}
+  template:
+    metadata:
+      labels:
+        app: r2-worker
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: responder
+      # System nodes only: the worker must never run on a node it may cordon.
+      nodeSelector:
+        selfheal.lab/nodes: system
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: worker
+          image: "${RESPONDER_IMAGE}"
+          env:
+            - {name: CLUSTER_NAME, value: "${CLUSTER_NAME}"}
+            - {name: CLUSTER_ID, value: "${CLUSTER_ID}"}
+            - {name: NODE_RESOURCE_GROUP, value: "${NODE_RESOURCE_GROUP}"}
+            - {name: STORAGE_ACCOUNT, value: "${STORAGE_ACCOUNT}"}
+            - {name: QUEUE, value: "${INCIDENTS_QUEUE}"}
+            - {name: CONTAINER, value: "${EVIDENCE_CONTAINER}"}
+            - {name: LAB_NAMESPACE, value: selfheal}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 200m, memory: 96Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

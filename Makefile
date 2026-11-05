@@ -149,9 +149,10 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 		| python3 scripts/slo-wrap.py > gitops/base/slo-rules.yaml
 
 .PHONY: test
-test: ## Unit-test the runner's honesty rules and the R2 responder's refusals (no cluster, no AWS)
+test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
 	cd scenarios && python3 -m unittest -v test_classify
 	cd infra/aws/responder && python3 -m unittest -v test_handler
+	cd app/r2worker && python3 -m unittest -v test_worker
 
 .PHONY: check
 check: test eks-check aks-check ## Static checks: every profile renders (kind and EKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
@@ -159,7 +160,7 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind an
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	scripts/render-eks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py scenarios/run.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py infra/aws/responder/handler.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------
