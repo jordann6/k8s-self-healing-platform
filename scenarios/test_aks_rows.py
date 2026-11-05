@@ -130,5 +130,40 @@ class VmssOf(unittest.TestCase):
             A.vmss_of(FakeH(node("True", "", "aws:///us-east-1a/i-0abc")), "n")
 
 
+class SteadyCordonedNodes(unittest.TestCase):
+    """aks-run1: hardened A4 started its instance again after the autoscaler
+    had already added a replacement, the autoscaler then removed the empty
+    node, and steady took its cordon for an R2 leftover and asked AKS to
+    delete a machine that was already gone. Every later row errored."""
+
+    def run_steady(self, taints):
+        calls = []
+
+        class H:
+            def log(self, msg):
+                pass
+
+            def wait_for(self, *a, **k):
+                pass
+
+        saved = A.outputs, A.az, A.workload_nodes, A.eradicate_node
+        A.outputs = lambda: {"resource_group": "rg", "node_nsg": "nsg"}
+        A.az = lambda *a, **k: None
+        A.workload_nodes = lambda h: [{"name": "aks-work-0", "ready": True, "unschedulable": True,
+                                       "annotations": {}, "taints": taints}]
+        A.eradicate_node = lambda h, n: calls.append(n)
+        try:
+            A.steady(H())
+        finally:
+            A.outputs, A.az, A.workload_nodes, A.eradicate_node = saved
+        return calls
+
+    def test_autoscaler_scale_down_is_left_alone(self):
+        self.assertEqual(self.run_steady([A.CA_DELETING_TAINT, "node.kubernetes.io/unschedulable"]), [])
+
+    def test_r2_cordon_is_still_replaced(self):
+        self.assertEqual(self.run_steady(["node.kubernetes.io/unschedulable"]), ["aks-work-0"])
+
+
 if __name__ == "__main__":
     unittest.main()

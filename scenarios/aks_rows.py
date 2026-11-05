@@ -135,6 +135,10 @@ def vmss_of(h, node: str) -> tuple[str, str]:
         raise RuntimeError(f"node {node} has no scale set providerID ({pid!r})") from None
 
 
+# The taint the cluster autoscaler puts on a node it has decided to remove.
+CA_DELETING_TAINT = "ToBeDeletedByClusterAutoscaler"
+
+
 def workload_nodes(h) -> list[dict]:
     out = []
     for n in h.kj("get", "nodes", "-l", "selfheal.lab/nodes=workload").get("items", []):
@@ -226,6 +230,11 @@ def steady(h) -> None:
             if state in ("PowerState/stopped", "PowerState/stopping", "PowerState/deallocated"):
                 h.log(f"  steady: node {n['name']} is {state} (an earlier A4?), starting it")
                 start_instance(h, n["name"], vmss, iid)
+        elif n["unschedulable"] and CA_DELETING_TAINT in n["taints"]:
+            # The cluster autoscaler is already removing this node (an empty
+            # node after A4 brought its instance back). It is not an R2
+            # leftover, and its machine may already be gone from the pool.
+            h.log(f"  steady: node {n['name']} is being scaled down by the cluster autoscaler, waiting")
         elif n["unschedulable"]:
             h.log(f"  steady: node {n['name']} is still cordoned (an earlier R2?), replacing it")
             eradicate_node(h, n["name"])
