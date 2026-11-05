@@ -74,6 +74,8 @@ variable "workload_max_nodes" {
 variable "api_authorized_cidrs" {
   description = "Who may reach the API server: the operator's IPv4 /32 (make aks-plan passes it)."
   type        = list(string)
+  # The operator's home address: plan and apply print "(sensitive value)".
+  sensitive = true
 
   validation {
     condition     = length(var.api_authorized_cidrs) > 0 && alltrue([for c in var.api_authorized_cidrs : can(cidrhost(c, 0))])

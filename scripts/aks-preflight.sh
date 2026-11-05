@@ -190,8 +190,8 @@ fi
 
 echo "preflight: operator address"
 ip="$(curl -4 -s --max-time 5 ifconfig.me || true)"
-[[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && ok "IPv4 $ip (API server, Key Vault and storage admit $ip only)" ||
-	bad "no IPv4 address from ifconfig.me ('$ip')"
+[[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && ok "IPv4 found, not shown (API server, Key Vault and storage admit only it)" ||
+	bad "no IPv4 address from ifconfig.me"
 
 if [[ $fail -ne 0 ]]; then
 	echo "preflight: FAILED"

@@ -80,8 +80,8 @@ ok "Lambda concurrency quota $conc (no reservations are made)"
 
 echo "preflight: operator address"
 ip="$(curl -4 -s --max-time 5 ifconfig.me || true)"
-[[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && ok "IPv4 $ip (the API endpoint is scoped to $ip/32)" ||
-	bad "no IPv4 address from ifconfig.me ('$ip')"
+[[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] && ok "IPv4 found, not shown (the API endpoint is scoped to it as a /32)" ||
+	bad "no IPv4 address from ifconfig.me"
 
 if [[ $fail -ne 0 ]]; then
 	echo "preflight: FAILED"
