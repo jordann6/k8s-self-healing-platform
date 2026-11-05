@@ -56,7 +56,11 @@ arm="https://management.azure.com/subscriptions/$want_sub"
 # (Captured first: grep -q under pipefail would SIGPIPE terraform and fail.)
 state="$(terraform -chdir="$tf" state list 2>/dev/null || true)"
 in_progress=0
-grep -qx 'azurerm_kubernetes_cluster.lab' <<<"$state" && in_progress=1
+# Anything in this root's state is a session in progress, not only the
+# cluster: a failed first apply leaves the rest (found on the first AKS apply,
+# which stopped at the cluster), and its re-plan must neither call the lab's
+# own resources leftovers nor overwrite the clean before-picture.
+[[ -n "$state" ]] && in_progress=1
 
 lab_rg="rg-$cluster-lab"
 node_rg="rg-$cluster-lab-nodes"
@@ -171,7 +175,7 @@ others="$(grep -vx "auto-$cluster-r2" <<<"$automations" || true)"
 
 echo "preflight: leftovers from an earlier session"
 if [[ $in_progress -eq 1 ]]; then
-	ok "session in progress (the cluster is in this root's state): re-plan, leftover checks skipped"
+	ok "session in progress (this root's state is not empty): re-plan, leftover checks skipped"
 	note "Containers plan is $tier"
 else
 	[[ "$tier" == "Free" ]] && ok "Containers plan is Free" || bad "Containers plan is '$tier' before the session"
@@ -199,7 +203,7 @@ if [[ $fail -ne 0 ]]; then
 fi
 
 # The before-picture for verify-gone. Kept across re-plans of the same
-# session; a new session (no cluster in state) records a fresh one.
+# session; a new session (empty state) records a fresh one.
 if [[ $in_progress -eq 0 || ! -f "$snapshot" ]]; then
 	mkdir -p "$session_dir"
 	jq -n --arg at "$(date -u +%FT%TZ)" \

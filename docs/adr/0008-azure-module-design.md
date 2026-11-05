@@ -255,6 +255,17 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   URI "will not be included in any response"
   ([Automations - Update](https://learn.microsoft.com/en-us/rest/api/defenderforcloud/automations/update), 2026-10-23),
   so a read-modify-write would drop it.
+- **Found by the first apply (2026-11-05):** AKS rejected the cluster with
+  "Tag name [environment] is duplicated. Tag name is case insensitive." The
+  tag map carried `Environment` and `environment` (and `Owner` and `owner`)
+  for the landing zone's tag rules; the resource group had quietly kept one
+  of each, AKS refuses. ARM tag names are case-insensitive, so the lowercase
+  copies were never needed and are gone; a precondition on the resource group
+  now fails the plan if two tag names differ only in case. The apply stopped
+  with 36 of 51 resources created, which exposed a preflight bug: it treated
+  a session as in progress only when the cluster was in state, so the
+  re-plan would have called the lab's own resources leftovers and could have
+  overwritten the clean before-picture. Any resource in state now counts.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.

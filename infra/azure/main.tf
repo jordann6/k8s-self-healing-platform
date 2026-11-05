@@ -47,17 +47,16 @@ locals {
   name = var.cluster_name
 
   # azurerm has no provider-level default tags, so every resource sets these.
-  # The capitalised keys satisfy the platform-guardrails policy; the lowercase
-  # ones satisfy the landing zone's resource-group tag rules if it is ever
-  # deployed again (ADR-0007).
+  # The capitalised keys satisfy the platform-guardrails policy; cost_center
+  # and data_classification the landing zone's resource-group tag rules if it
+  # is ever deployed again (ADR-0007). ARM tag names are case-insensitive, so
+  # Owner and Environment already answer for owner and environment.
   tags = {
     Project             = "k8s-self-healing-platform"
     Environment         = var.environment
     Owner               = "jordann6"
     ManagedBy           = "terraform"
     CostCenter          = var.cost_center
-    owner               = "jordann6"
-    environment         = var.environment
     cost_center         = var.cost_center
     data_classification = "internal"
     "selfheal.lab"      = "managed"
@@ -80,4 +79,14 @@ resource "azurerm_resource_group" "lab" {
   name     = "rg-${local.name}-lab"
   location = var.location
   tags     = local.tags
+
+  lifecycle {
+    # ARM tag names are case-insensitive: AKS rejects a cluster whose tags
+    # differ only in case ("Tag name [environment] is duplicated"), found by
+    # the first apply. Fail at plan time instead.
+    precondition {
+      condition     = length(distinct([for k in keys(local.tags) : lower(k)])) == length(local.tags)
+      error_message = "Two tag names differ only in case; ARM treats them as one."
+    }
+  }
 }
