@@ -266,6 +266,16 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   a session as in progress only when the cluster was in state, so the
   re-plan would have called the lab's own resources leftovers and could have
   overwritten the clean before-picture. Any resource in state now counts.
+  The re-plan then stopped on a system-protected deny assignment, "Azure
+  Monitor Workspace Managed Resource Group Deny-...", on the workspace's
+  `MA_` group ("Prevents modification of the resources required for the
+  Azure Monitor Workspace to function": DCR and DCE delete and write, group
+  write and delete). "The resource group and its resources are automatically
+  deleted when you delete the workspace"
+  ([Manage an Azure Monitor workspace](https://learn.microsoft.com/azure/azure-monitor/metrics/azure-monitor-workspace-manage), updated 2026-08-07),
+  so it cannot block the teardown; the preflight accepts exactly that one
+  (system-protected, that name, the lab workspace's group) and still fails on
+  any other deny assignment on a lab scope.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.

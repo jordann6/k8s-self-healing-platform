@@ -94,12 +94,19 @@ unknown="$(jq -r --arg known " $known " '.[] | .name as $n | select(($known | co
 	bad "policy assignments the lab has not reviewed (read each; ALLOW_POLICY_ASSIGNMENTS='name ...' to accept): $(tr '\n' ';' <<<"$unknown")"
 
 deny="$(az rest --method get --url "$arm/providers/Microsoft.Authorization/denyAssignments?api-version=2022-04-01" \
-	--query 'value[].{name:properties.denyAssignmentName, scope:properties.scope}' -o json)"
+	--query 'value[].{name:properties.denyAssignmentName, scope:properties.scope, sys:properties.isSystemProtected}' -o json)"
 blocking=""
-while IFS=$'\t' read -r name scope; do
+while IFS=$'\t' read -r name scope sys; do
 	[[ -n "$name" ]] || continue
-	if lab_scope "$scope"; then blocking="$blocking $name($scope)"; else note "deny assignment outside the lab: $name"; fi
-done < <(jq -r '.[] | [.name, .scope] | @tsv' <<<"$deny")
+	# The Azure Monitor workspace protects its own managed group (its DCR and
+	# DCE) with a system deny assignment; Azure deletes the group with the
+	# workspace (Learn, Manage an Azure Monitor workspace, 2026-08-07). Only
+	# that one, on the lab workspace's group, is accepted.
+	if [[ "$sys" == "true" && "$name" == "Azure Monitor Workspace Managed Resource Group Deny-"* &&
+		"$(lower "${scope##*/}")" == "$lc_ma"_*_managed ]]; then
+		note "system deny assignment on the lab workspace's managed group (expected; deleted with the workspace)"
+	elif lab_scope "$scope"; then blocking="$blocking $name($scope)"; else note "deny assignment outside the lab: $name"; fi
+done < <(jq -r '.[] | [.name, .scope, (.sys | tostring)] | @tsv' <<<"$deny")
 [[ -z "$blocking" ]] && ok "no deny assignment on the subscription or a lab group" || bad "deny assignments on lab scopes:$blocking"
 
 locks="$(az lock list --query '[].{name:name, id:id, level:level}' -o json)"
