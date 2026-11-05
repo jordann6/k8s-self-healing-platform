@@ -330,6 +330,41 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   all, because DINE closed the rule before a compliance scan. The row now
   counts only records written after T0. Not a judged field; the verdict
   stands. The evidence file is left as written.
+- **A3 on AKS: KEDA on Prometheus, not metrics-server (2026-11-05).**
+  Hardened A3 in aks-run1 missed: sustain p95 821 ms against 300, errors 0,
+  replicas 3 to 6. The HPA scaled at 69s (eks-run2: 32s, to 8 replicas), and
+  the window opened on a backlog still draining (p50 519 ms at T0+100s, 54 ms
+  at T0+160s, the same on old and new pods). Cause: AKS's managed
+  metrics-server runs without `--metric-resolution`, so the upstream 60s
+  default; kind and EKS install it at 15s. It cannot be replaced (AKS manages
+  the `metrics.k8s.io` APIService) and no documented setting changes it. The
+  AKS hardened overlay deletes the shared HPA and adds a KEDA `ScaledObject`
+  (managed add-on, `workload_autoscaler_profile.keda_enabled`) with the same
+  bounds and behaviour and the same signal, web CPU against its 100m request,
+  read from the in-cluster Prometheus (cAdvisor, 10s scrape) as a `Value`
+  target of 100, which the HPA computes like `Utilization`. KEDA names its
+  HPA `web`, so the runner and the row are unchanged. Argo CD now includes
+  `keda.sh/ScaledObject`. This is a per-target deviation in how the HPA gets
+  its metric, not in what it targets; the 300 ms bar is unchanged.
+- **R2 recorded as blocked on Azure (2026-11-05).** Three triggers (aks-run1
+  baseline, aks-run1-rows baseline and hardened), each Microsoft's own
+  threat-intelligence request (the POST to `mdc-eicar.alerts.security.azure.com`
+  in their attack simulation's `ti-domain.sh`), and no Defender alert naming
+  the pod within 3600s, so no row could start its response clock. Ruled out:
+  the trigger (identical to Microsoft's), egress (the web policy is ingress
+  only), sensor health (collector and publisher Running on all six nodes),
+  the plan (Standard, ContainerSensor on, no suppression rules) and the query
+  (the subscription-wide alert list was empty too). A control-plane alert
+  ("New high privileges role detected", 18:11Z) did arrive, so the alert path
+  into the subscription works; the sensor's runtime detection did not fire.
+  The AKS add-on sensor was chart 0.8.61 with
+  `ANTIMALWARE_COLLECTOR_ENABLED=false` although the plan and the cluster's
+  security profile both say antimalware is enabled; Microsoft's antimalware
+  doc requires sensor 0.10.x, so the EICAR-execution scenario was not tried.
+  The responder path (automation, Logic App, queue, worker) is built and its
+  pieces passed their live checks (L15, L16); the row itself is unproven on
+  AKS. Production would install the Helm sensor at a pinned version and
+  alert on the sensor's own heartbeat.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.

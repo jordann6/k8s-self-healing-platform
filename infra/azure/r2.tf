@@ -28,6 +28,17 @@ resource "azurerm_security_center_subscription_pricing" "containers" {
     for_each = var.defender_enabled ? ["ContainerSensor"] : []
     content {
       name = extension.value
+      # What Azure sets on the sensor when the plan is enabled; declared so
+      # every plan stops showing them as an in-place removal. Note that
+      # AntiMalwareEnabled does not make the AKS add-on sensor run the
+      # antimalware collector: 0.8.61 had ANTIMALWARE_COLLECTOR_ENABLED=false
+      # (ADR-0008, R2).
+      additional_extension_properties = {
+        AntiMalwareEnabled    = "True"
+        AutoProvisioning      = "True"
+        InstallationMethod    = "AKSAddon"
+        SecurityGatingEnabled = "True"
+      }
     }
   }
 }

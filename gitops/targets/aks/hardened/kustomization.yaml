@@ -5,6 +5,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../../profiles/hardened
+  # Row A3: KEDA creates the HPA from this (see the file for why AKS differs).
+  - scaledobject.yaml
 components:
   - ../common
   # Written by `make aks-images` (registry, git SHA tag, vault URL), not committed.
@@ -12,3 +14,11 @@ components:
 patches:
   - target: {group: argoproj.io, kind: Rollout, name: web}
     path: topology.yaml
+  # The shared HPA would fight KEDA's over the Rollout.
+  - target: {group: autoscaling, kind: HorizontalPodAutoscaler, name: web}
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: web

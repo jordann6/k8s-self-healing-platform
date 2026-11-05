@@ -106,6 +106,23 @@ for profile in ("baseline", "hardened"):
             check(profile, t.get("effect") == "NoExecute" and t.get("tolerationSeconds") == 30,
                   f"hardened toleration {key} is {t}, want NoExecute for 30s")
 
+    # Row A3: on AKS KEDA owns the HPA (named web, as the runner expects), and
+    # the shared HPA must be gone or the two would fight over the Rollout.
+    hpas = [d for d in docs if d["kind"] == "HorizontalPodAutoscaler"]
+    sos = [d for d in docs if d["kind"] == "ScaledObject"]
+    check(profile, not hpas, f"AKS renders {len(hpas)} HPA(s); KEDA creates it")
+    if profile == "baseline":
+        check(profile, not sos, "baseline must not autoscale")
+    else:
+        so = one(docs, "ScaledObject", "web").get("spec", {})
+        check(profile, so.get("scaleTargetRef", {}).get("name") == "web", "ScaledObject does not target Rollout web")
+        check(profile, so.get("advanced", {}).get("horizontalPodAutoscalerConfig", {}).get("name") == "web",
+              "KEDA's HPA is not named web")
+        check(profile, (so.get("minReplicaCount"), so.get("maxReplicaCount")) == (3, 10), "ScaledObject bounds are not 3..10")
+        trig = (so.get("triggers") or [{}])[0]
+        check(profile, trig.get("type") == "prometheus" and trig.get("metadata", {}).get("threshold") == "100",
+              "ScaledObject trigger is not Prometheus CPU at 100")
+
 if fail:
     sys.exit("render-aks-profiles: FAIL\n  " + "\n  ".join(fail))
 PY

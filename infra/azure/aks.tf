@@ -86,6 +86,14 @@ resource "azurerm_kubernetes_cluster" "lab" {
     utc_offset  = "+00:00"
   }
 
+  # Row A3 scales through the managed KEDA add-on on AKS: the managed
+  # metrics-server keeps the upstream 60s resolution (kind and EKS run 15s)
+  # and cannot be replaced, so the HPA reads pod CPU from Prometheus instead
+  # (ADR-0008, "A3 on AKS").
+  workload_autoscaler_profile {
+    keda_enabled = true
+  }
+
   # Node access is Run Command / command invoke, never SSH (no key is kept).
   run_command_enabled  = true
   azure_policy_enabled = false

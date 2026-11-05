@@ -42,6 +42,10 @@ configs:
       - apiGroups: [monitoring.coreos.com]
         kinds: [PrometheusRule, PodMonitor]
         clusters: ["*"]
+      # Row A3 on AKS only (KEDA add-on); no such objects on kind or EKS.
+      - apiGroups: [keda.sh]
+        kinds: [ScaledObject]
+        clusters: ["*"]
 controller:
   resources:
     requests: {cpu: 100m, memory: 192Mi}
