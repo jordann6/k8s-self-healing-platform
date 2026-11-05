@@ -20,10 +20,11 @@ profile). `make aks-cost` gives the Infracost figure.
 ```bash
 brew install Azure/kubelogin/kubelogin
 infracost auth login
-# Decision D1 (revised 2026-11-05): the Dsv6 family (and with it the region) to 16 vCPUs.
-# DSv3 quota can no longer be raised (DeprecatedQuotaType, ADR-0008).
+# Decision D1 (revised 2026-11-05): the regional limit to 16 vCPUs. System nodes
+# use the DSv3 quota already approved (it can no longer be raised), workload
+# nodes the Dsv6 quota (an increase was refused in East US 2), ADR-0008.
 az provider register -n Microsoft.Quota --wait
-az quota update --resource-name StandardDsv6Family \
+az quota update --resource-name cores \
   --scope "/subscriptions/$(az account show --query id -o tsv)/providers/Microsoft.Compute/locations/eastus2" \
   --limit-object value=16 --resource-type dedicated
 cp infra/azure/lab.auto.tfvars.example infra/azure/lab.auto.tfvars   # the lab subscription ID
@@ -41,8 +42,8 @@ terraform -chdir=$PWD/infra/azure apply $PWD/infra/azure/tfplan
 
 The preflight fails on: the wrong subscription; a policy assignment nobody
 has reviewed, a deny assignment or a lock on the subscription or a lab group;
-an unregistered provider or `EncryptionAtHost`; Dsv6 or regional quota under
-16; a session that would overlap the weekly node image window (Sunday 08:00
+an unregistered provider or `EncryptionAtHost`; under 6 free DSv3, 8 free Dsv6 or a regional
+limit under 16; a session that would overlap the weekly node image window (Sunday 08:00
 to 12:00 UTC by default, `SESSION_HOURS=6`); another workflow automation; or
 anything left from an earlier session (groups, soft-deleted vault, custom
 role, policy definition, snapshots, a Containers plan not on Free).
@@ -71,7 +72,7 @@ export KUBECONFIG=$PWD/.kube/aks
 
 | Check | How | If it fails |
 |---|---|---|
-| L20 Cilium's dataplane on the Dsv6 MANA NIC | `kubectl -n kube-system exec ds/cilium -c cilium-agent -- cilium-dbg status \| grep -iE 'devices\|kubeproxy\|cluster health'`; `make aks-platform` must pass its readiness gate | stop; record it (D2) |
+| L20 Cilium's dataplane on the Dsv6 MANA NIC (workload nodes) | `kubectl get nodes -L node.kubernetes.io/instance-type`; `kubectl -n kube-system get pods -l k8s-app=cilium -o wide` (one Ready agent per node, both sizes); `make aks-platform` must pass its readiness gate | stop; record it (D2) |
 | L1 Cilium on BYO CNI; no node rebooted by auto-repair before Cilium | `kubectl get nodes`; `kubectl get events -A --field-selector source=aks-auto-repair` | stop; record it |
 | L3 Defender sensor on the tainted workload nodes | printed by `aks-platform` ("L3: ... N of 3") | R2 cannot be detected: record R2 as not runnable (a miss with a reason), never skip it |
 | L5, L13 ESO reads the latest version through the firewall | printed by `aks-bootstrap` | wait for the service endpoint (up to 15 minutes), rerun `make aks-bootstrap` |

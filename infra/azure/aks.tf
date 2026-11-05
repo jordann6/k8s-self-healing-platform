@@ -147,7 +147,7 @@ resource "azurerm_kubernetes_cluster" "lab" {
 
   default_node_pool {
     name                         = "system"
-    vm_size                      = var.node_vm_size
+    vm_size                      = var.system_node_vm_size
     node_count                   = var.system_node_count
     vnet_subnet_id               = azurerm_subnet.nodes.id
     max_pods                     = 60
@@ -176,7 +176,7 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
   name                    = "work"
   kubernetes_cluster_id   = azurerm_kubernetes_cluster.lab.id
   mode                    = "User"
-  vm_size                 = var.node_vm_size
+  vm_size                 = var.workload_node_vm_size
   vnet_subnet_id          = azurerm_subnet.nodes.id
   auto_scaling_enabled    = true
   min_count               = var.workload_min_nodes

@@ -531,8 +531,10 @@ Cilium is installed; repair could reboot one if that takes over five minutes
 **Amendment (2026-11-05, before any apply):** D1 as written could not be
 carried out. Azure refused the DSv3 increase (`DeprecatedQuotaType`; the
 series is under capacity growth restrictions since July 2026) and
-`Standard_D2s_v5` is not available to the subscription. The operator chose
-`Standard_D2s_v6` for every node with the Dsv6 family raised to 16. ADR-0008
+`Standard_D2s_v5` is not available to the subscription; a Dsv6 increase
+was refused as well (`QuotaNotAvailableForResource`). The regional limit
+alone was raised to 16: system nodes stay `Standard_D2s_v3` on the quota
+already approved, workload nodes are `Standard_D2s_v6`. ADR-0008
 records the facts; the text below is kept as it was decided.
 
 - **D1, quota.** Raise the DSv3 family in East US 2 from 10 to 16 vCPUs (the

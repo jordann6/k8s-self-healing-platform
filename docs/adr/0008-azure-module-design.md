@@ -34,7 +34,9 @@ on two 2-vCPU nodes (79%), too tight for a platform that must not
 be the bottleneck. Three system nodes give 67%. The workload pool is tainted
 and autoscaled from three (the hardened spread needs three domains) to four
 (row A4's replacement). Peak: 14 of the 16 vCPUs decision D1 raises the Dsv6
-family to. Nodes are `Standard_D2s_v6` (see Changes below for why not D2s_v3). A stopped VM keeps its quota, which is why A4 needs that headroom.
+family to. Revised before any apply: the regional limit is raised to 16, the
+system pool runs `Standard_D2s_v3` (6 of the 10 DSv3 already approved) and the
+workload pool `Standard_D2s_v6` (8 of 10 Dsv6); see Changes below. A stopped VM keeps its quota, which is why A4 needs that headroom.
 The preflight fails closed below 16.
 
 ### Bring your own CNI, the same Cilium (D2)
@@ -214,29 +216,37 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
 ## Changes from ADR-0007, made while building
 
 - Three system nodes, not two (capacity above).
-- **Nodes are `Standard_D2s_v6`, not D2s_v3 (decision D1 revised, 2026-11-05,
-  before any apply).** The DSv3 quota request returned `DeprecatedQuotaType`:
-  "Additional quota isn't available for the requested family
-  standardDSv3Family". The capacity restriction page: "Existing subscription
-  requesting additional quota: Additional quota isn't approved", starting
-  July 2026
+- **Decision D1 revised (2026-11-05, before any apply): system nodes
+  `Standard_D2s_v3`, workload nodes `Standard_D2s_v6`, regional limit 16.**
+  The DSv3 increase returned `DeprecatedQuotaType`: "Additional quota isn't
+  available for the requested family standardDSv3Family". The capacity
+  restriction page: "Existing subscription requesting additional quota:
+  Additional quota isn't approved", while "Existing subscription using
+  already-approved quota: Can deploy or redeploy affected SKUs, subject to
+  capacity availability"
   ([VM size series retirements and capacity growth restrictions](https://learn.microsoft.com/azure/virtual-machines/sizes/lifecycle/retirements-and-capacity-restrictions), updated 2026-09-25).
-  `Standard_D2s_v5` is `NotAvailableForSubscription` in East US 2, so the
-  lab takes the same 2 vCPU and 8 GiB shape in the Dsv6 series ($0.101 an
-  hour against $0.096). Dsv6 is Generation 2 only, has no temporary disk,
-  supports no ephemeral OS disk (the lab already uses managed OS disks for
-  R2's snapshot), and requires accelerated networking (MANA)
+  `Standard_D2s_v5` is `NotAvailableForSubscription` in East US 2. A Dsv6
+  increase to 16 returned `QuotaNotAvailableForResource`, which the Quota API
+  documents as "Quota is currently unavailable in the location for the
+  requested resource" ([Quota REST API](https://learn.microsoft.com/rest/api/quota/), troubleshooting table).
+  An increase of the regional limit alone (`cores`) to 16 was approved. The
+  lab therefore keeps the system pool on the DSv3 quota it already had (6 of
+  10) and puts the workload pool, the one rows A4 and R2 act on, on Dsv6 (8
+  of 10), the same 2 vCPU and 8 GiB shape at $0.101 an hour against $0.096.
+  Dsv6 is Generation 2 only, has no temporary disk, supports no ephemeral OS
+  disk (the lab already uses managed OS disks for R2's snapshot), and
+  requires accelerated networking (MANA)
   ([Dsv6 series](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv6-series), updated 2026-10-27).
   For AKS, "the platform supplies the image and already meets the
-  Generation 2, NVMe, and MANA prerequisites"
+  Generation 2, NVMe, and MANA prerequisites", and mixed sizes belong in
+  "separate node pools with labels and taints", which the lab already has
   ([v6 and v7 modernization FAQ](https://learn.microsoft.com/azure/virtual-machines/sizes/lifecycle/sizes-v6-v7-modernization-faq), updated 2026-09-25).
-  Raising a series' quota raises the regional limit "by the same amount"
-  ([Increase regional vCPU quotas](https://learn.microsoft.com/azure/quotas/regional-quota-requests)),
-  so one request covers both. `az vm list-skus` reports encryption at host
-  supported. Nothing in the lab uses SCSI device paths. What no doc settles
-  is the bring-your-own Cilium dataplane on a MANA NIC: live check L20. If
-  the landing zone is deployed again, its allowed-size list would need
-  D2s_v6 added.
+  `az vm list-skus` reports encryption at host supported on both. Nothing in
+  the lab uses SCSI device paths. What no doc settles is the bring-your-own
+  Cilium dataplane on a MANA NIC, and across two NIC types in one cluster:
+  live check L20. The preflight checks each family and the region
+  separately. If the landing zone is deployed again, its allowed-size list
+  would need D2s_v6 added.
 - Key Vault and the evidence account admit the node subnet, not the egress IP.
 - `aks-images` runs before `aks-platform` (the platform step deploys the
   worker, which needs its image).
@@ -262,12 +272,12 @@ L1 to L10 are in ADR-0007. Added while building:
 - **L17** A Logic App run on the success path is `Succeeded`, though earlier `Until` iterations had 404s.
 - **L18** The DINE deployment's name and timing for a child `securityRules` write.
 - **L19** A `PATCH` of `isEnabled` alone keeps the automation's Logic App action and trigger URI.
-- **L20** Cilium 1.20.4 (BYO CNI, VXLAN) runs on the Dsv6 MANA NIC: agents ready, nodes Ready, pod traffic across nodes.
+- **L20** Cilium 1.20.4 (BYO CNI, VXLAN) runs on the Dsv6 MANA NIC next to the DSv3 system nodes: agents ready, nodes Ready, pod traffic between the pools.
 
 ## Consequences
 
 - AKS rows: A1 to A5, S1 to S4, R1, R2 (no S1b, no S5).
-- Cost while up: about $0.85 to $1.00 an hour (seven D2s_v6 at peak, Defender
+- Cost while up: about $0.85 to $1.00 an hour (three D2s_v3 and four D2s_v6 at peak, Defender
   per vCore, one public IP, ingestion), a 5 to 6 hour session about $5 to $6.
   R2 alone can take two hours (Defender's hour, twice). Infracost runs first;
   the cost gate fails closed.

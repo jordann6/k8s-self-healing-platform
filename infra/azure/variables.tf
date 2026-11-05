@@ -31,8 +31,14 @@ variable "cost_center" {
   default = "cc-1010"
 }
 
-variable "node_vm_size" {
-  description = "Dsv6 (ADR-0008, D1 revised): DSv3 quota can no longer be raised and DSv5 is not available to the subscription. Gen2, NVMe, MANA, no temp disk."
+variable "system_node_vm_size" {
+  description = "D2s_v3 on the DSv3 quota already approved (10); that family can no longer be raised (ADR-0008, D1 revised). The preflight checks 6 free."
+  type        = string
+  default     = "Standard_D2s_v3"
+}
+
+variable "workload_node_vm_size" {
+  description = "D2s_v6 on the Dsv6 quota (10); same 2 vCPU and 8 GiB shape. Gen2, NVMe, MANA, no temp disk (ADR-0008, D1 revised). The preflight checks 8 free."
   type        = string
   default     = "Standard_D2s_v6"
 }
@@ -43,10 +49,11 @@ variable "system_node_count" {
     (rendered pinned charts, 2026-11-04): about 1380m in Deployments
     (platform 585m, lab pods 170m, AKS metrics-server about 306m, CoreDNS,
     konnectivity, Defender misc) plus about 820m per node in DaemonSets with
-    the Defender sensor at its 420m limit. Allocatable per D2s_v6 is 1900m
+    the Defender sensor at its 420m limit. Allocatable per 2-vCPU node is 1900m
     (AKS reserves 100m on 2 cores). Two nodes: 3020m of 3800m (79%); three:
     3840m of 5700m (67%). Peak vCPU with A4's fourth workload node: 3x2 + 4x2
-    = 14 of the 16 in decision D1.
+    = 14 of the 16 regional vCPUs in decision D1
+    (revised: 6 DSv3 + 8 Dsv6, regional limit raised to 16).
   EOT
   type        = number
   default     = 3
