@@ -74,8 +74,16 @@ resource "azurerm_policy_definition" "close_open_ingress" {
                 sourcePortRange    = { type = "string" }
                 destPrefix         = { type = "string" }
                 destPortRange      = { type = "string" }
-                destPortRanges     = { type = "array" }
+                destPortRangesJson = { type = "string" }
                 sourceAddressValue = { type = "string" }
+              }
+              # Policy hands field() values over untyped: a property the rule
+              # leaves empty arrives as a string, not null (aks-run1-rows: an
+              # empty destinationPortRanges failed an array parameter), so
+              # coalesce() never applies. Every default is decided here,
+              # where the parameter types are fixed.
+              variables = {
+                destPortRanges = "[if(startsWith(trim(parameters('destPortRangesJson')), '['), json(parameters('destPortRangesJson')), json('[]'))]"
               }
               resources = [{
                 type       = local.rule_alias
@@ -87,11 +95,11 @@ resource "azurerm_policy_definition" "close_open_ingress" {
                   direction                = "Inbound"
                   protocol                 = "[parameters('protocol')]"
                   priority                 = "[parameters('priority')]"
-                  sourcePortRange          = "[parameters('sourcePortRange')]"
+                  sourcePortRange          = "[if(empty(parameters('sourcePortRange')), '*', parameters('sourcePortRange'))]"
                   sourceAddressPrefix      = "[parameters('sourceAddressValue')]"
-                  destinationAddressPrefix = "[parameters('destPrefix')]"
-                  destinationPortRange     = "[if(empty(parameters('destPortRanges')), parameters('destPortRange'), json('null'))]"
-                  destinationPortRanges    = "[if(empty(parameters('destPortRanges')), json('[]'), parameters('destPortRanges'))]"
+                  destinationAddressPrefix = "[if(empty(parameters('destPrefix')), '*', parameters('destPrefix'))]"
+                  destinationPortRange     = "[if(empty(variables('destPortRanges')), if(empty(parameters('destPortRange')), '*', parameters('destPortRange')), json('null'))]"
+                  destinationPortRanges    = "[variables('destPortRanges')]"
                 }
               }]
             }
@@ -99,10 +107,10 @@ resource "azurerm_policy_definition" "close_open_ingress" {
               ruleFullName       = { value = "[field('fullName')]" }
               protocol           = { value = "[field('${local.rule_alias}/protocol')]" }
               priority           = { value = "[field('${local.rule_alias}/priority')]" }
-              sourcePortRange    = { value = "[coalesce(field('${local.rule_alias}/sourcePortRange'), '*')]" }
-              destPrefix         = { value = "[coalesce(field('${local.rule_alias}/destinationAddressPrefix'), '*')]" }
-              destPortRange      = { value = "[coalesce(field('${local.rule_alias}/destinationPortRange'), '*')]" }
-              destPortRanges     = { value = "[coalesce(field('${local.rule_alias}/destinationPortRanges'), json('[]'))]" }
+              sourcePortRange    = { value = "[string(field('${local.rule_alias}/sourcePortRange'))]" }
+              destPrefix         = { value = "[string(field('${local.rule_alias}/destinationAddressPrefix'))]" }
+              destPortRange      = { value = "[string(field('${local.rule_alias}/destinationPortRange'))]" }
+              destPortRangesJson = { value = "[string(field('${local.rule_alias}/destinationPortRanges'))]" }
               sourceAddressValue = { value = "*" }
             }
           }

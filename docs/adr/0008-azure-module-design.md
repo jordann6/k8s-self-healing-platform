@@ -305,6 +305,19 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   reads Grafana. Not changed mid-session; the fix (the chart's `plugins`
   list, which needs Grafana egress to grafana.com) is unproven until a later
   session.
+- **Row S4's remediation template failed validation (aks-run1-rows,
+  2026-11-05):** DINE fired 100s after the rule was written, and its
+  deployment was rejected with `InvalidTemplate`: `destPortRanges` expected an
+  Array and received a String. The rule carries one port, so
+  `destinationPortRanges` is empty, and Policy's `field()` handed that over as
+  a string, not null; `coalesce(..., json('[]'))` never applied. A failed
+  validation leaves no deployment in the group, so the row read "policy
+  deployment none"; the Activity Log's `deployIfNotExists/action` entry held
+  the reason. Fix: every `field()` value goes over as `string(...)`, the port
+  list as JSON text, and the template decides each default where its types
+  are fixed (`json()` only for text starting with `[`, `*` for any empty
+  string). `az deployment group what-if` validated the template for an empty,
+  `[]`, `null` and two-port list, and for empty string fields.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.
