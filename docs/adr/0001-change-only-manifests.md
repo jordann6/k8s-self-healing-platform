@@ -62,3 +62,37 @@ The EKS-only manifests that differ between profiles:
 - How the S1b database client reads its credential: once from environment
   variables (baseline) or from both mounted secret versions, re-read per
   connection (hardened).
+
+## Addendum: AKS (2026-11-05)
+
+On AKS a profile switch changes the same two things, with the Argo CD path at
+`targets/aks/apps/<profile>` (composing `gitops/profiles/<profile>` with the
+AKS overlay in `gitops/targets/aks/`), plus two Azure-side switches that are
+policy, not infrastructure:
+
+3. The Defender for Cloud workflow automation that sends alerts to the R2
+   Logic App: `isEnabled` false for the baseline, true for the hardened run
+   (an ARM `PATCH` of that one property, so the Logic App trigger URI, which
+   the API never returns, is never resent).
+4. The enforcement mode of the S4 policy assignment: `DoNotEnforce` for the
+   baseline (it still evaluates and reports, but never deploys), `Default`
+   for the hardened run.
+
+Terraform creates both in their hardened state and ignores these two fields,
+so the runner owns them during a session. Everything else on Azure (the
+policy definition, the Logic App, the queue, the in-cluster worker, the
+Defender plan, the autoscaler) exists identically in both runs.
+
+The AKS-only manifests that differ between profiles:
+
+- Baseline: a required pod affinity puts all three web replicas on one node,
+  so row A4's impact does not depend on how many nodes exist (on EKS it did,
+  and A4 was inconclusive).
+- Hardened: a hostname spread (`maxSkew` 1, `minDomains` 3,
+  `nodeTaintsPolicy: Honor`) and 30s tolerations for `not-ready` and
+  `unreachable` instead of the default 300s.
+
+Shared by both profiles (`gitops/targets/aks/common`, not a control under
+test): the secret store is Key Vault through workload identity, the web pods
+run on the tainted workload pool, and the prober and partner on the system
+pool.

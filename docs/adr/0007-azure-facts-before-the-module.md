@@ -1,6 +1,6 @@
 # ADR-0007: Azure facts verified before the Azure module was written
 
-- **Status:** proposed (awaiting review before any Azure code)
+- **Status:** accepted (2026-11-05; the module is built on it, ADR-0008)
 - **Date:** 2026-11-04
 
 ## Context
