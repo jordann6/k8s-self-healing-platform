@@ -126,3 +126,60 @@ cannot hide errors; it only observes recoveries late. Where the laptop slept
 during `eks-run2` (06:25 to 06:28, 07:32 to 07:38 and 07:54 to 07:57 local
 time, during baseline S1, hardened S1 and hardened R2), the measured times
 are upper bounds.
+
+## AKS thresholds (set 2026-11-05, before the first AKS run)
+
+Written before any AKS run, from documented behaviour (ADR-0007), not from a
+measurement. The rows shared with kind and EKS keep their numbers, A3's 300 ms
+included, and R1 keeps 30s (same Cilium, same pre-allocated identity).
+
+| Row | Threshold | Why this number |
+|---|---|---|
+| A4 | every web replica serving, off the stopped node, within 600s of T0; a new workload node; errors under 1% **from NotReady on** | NotReady after the node controller's 50s grace, eviction after the hardened 30s toleration, an autoscaled D2s_v3 node in about 3 to 5 minutes, then the pod starts |
+| S4 | the rule closed by the policy's own deployment within 1200s | DINE runs once the write has succeeded (`AfterProvisioningSuccess`), then deploys a template; policy compliance data lags "around 15 minutes" |
+| R2 | a Defender alert within 3600s (Defender's clock, reported); the pod isolated within 300s **of the alert**; evidence within 600s **of the alert**; errors under 1% | detection is documented as "up to an hour" and is not the lab's to tune; the response (automation, Logic App, queue, worker, snapshot, Run Command) is |
+
+**Decision D3 (A4's error clock).** A stopped scale set VM is not deleted the
+way a terminated EC2 instance is: its Node object stays and its endpoints keep
+receiving traffic until the node controller marks it NotReady (50s by
+default). With three replicas that is about a third of requests failing for
+that minute in both profiles, which alone would break a 1% bar. A4's error
+rate on AKS is therefore judged from the moment the node is marked NotReady
+(the detection), the way A1 is judged after detection and A3 after its ramp.
+The gap from T0 to NotReady is measured and printed in the report, never
+dropped. The NotReady time is the earlier of the runner's observation and the
+condition's own `lastTransitionTime`, so the judged window can only grow. On
+AWS the instance is terminated and A4 keeps its EKS rule (errors from T0).
+
+**Honesty rules added for AKS (each one has a unit test):**
+
+- A4: the stop must be confirmed (the instance reports `PowerState/stopped`)
+  and the stopped node must have run a web pod, or the row is an error. A node
+  never marked NotReady in the window is an error: the error clock has no
+  start. An `aks-auto-repair` event on the stopped node inside the window
+  voids the row as an error (ADR-0007 row 17): the repair, not the lab's
+  controls, would have acted. The abort line only reads samples after
+  NotReady.
+- S4: a closed rule only counts when the policy closed it: the rule reads
+  `Deny` with the description the policy's template writes, and a deployment
+  in the lab group that started after T0 and succeeded names that rule.
+  Anything else that closed or deleted it is an error, never a heal. The
+  deployment's name is recorded, not assumed (the DINE docs do not name it).
+- R2: only a real alert counts: generated after T0, naming the lab cluster
+  AND the attacked pod (a portal sample alert names neither); a display name
+  with the `[SAMPLE ALERT]` prefix (third-party documented) is refused as
+  well. No alert within 3600s is an error (the trigger never fired). Isolation
+  is the pod relabelled AND its node cordoned AND the prober no longer
+  reaching it; isolation reported while the pod still answers is an error.
+  A replacement web pod scheduled onto the quarantined node is a miss (the
+  EKS race, ADR above). Response times measured before the alert's own
+  generation time are an error (clock skew), never a fast heal. Evidence is
+  the Logic App's `manifest.json` for that alert with a `Succeeded` snapshot
+  and a non-empty Run Command capture; `failed.json` means no evidence.
+- Every target: a row whose observations carry a `void` reason is an error,
+  before the abort line is considered.
+
+There is no node-level network quarantine on AKS (decision D4): R2 isolates
+by cordon plus the pod's quarantine policy, and the README lists the gap. The
+node is protected from autoscaler scale-down by annotation, the AKS-supported
+stand-in for EC2 termination protection.
