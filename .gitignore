@@ -41,3 +41,5 @@ infra/aws/build/
 gitops/targets/eks/generated/
 # Written by make aks-images (ACR login server, git SHA tag, Key Vault URL)
 gitops/targets/aks/generated/
+# Written by make aks-preflight (what existed before the session, for verify-gone)
+infra/azure/.session/

@@ -1,5 +1,5 @@
-# Kubernetes Self-Healing Platform: the portable core on kind, and the AWS
-# module on EKS.
+# Kubernetes Self-Healing Platform: the portable core on kind, the AWS module
+# on EKS, and the Azure module on AKS.
 #
 #   make up        kind + Cilium + every platform chart + bootstrap (zero spend)
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
@@ -7,6 +7,8 @@
 #
 #   EKS (docs/runbook-aws.md): make eks-plan, then the operator applies the
 #   saved plan; make eks-up; make demo TARGET=eks; teardown in four steps.
+#   AKS (docs/runbook-azure.md): make aks-plan, then the operator applies the
+#   saved plan; make aks-up; make demo TARGET=aks; teardown in three steps.
 #
 # The runner exits non-zero if any hardened row misses its threshold or
 # cannot be judged. It never skips a row.
@@ -20,6 +22,8 @@ KIND_CLUSTER := selfheal
 TARGET ?= kind
 ifeq ($(TARGET),eks)
 export KUBECONFIG := $(CURDIR)/.kube/eks
+else ifeq ($(TARGET),aks)
+export KUBECONFIG := $(CURDIR)/.kube/aks
 else
 export KUBECONFIG := $(CURDIR)/.kube/config
 endif
@@ -127,7 +131,7 @@ down: ## Delete the kind cluster
 KEEP_AWAKE := $(if $(shell command -v caffeinate 2>/dev/null),caffeinate -i,)
 
 .PHONY: demo
-demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks for EKS
+demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks|aks
 	$(if $(filter eks,$(TARGET)),AWS_PROFILE=$(LAB_PROFILE) MGMT_PROFILE=$(MGMT_PROFILE),) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) $(KEEP_AWAKE) python3 scenarios/run.py --target $(TARGET) \
 		$(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
@@ -273,3 +277,53 @@ aks-check: $(if $(filter 1,$(OFFLINE)),,aks-render) ## Azure gates (no credentia
 .PHONY: aks-lock
 aks-lock: ## Record Azure provider hashes for CI (linux_amd64) and this Mac (darwin_arm64)
 	terraform -chdir=infra/azure providers lock -platform=linux_amd64 -platform=darwin_arm64
+
+# Azure credentials are the operator's az CLI sign-in (azurerm and azapi use
+# it); the subscription is pinned in infra/azure/lab.auto.tfvars.
+TFZ := terraform -chdir=$(CURDIR)/infra/azure
+MY_IP_AKS = -var='api_authorized_cidrs=["'"$$(curl -4 -s ifconfig.me)"'/32"]'
+AKS_ENV = KUBECONFIG=$(CURDIR)/.kube/aks
+
+.PHONY: aks-cost
+aks-cost: ## Infracost estimate of the Azure stack (before any live session)
+	infracost breakdown --path infra/azure --terraform-var-file lab.auto.tfvars --show-skipped
+
+.PHONY: aks-preflight
+aks-preflight: ## Read-only checks: subscription, guardrails, providers, quota >= 16, maintenance window, leftovers, IPv4
+	scripts/aks-preflight.sh
+
+.PHONY: aks-plan
+aks-plan: aks-preflight ## Write infra/azure/tfplan (API, vault and storage scoped to your IPv4) and print the apply command
+	$(TFZ) init -input=false
+	$(TFZ) plan -input=false -out=tfplan $(MY_IP_AKS)
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/azure apply $(CURDIR)/infra/azure/tfplan"
+	@echo "Then, right away (nodes are NotReady until Cilium is in):  make aks-up"
+
+.PHONY: aks-images
+aks-images: ## Build linux/amd64 images, push the git SHA tags to ACR, write the generated overlay (before aks-platform)
+	scripts/aks-images.sh
+
+.PHONY: aks-platform
+aks-platform: repos ## Kubeconfig (kubelogin), Cilium BYOCNI, platform charts (no metrics-server), R2 worker, remote write proof
+	$(AKS_ENV) $(CHART_VERSIONS) scripts/aks-platform.sh
+
+.PHONY: aks-bootstrap
+aks-bootstrap: ## CA, ESO identity, partner key in Key Vault (retried), Git, Argo CD root app, ESO sync proof
+	$(AKS_ENV) scripts/aks-bootstrap.sh
+
+.PHONY: aks-up
+aks-up: aks-images aks-platform aks-bootstrap ## Everything after the apply, in order
+
+.PHONY: aks-predestroy
+aks-predestroy: ## Teardown 1 of 3: Argo CD apps, lab app and PDB (a pool delete honours PDBs), evidence snapshots
+	$(AKS_ENV) scripts/aks-predestroy.sh
+
+.PHONY: aks-destroy-plan
+aks-destroy-plan: ## Teardown 2 of 3: write infra/azure/destroy.tfplan and print the command
+	$(TFZ) plan -destroy -input=false -out=destroy.tfplan $(MY_IP_AKS)
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/azure apply $(CURDIR)/infra/azure/destroy.tfplan"
+	@echo "Then:  make aks-verify-gone"
+
+.PHONY: aks-verify-gone
+aks-verify-gone: ## Teardown 3 of 3: read-only proof nothing survived, against the preflight's before-picture
+	scripts/aks-verify-gone.sh
