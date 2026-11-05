@@ -296,6 +296,15 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   limited to those three by `toFQDNs`. `make aks-worker` reapplies only the
   worker and fails unless the fresh pod logged `started`, no `poll_error`,
   and did not restart.
+- **Live check L14 failed (2026-11-05):** `grafana/grafana:13.3.0-distroless`
+  does not carry `grafana-azureprometheus-datasource`: the API answers
+  "Plugin not registered" for the provisioned data source (and `grafana cli
+  plugins ls` lists only plugins installed on top of the image, so it was
+  never a proof either way). Grafana reads the in-cluster Prometheus; the
+  Azure Monitor workspace data source is unusable in this session. No row
+  reads Grafana. Not changed mid-session; the fix (the chart's `plugins`
+  list, which needs Grafana egress to grafana.com) is unproven until a later
+  session.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.
