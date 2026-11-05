@@ -157,6 +157,7 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd scenarios && python3 -m unittest -v test_classify test_aks_rows
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
+	cd scripts && python3 -m unittest -v test_redact_evidence
 
 .PHONY: check
 check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
