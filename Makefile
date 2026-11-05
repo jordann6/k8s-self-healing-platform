@@ -206,7 +206,7 @@ eks-lock: ## Record provider hashes for CI (linux_amd64) and this Mac (darwin_ar
 .PHONY: eks-cost
 eks-cost: ## Infracost estimate of the full stack (before any live session)
 	infra/aws/rotation/build.sh >/dev/null
-	infracost breakdown --path infra/aws --terraform-var-file lab.auto.tfvars --show-skipped
+	infracost scan infra/aws && infracost inspect --group-by resource
 
 .PHONY: eks-preflight
 eks-preflight: ## Read-only checks: accounts, Config recorder, GuardDuty admin, leftovers, quota, IPv4
@@ -287,7 +287,7 @@ AKS_ENV = KUBECONFIG=$(CURDIR)/.kube/aks
 
 .PHONY: aks-cost
 aks-cost: ## Infracost estimate of the Azure stack (before any live session)
-	infracost breakdown --path infra/azure --terraform-var-file lab.auto.tfvars --show-skipped
+	infracost scan infra/azure && infracost inspect --group-by resource
 
 .PHONY: aks-preflight
 aks-preflight: ## Read-only checks: subscription, guardrails, providers, quota >= 16, maintenance window, leftovers, IPv4
