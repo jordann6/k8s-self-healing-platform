@@ -318,6 +318,18 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   are fixed (`json()` only for text starting with `[`, `*` for any empty
   string). `az deployment group what-if` validated the template for an empty,
   `[]`, `null` and two-port list, and for empty string fields.
+- **S4 healed after the template fix (aks-run1-s4, 2026-11-05):** DINE fired
+  at T0, its deployment succeeded at T0+116s and the rule read `Deny` with
+  the template's description at 121s. The same `PolicyDeployment_*` name
+  served the failed and the successful attempt: the name is fixed per rule
+  and assignment, so only the timestamp after T0 tells them apart (as the
+  row already requires). The report's "non-compliant reported 3s" is wrong:
+  the row matched any NonCompliant record for the rule, and the rule name is
+  reused, so the baseline's record counted. Policy's own records: baseline
+  NonCompliant at T0+23s (read through the API at 293s); hardened none at
+  all, because DINE closed the rule before a compliance scan. The row now
+  counts only records written after T0. Not a judged field; the verdict
+  stands. The evidence file is left as written.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.

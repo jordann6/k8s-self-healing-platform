@@ -165,5 +165,15 @@ class SteadyCordonedNodes(unittest.TestCase):
         self.assertEqual(self.run_steady(["node.kubernetes.io/unschedulable"]), ["aks-work-0"])
 
 
+class NoncompliantSince(unittest.TestCase):
+    def test_a_record_from_an_earlier_run_does_not_count(self):
+        t0 = A.epoch("2026-11-05T21:19:54Z")
+        self.assertFalse(A.noncompliant_since(["2026-11-05T21:09:15.895677+00:00"], t0))
+
+    def test_a_record_after_t0_counts(self):
+        t0 = A.epoch("2026-11-05T20:55:14Z")
+        self.assertTrue(A.noncompliant_since(["2026-11-05T20:55:37.896080+00:00"], t0))
+
+
 if __name__ == "__main__":
     unittest.main()

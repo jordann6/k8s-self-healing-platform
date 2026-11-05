@@ -375,6 +375,13 @@ def _policy_deployment(o: dict, t0: float) -> dict:
     return best
 
 
+def noncompliant_since(timestamps: list[str], t0: float) -> bool:
+    """A NonCompliant record for this rule written after T0. The rule name is
+    the same every run, so a record left by an earlier run (aks-run1-s4: the
+    baseline's, read as "reported 3s" in the hardened run) is not this one."""
+    return any(epoch(ts) >= t0 - 5 for ts in timestamps)
+
+
 def row_s4(h, lab, profile: str, d: Path) -> dict:
     o = outputs()
     limit = h.THRESHOLDS[h.TARGET]["S4"]["revert_s"]
@@ -398,9 +405,9 @@ def row_s4(h, lab, profile: str, d: Path) -> dict:
         if ev["reverted"] is None and not _open(r):
             ev["reverted"] = t
         if ev["noncompliant"] is None and n % 3 == 0:
-            states = az("policy", "state", "list", "--resource", rule_id, "--query",
+            states = az("policy", "state", "list", "--resource", rule_id, "--all", "--query",
                         "[?complianceState=='NonCompliant'].timestamp", check=False) or []
-            if states:
+            if noncompliant_since(states, t0):
                 ev["noncompliant"] = t
         if ev["reverted"] is not None:
             ev["deployment"] = _policy_deployment(o, t0)
