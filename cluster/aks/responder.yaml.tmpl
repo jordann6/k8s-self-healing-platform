@@ -151,7 +151,12 @@ spec:
               - matchName: login.microsoftonline.com
               - matchName: "${STORAGE_ACCOUNT}.blob.core.windows.net"
               - matchName: "${STORAGE_ACCOUNT}.queue.core.windows.net"
-              - matchPattern: "*.cluster.local"
+              # The resolver tries the search domains first (ndots:5), and a
+              # refused search lookup ends the lookup with EAI_AGAIN. "*"
+              # stops at a dot, "**." matches every level (Cilium 1.20
+              # layer 3 docs), found live on AKS, 2026-11-05.
+              - matchPattern: "**.cluster.local"
+              - matchPattern: "**.internal.cloudapp.net"
     - toFQDNs:
         - matchName: login.microsoftonline.com
         - matchName: "${STORAGE_ACCOUNT}.blob.core.windows.net"

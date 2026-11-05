@@ -117,12 +117,7 @@ install falco-talon falcosecurity/falco-talon "$TALON_VERSION" falco $(values fa
 install falco falcosecurity/falco "$FALCO_VERSION" falco $(values falco)
 
 echo "aks-platform: R2 worker"
-RESPONDER_CLIENT_ID="$(r responder_client_id)" RESPONDER_IMAGE="$(cat "$gen/RESPONDER_IMAGE")" \
-	CLUSTER_NAME="$cluster" CLUSTER_ID="$(r cluster_id)" NODE_RESOURCE_GROUP="$(r node_resource_group)" \
-	STORAGE_ACCOUNT="$(r storage_account)" INCIDENTS_QUEUE="$(r incidents_queue)" \
-	EVIDENCE_CONTAINER="$(r evidence_container)" \
-	envsubst <"$root/cluster/aks/responder.yaml.tmpl" | kubectl apply -f - >/dev/null
-kubectl -n responder rollout status deploy/r2-worker --timeout=180s >/dev/null
+"$root/scripts/aks-worker.sh"
 
 echo "aks-platform: checks"
 # AKS's own metrics-server must serve the HPA's metrics (row A3).

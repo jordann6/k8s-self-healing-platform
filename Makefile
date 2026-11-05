@@ -308,6 +308,10 @@ aks-images: ## Build linux/amd64 images, push the git SHA tags to ACR, write the
 aks-platform: repos ## Kubeconfig (kubelogin), Cilium BYOCNI, platform charts (no metrics-server), R2 worker, remote write proof
 	$(AKS_ENV) $(CHART_VERSIONS) scripts/aks-platform.sh
 
+.PHONY: aks-worker
+aks-worker: ## Reapply only the R2 worker and its egress policy, then prove it polls its queue (L15, L16)
+	$(AKS_ENV) scripts/aks-worker.sh
+
 .PHONY: aks-bootstrap
 aks-bootstrap: ## CA, ESO identity, partner key in Key Vault (retried), Git, Argo CD root app, ESO sync proof
 	$(AKS_ENV) scripts/aks-bootstrap.sh

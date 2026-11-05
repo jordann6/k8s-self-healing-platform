@@ -282,6 +282,20 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   the action type, and the code said `logicapp`. `terraform validate` and the
   plan did not catch it because the action block also holds the trigger URL,
   which is unknown until apply, so the provider checks the block only then.
+- **Found by live check L16 (2026-11-05):** the worker's egress policy was
+  valid but every poll failed with `[Errno -3] Try again`. Hubble showed the
+  DNS proxy dropping `login.microsoftonline.com.responder.svc.cluster.local`:
+  the pod resolver tries the search domains first (`ndots:5`), and a refused
+  search lookup ends the whole lookup. The rule allowed `*.cluster.local`,
+  but "`*` within a domain allows 0 or more valid DNS characters, except for
+  the `.` separator"; "`**.` is a special prefix supported in DNS match
+  pattern to wildcard all cascaded subdomains"
+  ([Cilium layer 3 policies](https://docs.cilium.io/en/stable/security/policy/layer3/), 1.20.4).
+  The rule now allows `**.cluster.local` and `**.internal.cloudapp.net` (the
+  node's search domain) beside the three exact names; connections stay
+  limited to those three by `toFQDNs`. `make aks-worker` reapplies only the
+  worker and fails unless the fresh pod logged `started`, no `poll_error`,
+  and did not restart.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.

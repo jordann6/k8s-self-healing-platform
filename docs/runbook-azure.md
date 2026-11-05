@@ -79,7 +79,7 @@ export KUBECONFIG=$PWD/.kube/aks
 | L9 remote write accepted | printed by `aks-platform` | check the Prometheus log for 403 |
 | L10 the worker's RBAC with Azure RBAC enabled | `kubectl auth can-i patch nodes --as=system:serviceaccount:responder:responder` | stop |
 | L14 Grafana plugin | `kubectl -n monitoring exec deploy/kps-grafana -c grafana -- grafana cli plugins ls \| grep azureprometheus` | Grafana only; not a judged row |
-| L15, L16 worker egress policy | `kubectl -n responder get cnp r2-worker-egress`; `kubectl -n responder logs deploy/r2-worker \| tail` (no token or queue errors) | stop |
+| L15, L16 worker egress policy | printed by `aks-platform` (`make aks-worker` reapplies only the worker): started, no `poll_error`, no restart | stop; Hubble on the worker's node shows any DNS proxy drop |
 
 Checked by the rows themselves and read from their evidence afterwards: L2
 and L4 (the R2 alert's fields and delay, `R2/r2-*/alert-arm.json`), L6 and L18
