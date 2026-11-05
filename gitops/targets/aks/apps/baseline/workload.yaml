@@ -1,0 +1,22 @@
+# Baseline: syncs new commits, but nothing reverts a hand edit or a delete.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-workload
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git://gitserver.gitops.svc.cluster.local/lab.git
+    targetRevision: main
+    path: targets/aks/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false
+  # No ignoreDifferences on /spec/replicas here: the baseline has no HPA, so
+  # Git owns the replica count. Keeping the ignore after the HPA is gone would
+  # freeze the Rollout at the HPA's last value (found in phase 1).

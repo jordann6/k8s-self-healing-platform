@@ -1,0 +1,32 @@
+# Row A4, hardened: one replica per workload node, and a dead node's replica
+# moves in 30s instead of 5 minutes.
+#
+# Hostname only: the workload pool is not zonal, so a zone rule would see one
+# domain. minDomains 3 is the EKS lesson (eks-run2: without it, one node
+# counted as the only domain and took all three replicas). nodeTaintsPolicy
+# Honor drops a node whose taints the pod does not tolerate from the domain
+# count; the default (Ignore) keeps counting a stopped node as a domain
+# (ADR-0007 row 8). With a node down, the evicted replica stays Pending,
+# which is what makes the cluster autoscaler add a node.
+#
+# The pod tolerates not-ready and unreachable for 30s, so the node lifecycle
+# controller evicts it about 30s after the node is marked NotReady. Without
+# these, Kubernetes adds both "with tolerationSeconds=300, unless you, or a
+# controller, set those tolerations explicitly" (Kubernetes docs, Taints and
+# Tolerations).
+- op: add
+  path: /spec/template/spec/topologySpreadConstraints
+  value:
+    - maxSkew: 1
+      topologyKey: kubernetes.io/hostname
+      whenUnsatisfiable: DoNotSchedule
+      minDomains: 3
+      nodeTaintsPolicy: Honor
+      labelSelector:
+        matchLabels: {app: web, lab/pool: serving}
+- op: add
+  path: /spec/template/spec/tolerations/-
+  value: {key: node.kubernetes.io/not-ready, operator: Exists, effect: NoExecute, tolerationSeconds: 30}
+- op: add
+  path: /spec/template/spec/tolerations/-
+  value: {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 30}

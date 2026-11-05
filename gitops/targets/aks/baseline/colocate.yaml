@@ -1,0 +1,25 @@
+# Row A4, baseline: all three web replicas on ONE node, every run.
+#
+# On EKS the baseline had no placement rule, so where its replicas landed
+# depended on how many workload nodes happened to exist, and A4 showed impact
+# in one run and none in the others (eks-run2: INCONCLUSIVE). Here the
+# baseline is the common first deployment that bin-packs a service onto one
+# node, made deterministic, so stopping that node is the impact.
+#
+# The affinity selects a label only baseline pods carry, not just app=web:
+# right after a switch from the hardened profile, its spread pods still exist
+# (maxSurge 1 replaces one pod at a time), and an app=web selector would let
+# new pods join any of them. With no baseline pod yet, the first one is
+# allowed anywhere ("the first in a series that have affinity to themselves",
+# Kubernetes docs, Assigning Pods to Nodes) and the rest follow it.
+- op: add
+  path: /spec/template/metadata/labels/lab~1placement
+  value: colocated
+- op: add
+  path: /spec/template/spec/affinity
+  value:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels: {app: web, lab/placement: colocated}

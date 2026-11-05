@@ -1,0 +1,44 @@
+# Everything AKS changes for both profiles alike. Nothing here is a healing
+# control under test (ADR-0001): the secret backend is Azure Key Vault instead
+# of a namespace, and pods are placed on the right node pool.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  # ESO reads Key Vault as the eso-backend service account (referenced
+  # workload identity): ESO requests that account's token and exchanges it
+  # with Entra, so no pod label, webhook or static key is involved. The
+  # account and its client-id and tenant-id annotations are created by
+  # make aks-bootstrap (Argo CD does not watch ServiceAccounts here), and the
+  # vault URL comes from the generated component; neither is committed.
+  - target: {kind: SecretStore, name: backend}
+    patch: |-
+      - op: replace
+        path: /spec/provider
+        value:
+          azurekv:
+            authType: WorkloadIdentity
+            serviceAccountRef: {name: eso-backend}
+  # Key Vault holds the key as a plain secret named partner-api-key (no JSON
+  # body), so there is no property to select; ESO reads the latest version.
+  - target: {kind: ExternalSecret, name: partner-api-key}
+    patch: |-
+      - op: remove
+        path: /spec/data/0/remoteRef/property
+  # The web service under test runs on the tainted workload pool (the nodes
+  # rows A4 and R2 act on); the user (prober) and the dependency (partner)
+  # run on the system pool, so a workload node fault never takes out the
+  # measurement itself.
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: workload}
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - {key: selfheal.lab/workload, operator: Exists, effect: NoSchedule}
+  - target: {kind: Deployment, name: "prober|partner"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: system}

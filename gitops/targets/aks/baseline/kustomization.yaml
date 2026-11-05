@@ -1,0 +1,14 @@
+# AKS, baseline: the shared baseline profile plus what only exists on AKS.
+# Compare with ../hardened: colocate.yaml here and topology.yaml there are the
+# AKS-only part of the difference between the runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../profiles/baseline
+components:
+  - ../common
+  # Written by `make aks-images` (registry, git SHA tag, vault URL), not committed.
+  - ../generated
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    path: colocate.yaml

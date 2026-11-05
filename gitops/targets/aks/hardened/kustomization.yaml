@@ -1,0 +1,14 @@
+# AKS, hardened: the shared hardened profile plus what only exists on AKS.
+# Compare with ../baseline: topology.yaml here and colocate.yaml there are the
+# AKS-only part of the difference between the runs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../profiles/hardened
+components:
+  - ../common
+  # Written by `make aks-images` (registry, git SHA tag, vault URL), not committed.
+  - ../generated
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    path: topology.yaml

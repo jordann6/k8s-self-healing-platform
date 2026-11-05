@@ -155,10 +155,11 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd app/r2worker && python3 -m unittest -v test_worker
 
 .PHONY: check
-check: test eks-check aks-check ## Static checks: every profile renders (kind and EKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
+check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	scripts/render-eks-profiles.sh
+	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
 	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py infra/aws/responder/handler.py
 	pre-commit run --all-files
