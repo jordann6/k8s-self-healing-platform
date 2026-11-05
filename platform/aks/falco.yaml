@@ -1,0 +1,9 @@
+# AKS overrides on top of ../falco.yaml: the web pods run on the tainted
+# workload nodes, so Falco has to run there too or row R1 never fires.
+tolerations:
+  - key: selfheal.lab/workload
+    operator: Exists
+    effect: NoSchedule
+  - key: node.cilium.io/agent-not-ready
+    operator: Exists
+    effect: NoExecute

@@ -1,0 +1,33 @@
+# AKS overrides on top of values.yaml: bring your own CNI (ADR-0007 row 1,
+# D2). AKS was created with network_plugin "none", so its nodes stay NotReady
+# until this release is installed (make aks-platform runs it first).
+#
+# Cilium 1.20.4 docs (AKS BYOCNI): only aksbyocni.enabled is required, and the
+# cluster pool must not overlap the AKS service CIDR. Two chart facts force
+# the rest:
+#   - with aksbyocni the chart writes "ipam: cluster-pool" only when ipam.mode
+#     is unset or cluster-pool, so values.yaml's "kubernetes" is overridden
+#   - the chart's default pool is 10.0.0.0/8, which overlaps the lab VNet
+#     (10.42.0.0/16); the pool is set to the pod_cidr given to AKS
+#     (infra/azure/network.tf), clear of the services (10.96.0.0/16)
+#   - the chart refuses any routingMode but tunnel with aksbyocni
+aksbyocni:
+  enabled: true
+ipam:
+  mode: cluster-pool
+  operator:
+    clusterPoolIPv4PodCIDRList: ["10.244.0.0/16"]
+    clusterPoolIPv4MaskSize: 24
+routingMode: tunnel
+tunnelProtocol: vxlan
+# AKS installs kube-proxy with BYOCNI (ADR-0007 row 1); Cilium runs beside it
+# (the chart default, stated so a later default change cannot surprise a run).
+kubeProxyReplacement: "false"
+# Pods leave the node masqueraded to the node address, which is how Key Vault
+# and the evidence account admit them (the node subnet's service endpoints).
+enableIPv4Masquerade: true
+operator:
+  replicas: 2
+  # Never on a workload node: row A4 stops one.
+  nodeSelector:
+    selfheal.lab/nodes: system

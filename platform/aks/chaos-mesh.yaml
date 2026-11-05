@@ -1,0 +1,10 @@
+# AKS overrides on top of ../chaos-mesh.yaml: the chaos daemon follows the web
+# pods onto the tainted workload nodes (the same taint as on EKS).
+chaosDaemon:
+  tolerations:
+    - key: selfheal.lab/workload
+      operator: Exists
+      effect: NoSchedule
+controllerManager:
+  nodeSelector:
+    selfheal.lab/nodes: system

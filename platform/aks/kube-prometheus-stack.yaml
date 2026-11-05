@@ -1,0 +1,89 @@
+# AKS overrides on top of ../kube-prometheus-stack.yaml. As on EKS, the
+# in-cluster Prometheus evaluates the Sloth rules and the canary analysis (the
+# same PromQL as kind) and remote-writes only what the lab reads to the Azure
+# Monitor workspace, where Grafana can read it back. Both use workload
+# identity (infra/azure/identity.tf), no secrets. The placeholders in capitals
+# are filled from Terraform outputs by make aks-platform.
+#
+# Remote write (Learn, "Connect self-managed Prometheus", 2025-09-16):
+# Prometheus 3.7.0 or later for workload identity (kps 92.17.1 ships v3.15.1),
+# the pod label azure.workload.identity/use, and Monitoring Metrics Publisher
+# on the workspace's data collection rule, which "takes about 30 minutes" to
+# apply (make aks-platform waits for a clean remote write before the demo).
+prometheus:
+  serviceAccount:
+    create: true
+    name: kps-prometheus
+    annotations:
+      azure.workload.identity/client-id: PROMETHEUS_CLIENT_ID
+  prometheusSpec:
+    nodeSelector:
+      selfheal.lab/nodes: system
+    podMetadata:
+      labels:
+        azure.workload.identity/use: "true"
+    remoteWrite:
+      - url: AMW_REMOTE_WRITE_URL
+        azureAd:
+          cloud: AzurePublic
+          workloadIdentity:
+            clientId: PROMETHEUS_CLIENT_ID
+            tenantId: AZURE_TENANT_ID
+        queueConfig:
+          maxSamplesPerSend: 1000
+          capacity: 2500
+        # Ingestion is billed per sample (ADR-0007 row 12): only the series
+        # the rows and dashboards read leave the cluster.
+        writeRelabelConfigs:
+          - sourceLabels: [__name__]
+            regex: "slo:.*|http_requests_total|kube_pod_container_status_restarts_total|kube_pod_container_status_last_terminated_reason|externalsecret_sync_calls.*|certmanager_certificate_expiration_timestamp_seconds|kube_node_status_condition|kube_node_spec_unschedulable|up"
+            action: keep
+prometheusOperator:
+  nodeSelector:
+    selfheal.lab/nodes: system
+kube-state-metrics:
+  nodeSelector:
+    selfheal.lab/nodes: system
+# Grafana 13 reads Azure Monitor managed Prometheus through its dedicated data
+# source (grafana-azureprometheus-datasource); Azure auth on the core
+# Prometheus type is deprecated and the [azure] settings must be forwarded to
+# that plugin (Grafana docs, "Azure authentication", Prometheus data source).
+# authType "workloadidentity" is the Grafana Azure SDK's name for it. Whether
+# the plugin is present in the pinned image is live check L14; the dashboards
+# work from the in-cluster Prometheus either way, and no row reads Grafana.
+grafana:
+  enabled: true
+  nodeSelector:
+    selfheal.lab/nodes: system
+  serviceAccount:
+    create: true
+    name: kps-grafana
+    annotations:
+      azure.workload.identity/client-id: GRAFANA_CLIENT_ID
+  podLabels:
+    azure.workload.identity/use: "true"
+  defaultDashboardsEnabled: true
+  sidecar:
+    datasources:
+      defaultDatasourceEnabled: true
+  grafana.ini:
+    azure:
+      workload_identity_enabled: true
+      workload_identity_client_id: GRAFANA_CLIENT_ID
+      workload_identity_tenant_id: AZURE_TENANT_ID
+      forward_settings_to_plugins: grafana-azureprometheus-datasource
+  additionalDataSources:
+    - name: Azure Monitor managed Prometheus
+      type: grafana-azureprometheus-datasource
+      access: proxy
+      url: AMW_QUERY_URL
+      jsonData:
+        httpMethod: POST
+        azureCredentials:
+          authType: workloadidentity
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+# The nodes are not shared with the control plane, so the kubelet and
+# cAdvisor scrape is affordable, as on EKS.
+kubelet:
+  enabled: true
