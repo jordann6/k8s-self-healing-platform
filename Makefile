@@ -154,7 +154,7 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 
@@ -165,7 +165,7 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind, E
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

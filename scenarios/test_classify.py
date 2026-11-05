@@ -372,5 +372,224 @@ class RotationFinished(unittest.TestCase):
         self.assertTrue(rotation_finished(st, before="713e"))
 
 
+# --------------------------------------------------------------------------- #
+# AKS (ADR-0003, "AKS thresholds"): one test per honesty rule
+# --------------------------------------------------------------------------- #
+
+def aks(row, profile, obs, baseline="impact"):
+    return verdict(row, profile, obs, baseline if profile == "hardened" else None, target="aks")
+
+
+def a4z(**kw):
+    o = {"samples": 2700, "expected": 2750, "stopped": True, "power_state": "PowerState/stopped",
+         "web_pods_on_node": 1, "not_ready_s": 48.0, "recovered_s": 330.0, "replacement_node": "aks-work-000004",
+         "error_rate": 0.002, "gap_error_rate": 0.31, "repair_events": []}
+    o.update(kw)
+    return o
+
+
+class A4AksNodeStop(unittest.TestCase):
+    def test_full_recovery_heals(self):
+        self.assertEqual(aks("A4", "hardened", a4z())["status"], "healed")
+
+    def test_errors_before_notready_are_reported_not_judged(self):
+        # D3: a third of requests failing before NotReady does not fail the row...
+        v = aks("A4", "hardened", a4z(gap_error_rate=0.33))
+        self.assertEqual(v["status"], "healed")
+        self.assertIn("reported not judged: 33.00%", v["reason"])
+
+    def test_errors_after_notready_are_judged(self):
+        # ...but the same rate after NotReady is a miss.
+        self.assertEqual(aks("A4", "hardened", a4z(error_rate=0.02))["status"], "miss")
+
+    def test_never_notready_is_error(self):
+        v = aks("A4", "hardened", a4z(not_ready_s=None))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("no start", v["reason"])
+
+    def test_unconfirmed_stop_is_error(self):
+        v = aks("A4", "hardened", a4z(stopped=False, power_state="PowerState/running"))
+        self.assertEqual(v["status"], "error")
+
+    def test_stopping_a_node_without_web_pods_is_error(self):
+        self.assertEqual(aks("A4", "hardened", a4z(web_pods_on_node=0))["status"], "error")
+
+    def test_auto_repair_in_the_window_voids_the_row(self):
+        v = aks("A4", "hardened", a4z(repair_events=["NodeRebootStart"]))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("auto-repair", v["reason"])
+
+    def test_auto_repair_voids_even_past_the_abort_line(self):
+        ab = {"n": 20, "errors": 20, "error_rate": 1.0, "at_s": 60}
+        v = aks("A4", "baseline", a4z(repair_events=["NodeRebootStart"], abort_evidence=ab))
+        self.assertEqual(v["status"], "error")
+
+    def test_no_new_node_is_a_miss(self):
+        self.assertEqual(aks("A4", "hardened", a4z(replacement_node=None))["status"], "miss")
+
+    def test_late_recovery_is_a_miss(self):
+        self.assertEqual(aks("A4", "hardened", a4z(recovered_s=640.0))["status"], "miss")
+
+    def test_colocated_baseline_outage_is_impact(self):
+        self.assertEqual(aks("A4", "baseline", a4z(web_pods_on_node=3, error_rate=0.9, recovered_s=None,
+                                                    replacement_node=None))["status"], "impact")
+
+    def test_eks_keeps_judging_from_t0(self):
+        # The D3 rule is AKS-only: on EKS the instance is terminated.
+        self.assertEqual(THRESHOLDS["eks"]["A4"]["recover_s"], 300)
+
+
+def s4z(**kw):
+    o = {"injected": True, "reverted_s": 140.0, "access_after": "Deny",
+         "description_after": "Closed by policy selfheal-close-open-ingress (row S4).",
+         "deployment": {"name": "PolicyDeployment_1", "state": "Succeeded", "after_t0": True, "targets_rule": True},
+         "noncompliant_s": None}
+    o.update(kw)
+    return o
+
+
+class S4AksPolicy(unittest.TestCase):
+    def test_policy_deployment_close_heals(self):
+        self.assertEqual(aks("S4", "hardened", s4z())["status"], "healed")
+
+    def test_rule_deleted_by_someone_else_is_error(self):
+        v = aks("S4", "hardened", s4z(access_after=None, description_after=None, deployment=None))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("not by the policy deployment", v["reason"])
+
+    def test_closed_without_the_policy_marker_is_error(self):
+        v = aks("S4", "hardened", s4z(description_after="selfheal S4 drift"))
+        self.assertEqual(v["status"], "error")
+
+    def test_deployment_from_before_t0_is_error(self):
+        dep = {"name": "PolicyDeployment_0", "state": "Succeeded", "after_t0": False, "targets_rule": True}
+        self.assertEqual(aks("S4", "hardened", s4z(deployment=dep))["status"], "error")
+
+    def test_failed_deployment_is_error(self):
+        dep = {"name": "PolicyDeployment_1", "state": "Failed", "after_t0": True, "targets_rule": True}
+        self.assertEqual(aks("S4", "hardened", s4z(deployment=dep))["status"], "error")
+
+    def test_deployment_for_another_rule_is_error(self):
+        dep = {"name": "PolicyDeployment_1", "state": "Succeeded", "after_t0": True, "targets_rule": False}
+        self.assertEqual(aks("S4", "hardened", s4z(deployment=dep))["status"], "error")
+
+    def test_late_close_is_a_miss(self):
+        self.assertEqual(aks("S4", "hardened", s4z(reverted_s=1300.0))["status"], "miss")
+
+    def test_never_closed_is_impact_in_baseline(self):
+        self.assertEqual(aks("S4", "baseline", s4z(reverted_s=None, deployment=None))["status"], "impact")
+
+    def test_uninjected_is_error(self):
+        self.assertEqual(aks("S4", "hardened", s4z(injected=False))["status"], "error")
+
+
+def r2z(**kw):
+    o = {"samples": 2000, "expected": 2000, "reachable_before": True, "reachable_after": False,
+         "alert": {"display_name": "Communication with suspicious domain", "generated_s": 600.0,
+                   "names_cluster": True, "names_pod": True, "sample": False},
+         "isolated_s": 690.0, "evidence_s": 980.0, "pod_kept": True, "scale_down_disabled": True,
+         "snapshot_state": "Succeeded", "capture_bytes": 4000, "replacement_on_quarantined_node": False,
+         "error_rate": 0.001}
+    o.update(kw)
+    return o
+
+
+class R2AksDefender(unittest.TestCase):
+    def test_full_response_heals(self):
+        self.assertEqual(aks("R2", "hardened", r2z())["status"], "healed")
+
+    def test_clocks_run_from_the_alert_not_t0(self):
+        # Isolated 90s after an alert at 3000s heals, though it is 3090s after T0.
+        a = {**r2z()["alert"], "generated_s": 3000.0}
+        self.assertEqual(aks("R2", "hardened", r2z(alert=a, isolated_s=3090.0, evidence_s=3400.0))["status"], "healed")
+
+    def test_isolation_late_after_the_alert_is_a_miss(self):
+        self.assertEqual(aks("R2", "hardened", r2z(isolated_s=950.0))["status"], "miss")
+
+    def test_no_alert_is_error_in_both_profiles(self):
+        self.assertEqual(aks("R2", "baseline", r2z(alert=None, isolated_s=None, evidence_s=None))["status"], "error")
+        v = aks("R2", "hardened", r2z(alert=None))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("never fired", v["reason"])
+
+    def test_sample_alert_is_error(self):
+        a = {**r2z()["alert"], "display_name": "[SAMPLE ALERT] Suspicious domain"}
+        self.assertEqual(aks("R2", "hardened", r2z(alert=a))["status"], "error")
+
+    def test_alert_not_naming_the_pod_is_error(self):
+        a = {**r2z()["alert"], "names_pod": False}
+        v = aks("R2", "hardened", r2z(alert=a))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("attacked pod", v["reason"])
+
+    def test_alert_from_before_the_attack_is_error(self):
+        a = {**r2z()["alert"], "generated_s": -30.0}
+        self.assertEqual(aks("R2", "hardened", r2z(alert=a))["status"], "error")
+
+    def test_alert_past_the_hour_is_error(self):
+        a = {**r2z()["alert"], "generated_s": 3700.0}
+        self.assertEqual(aks("R2", "hardened", r2z(alert=a, isolated_s=3750.0, evidence_s=3900.0))["status"], "error")
+
+    def test_isolated_but_still_reachable_is_error(self):
+        v = aks("R2", "hardened", r2z(reachable_after=True))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("still answered", v["reason"])
+
+    def test_response_before_the_alert_is_clock_skew_error(self):
+        v = aks("R2", "hardened", r2z(isolated_s=590.0))
+        self.assertEqual(v["status"], "error")
+        self.assertIn("clock skew", v["reason"])
+
+    def test_replacement_on_the_quarantined_node_is_a_miss(self):
+        v = aks("R2", "hardened", r2z(replacement_on_quarantined_node=True))
+        self.assertEqual(v["status"], "miss")
+        self.assertIn("quarantined node", v["reason"])
+
+    def test_unknown_replacement_placement_is_not_a_pass(self):
+        self.assertEqual(aks("R2", "hardened", r2z(replacement_on_quarantined_node=None))["status"], "miss")
+
+    def test_failed_snapshot_is_a_miss(self):
+        self.assertEqual(aks("R2", "hardened", r2z(snapshot_state=None))["status"], "miss")
+
+    def test_no_capture_is_a_miss(self):
+        self.assertEqual(aks("R2", "hardened", r2z(capture_bytes=0))["status"], "miss")
+
+    def test_node_not_protected_from_scale_down_is_a_miss(self):
+        self.assertEqual(aks("R2", "hardened", r2z(scale_down_disabled=False))["status"], "miss")
+
+    def test_unisolated_baseline_is_impact(self):
+        self.assertEqual(aks("R2", "baseline", r2z(isolated_s=None, evidence_s=None))["status"], "impact")
+
+
+class Void(unittest.TestCase):
+    def test_void_reason_is_error_before_the_abort_line(self):
+        ab = {"n": 20, "errors": 20, "error_rate": 1.0, "at_s": 5}
+        v = verdict("A1", "baseline", a1(void="the fault hit the wrong pod", abort_evidence=ab), None)
+        self.assertEqual(v["status"], "error")
+        self.assertIn("wrong pod", v["reason"])
+
+
+class AksThresholds(unittest.TestCase):
+    def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
+        from judge import JUDGES, hypothesis
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "R2"}
+        self.assertEqual(set(THRESHOLDS["aks"]), rows)
+        self.assertTrue(rows <= set(JUDGES))
+        for r in rows:
+            self.assertTrue(hypothesis(r, "aks"))
+
+    def test_shared_rows_keep_their_numbers(self):
+        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"):
+            self.assertEqual(THRESHOLDS["aks"][r], THRESHOLDS["kind"][r], r)
+
+    def test_aks_hypotheses_name_the_aks_numbers(self):
+        from judge import hypothesis
+        self.assertIn("600s", hypothesis("A4", "aks"))
+        self.assertIn("NotReady", hypothesis("A4", "aks"))
+        self.assertIn("1200s", hypothesis("S4", "aks"))
+        self.assertIn("300s of the alert", hypothesis("R2", "aks"))
+        self.assertIn("300s", hypothesis("A4", "eks"))
+
+
 if __name__ == "__main__":
     unittest.main()

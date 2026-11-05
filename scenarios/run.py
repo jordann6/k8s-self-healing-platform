@@ -42,24 +42,29 @@ import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from judge import HYPOTHESES, THRESHOLDS, overall, verdict  # noqa: E402
+from judge import THRESHOLDS, hypothesis, overall, verdict  # noqa: E402
+import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
-# Set from --target in main(). Everything that differs between kind and EKS
-# keys off TARGET; the rows shared by both are the same code on both.
+# Set from --target in main(). Everything that differs between targets keys
+# off TARGET; the rows shared by all are the same code on all.
 TARGET = "kind"
-CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks"}
+CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks"}
 NS = "selfheal"
 ROWS_BY_TARGET = {
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
+    # R2 last here too: its node is cordoned, then removed after the evidence.
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "R2"],
 }
+# The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
+CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
 ROWS = ROWS_BY_TARGET["kind"]
-# Release tags. On kind the images are loaded as :v1 and :v2; on EKS they are
-# immutable ECR tags :<git sha>-v1 and :<git sha>-v2 (scripts/eks-images.sh).
+# Release tags. On kind the images are loaded as :v1 and :v2; on EKS and AKS
+# they are registry tags :<git sha>-v1 and :<git sha>-v2 (scripts/*-images.sh).
 TAG = {"v1": "v1", "v2": "v2"}
 TALON_VERSION = os.environ.get("TALON_VERSION", "0.5.0")
 K6_IMAGE = "grafana/k6:2.3.0"
@@ -79,6 +84,12 @@ ACTIONS = {
     "R1": "Falco -> Falcosidekick -> Talon labels the pod; quarantine CiliumNetworkPolicy isolates it",
     **eks_rows.ACTIONS,
 }
+
+
+def action(row: str) -> str:
+    """The healing control a row exercises on the current target."""
+    mod = CLOUD_ROWS.get(TARGET)
+    return (mod.ACTIONS.get(row) if mod else None) or ACTIONS[row]
 
 # --------------------------------------------------------------------------- #
 # plumbing
@@ -318,7 +329,10 @@ def exec_curl(pod_name: str, *args: str, timeout: int = 15) -> subprocess.Comple
 
 
 def backend_key() -> str:
-    """The key in the secret backend: a namespace on kind, Secrets Manager on EKS."""
+    """The key in the secret backend: a namespace on kind, Secrets Manager on
+    EKS, Key Vault (latest version) on AKS."""
+    if TARGET == "aks":
+        return aks_rows.kv_get()
     if TARGET == "eks":
         s = eks_rows.aws("secretsmanager", "get-secret-value", "--secret-id", eks_rows.outputs()["partner_secret"])
         return json.loads(s["SecretString"])["api-key"]
@@ -329,6 +343,9 @@ def backend_key() -> str:
 
 def backend_put(key: str) -> None:
     """Rotate the key in the backend (the provider issuing a new key)."""
+    if TARGET == "aks":
+        aks_rows.kv_put(key)
+        return
     if TARGET == "eks":
         eks_rows.aws("secretsmanager", "put-secret-value", "--secret-id", eks_rows.outputs()["partner_secret"],
                      "--secret-string", json.dumps({"api-key": key}))
@@ -409,8 +426,8 @@ def git_set_tag(profile: str, tag: str) -> float:
 
 def release_file(profile: str) -> str:
     """Where a release is committed: the profile's kustomization on kind, the
-    generated image component on EKS (it holds the ECR repository)."""
-    return f"profiles/{profile}/kustomization.yaml" if TARGET == "kind" else "targets/eks/generated/kustomization.yaml"
+    generated image component on a cloud (it holds the registry)."""
+    return f"profiles/{profile}/kustomization.yaml" if TARGET == "kind" else f"targets/{TARGET}/generated/kustomization.yaml"
 
 
 def set_web_tag(text: str, tag: str) -> str:
@@ -476,7 +493,7 @@ def apply_profile(lab: Lab, profile: str) -> None:
         "--wait", "--timeout", "3m"], timeout=240, check=True)
     k("-n", "falco", "rollout", "status", "deploy/falco-talon", "--timeout=120s", timeout=150, check=True)
     apps, workload = (f"apps/{profile}", f"profiles/{profile}") if TARGET == "kind" else \
-        (f"targets/eks/apps/{profile}", f"targets/eks/{profile}")
+        (f"targets/{TARGET}/apps/{profile}", f"targets/{TARGET}/{profile}")
     k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
       "-p", json.dumps({"spec": {"source": {"path": apps}}}), check=True)
     refresh("selfheal-root")
@@ -487,8 +504,8 @@ def apply_profile(lab: Lab, profile: str) -> None:
     wait_for(lambda: app_state("selfheal-workload")["sync"] == "Synced", 300, what="workload Synced")
     rule_present = lambda: ("WebContainerOOMKilled" in lab.rules()) == want_hpa  # noqa: E731
     wait_for(rule_present, 180, step=5, what="Prometheus rules for the profile")
-    if TARGET == "eks":
-        eks_rows.set_profile(sys.modules[__name__], profile)
+    if TARGET in CLOUD_ROWS:
+        CLOUD_ROWS[TARGET].set_profile(sys.modules[__name__], profile)
     steady(lab)
 
 
@@ -501,8 +518,8 @@ def steady(lab: Lab) -> None:
     if rollout_image_tag() != TAG["v1"]:
         log(f"  steady: Git left the Rollout on {rollout_image_tag()!r}, restoring v1")
         git_set_tag(app_state("selfheal-workload")["path"].split("/")[-1], TAG["v1"])
-    if TARGET == "eks":
-        eks_rows.steady(sys.modules[__name__])
+    if TARGET in CLOUD_ROWS:
+        CLOUD_ROWS[TARGET].steady(sys.modules[__name__])
     key = backend_key()
     if synced_key() != key:
         k("-n", NS, "annotate", "externalsecret", "partner-api-key", f"force-sync={int(now())}", "--overwrite")
@@ -1048,13 +1065,28 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
             "window": "T0 to end", "impact": st}
 
 
-RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3, "R1": row_r1,
-           **{r: (lambda f: lambda lab, prof, d: f(sys.modules[__name__], lab, prof, d))(f)
-              for r, f in eks_rows.ROWS.items()}}
+RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3, "R1": row_r1}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
-            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", **eks_rows.DETECTED}
+            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
-             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", **eks_rows.RECOVERED}
+             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s"}
+
+
+def runner(row: str):
+    """The row's implementation on the current target: the cloud module's
+    own row if it has one (A4, S4, R2, ...), else the shared one."""
+    mod = CLOUD_ROWS.get(TARGET)
+    if mod and row in mod.ROWS:
+        f = mod.ROWS[row]
+        return lambda lab, prof, d: f(sys.modules[__name__], lab, prof, d)
+    return RUNNERS[row]
+
+
+def clock_keys(row: str) -> tuple[str, str]:
+    mod = CLOUD_ROWS.get(TARGET)
+    if mod and row in mod.ROWS:
+        return mod.DETECTED[row], mod.RECOVERED[row]
+    return DETECTED[row], RECOVERED[row]
 
 # --------------------------------------------------------------------------- #
 # preconditions, report, main
@@ -1067,7 +1099,9 @@ def preconditions() -> dict:
         raise SystemExit(f"refusing to run: kube context is {ctx!r}, expected {CONTEXTS[TARGET]!r} "
                          f"(KUBECONFIG={os.environ['KUBECONFIG']})")
     checks = {"context": ctx}
-    extra = [("kube-system", "deploy", "karpenter")] if TARGET == "eks" else []
+    extra = {"eks": [("kube-system", "deploy", "karpenter")],
+             "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
+    # On AKS, metrics-server is AKS's own deployment (not the chart).
     for ns, kind, name in extra + [("kube-system", "deploy", "metrics-server"), ("monitoring", "deploy", "kps-operator"),
                            ("cert-manager", "deploy", "cert-manager"), ("external-secrets", "deploy", "external-secrets"),
                            ("reloader", "deploy", "reloader-reloader"), ("argo-rollouts", "deploy", "argo-rollouts"),
@@ -1104,6 +1138,10 @@ def versions() -> dict:
         d = kj("-n", ns, "get", kind, name)
         out[name] = (d.get("spec", {}).get("template", {}).get("spec", {}).get("containers") or [{}])[0].get("image")
     out["kubernetes"] = json.loads(k("version", "-o", "json").stdout or "{}").get("serverVersion", {}).get("gitVersion")
+    if TARGET == "aks":
+        out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
+        out["node_images"] = sorted({n["metadata"].get("labels", {}).get("kubernetes.azure.com/node-image-version", "?")
+                                     for n in kj("get", "nodes").get("items", [])})
     if TARGET == "eks":
         out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
         nc = kj("get", "ec2nodeclass", "workload")
@@ -1129,8 +1167,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append(f"| {row} | {b.get('status', '-')} | **{h.get('status', '-')}** | {h.get('reason', '')} |")
     L.append("\n## Per row\n")
     for row in doc["rows"]:
-        L.append(f"### {row}\n\n**Steady-state hypothesis:** {HYPOTHESES[row]}\n")
-        L.append(f"Healing control: {ACTIONS[row]}. Thresholds ({doc['target']}): `{json.dumps(THRESHOLDS[doc['target']][row])}`\n")
+        L.append(f"### {row}\n\n**Steady-state hypothesis:** {hypothesis(row, doc['target'])}\n")
+        L.append(f"Healing control: {action(row)}. Thresholds ({doc['target']}): `{json.dumps(THRESHOLDS[doc['target']][row])}`\n")
         L.append("| Profile | Event at T0 | Detected | Recovered | Requests | Failed | Error rate | Burn rate | Alerts fired | Verdict |")
         L.append("|---|---|---|---|---|---|---|---|---|---|")
         for prof in ("baseline", "hardened"):
@@ -1140,7 +1178,8 @@ def write_report(outdir: Path, doc: dict) -> None:
                 continue
             imp = o.get("impact") or {}
             er = imp.get("error_rate")
-            L.append(f"| {prof} | {iso(o.get('t0'))[11:19]} | {fmt_s(o.get(DETECTED[row]))} | {fmt_s(o.get(RECOVERED[row]))} | "
+            det, rec = clock_keys(row)
+            L.append(f"| {prof} | {iso(o.get('t0'))[11:19]} | {fmt_s(o.get(det))} | {fmt_s(o.get(rec))} | "
                      f"{imp.get('n', '')} | {imp.get('errors', '')} | {'' if er is None else f'{er:.2%}'} | "
                      f"{'' if er is None else f'{er / 0.005:.1f}x'} | {', '.join(o.get('alerts_fired', [])) or '-'} | "
                      f"{r['status']}: {r['reason']} |")
@@ -1149,8 +1188,10 @@ def write_report(outdir: Path, doc: dict) -> None:
     L.append("```json\n" + json.dumps({"preconditions": doc["preconditions"], "versions": doc["versions"]}, indent=2) + "\n```")
     L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
              "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
-             + (", the R2 bundle (manifest, capture, audit window, finding, execution history) in `R2/r2-hardened/`."
-                if doc["target"] == "eks" else "."))
+             + {"eks": ", the R2 bundle (manifest, capture, audit window, finding, execution history) in `R2/r2-hardened/`.",
+                "aks": ", the R2 bundle (the Defender alert as ARM returned it, the worker's isolated.json, the Logic "
+                       "App's manifest with the snapshot and Run Command capture, its runs) in `R2/r2-hardened/`."}
+             .get(doc["target"], "."))
     (outdir / "report.md").write_text("\n".join(L) + "\n")
 
 
@@ -1172,8 +1213,8 @@ def main() -> int:
     ap.add_argument("--only-profile", choices=["baseline", "hardened"])
     args = ap.parse_args()
     TARGET, ROWS = args.target, ROWS_BY_TARGET[args.target]
-    if TARGET == "eks":
-        sha = (ROOT / "gitops" / "targets" / "eks" / "generated" / "IMAGE_SHA").read_text().strip()
+    if TARGET in CLOUD_ROWS:
+        sha = (ROOT / "gitops" / "targets" / TARGET / "generated" / "IMAGE_SHA").read_text().strip()
         TAG.update({"v1": f"{sha}-v1", "v2": f"{sha}-v2"})
     args.run_id = args.run_id or dt.datetime.now().strftime(f"{TARGET}-%Y%m%d-%H%M%S")
     # Rows are case-sensitive only in S1b; accept any case on the command line.
@@ -1200,11 +1241,11 @@ def main() -> int:
             for row in rows:
                 d = outdir / row
                 d.mkdir(exist_ok=True)
-                log(f"{profile} {row}: {HYPOTHESES[row]}")
+                log(f"{profile} {row}: {hypothesis(row, TARGET)}")
                 try:
                     steady(lab)
                     ABORT.clear()
-                    obs = RUNNERS[row](lab, profile, d)
+                    obs = runner(row)(lab, profile, d)
                     if ABORT:
                         obs["abort_evidence"] = {**ABORT, "at_s": round(ABORT["t"] - obs.get("t0", ABORT["t"]), 1)}
                     obs["alerts_fired"] = alerts_fired(lab, obs.get("t0", now()))

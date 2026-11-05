@@ -57,6 +57,24 @@ THRESHOLDS = {
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
         "R2": {"isolate_s": 600, "evidence_s": 900, "error_rate": 0.01},
     },
+    # Set before the first AKS run (ADR-0003, "AKS thresholds"). Shared rows
+    # keep the kind/EKS numbers. A4 judges errors from NotReady (decision D3);
+    # R2's isolate and evidence clocks run from the Defender alert's own
+    # generation time, and the alert itself must come within Defender's
+    # documented hour.
+    "aks": {
+        "A1": {"recover_s": 60, "error_rate": 0.01},
+        "A2": {"abort_s": 180, "error_rate": 0.01},
+        "A3": {"p95_ms": 300, "error_rate": 0.01},
+        "A4": {"recover_s": 600, "error_rate": 0.01},
+        "A5": {"recover_s": 60, "alert_s": 120, "error_rate": 0.01},
+        "S1": {"failed": 0, "grace_s": 60},
+        "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
+        "S3": {"revert_s": 60},
+        "S4": {"revert_s": 1200},
+        "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "R2": {"alert_s": 3600, "isolate_s": 300, "evidence_s": 600, "error_rate": 0.01},
+    },
 }
 
 # Minimum share of the expected prober samples a window must hold to be judged.
@@ -89,6 +107,25 @@ HYPOTHESES = {
     "R2": "A runtime threat GuardDuty reports in a web pod is isolated at pod and node level within 600s "
           "and evidence is preserved within 900s, with the pod and node kept for investigation.",
 }
+
+
+# Rows whose mechanism differs on a target state their own hypothesis there.
+HYPOTHESES_BY_TARGET = {
+    "aks": {
+        "A4": "When the scale set instance hosting the most web pods is stopped, the error rate stays under 1% "
+              "from the moment its node is marked NotReady, and every web replica is serving again, off that "
+              "node and with a new workload node, within 600s.",
+        "S4": "An inbound rule opening the node NSG to 0.0.0.0/0 is closed again by the Azure Policy "
+              "deployIfNotExists deployment within 1200s.",
+        "R2": "A threat Defender for Containers reports in a web pod is isolated (node cordoned, then pod "
+              "relabelled into quarantine) within 300s of the alert and evidence (OS-disk snapshot, Run Command "
+              "capture, manifest) is preserved within 600s of the alert, with the pod and node kept.",
+    },
+}
+
+
+def hypothesis(row: str, target: str = "kind") -> str:
+    return HYPOTHESES_BY_TARGET.get(target, {}).get(row) or HYPOTHESES[row]
 
 
 def enough(samples: int | None, expected: float) -> bool:
@@ -344,6 +381,114 @@ def judge_r2(o: dict, t: dict):
     return True, why, impact, healed
 
 
+# --------------------------------------------------------------------------- #
+# AKS: the rows whose mechanism differs on Azure (ADR-0003, "AKS thresholds")
+# --------------------------------------------------------------------------- #
+
+def judge_a4_aks(o: dict, t: dict):
+    if not o.get("stopped"):
+        return False, f"the scale set instance was not confirmed stopped (power state {o.get('power_state')})", False, False
+    if not o.get("web_pods_on_node"):
+        return False, "the stopped node ran no web pod, so nothing under test was hit", False, False
+    # Decision D3: the error clock starts at NotReady. Without it there is
+    # no judged window at all.
+    if o.get("not_ready_s") is None:
+        return False, "the node was never marked NotReady in the window, so A4's error clock (D3) has no start", False, False
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    err, rec = o["error_rate"], o.get("recovered_s")
+    impact = err >= t["error_rate"] or rec is None
+    healed = le(rec, t["recover_s"]) and err < t["error_rate"] and bool(o.get("replacement_node"))
+    gap = o.get("gap_error_rate")
+    why = (f"stopped {o.get('vmss')}/{o.get('instance_id')} ({o.get('web_pods_on_node')} web pods), NotReady at "
+           f"{fmt_s(o.get('not_ready_s'))}; errors from NotReady {err:.2%}"
+           + (f" (before NotReady, reported not judged: {gap:.2%})" if gap is not None else "")
+           + f"; all replicas serving {fmt_s(rec)}, new node {o.get('replacement_node') or 'none'}")
+    return True, why, impact, healed
+
+
+S4_MARKER = "Closed by policy"
+
+
+def judge_s4_aks(o: dict, t: dict):
+    if not o.get("injected"):
+        return False, "the open rule was never confirmed on the node NSG", False, False
+    rev = o.get("reverted_s")
+    dep = o.get("deployment") or {}
+    by_policy = (str(o.get("description_after") or "").startswith(S4_MARKER) and o.get("access_after") == "Deny"
+                 and dep.get("state") == "Succeeded" and dep.get("after_t0") is True and dep.get("targets_rule") is True)
+    # Only the policy's own deployment counts. A rule deleted, or closed by
+    # anything else (a person, a script, a cleanup), is not the control.
+    if rev is not None and not by_policy:
+        return False, (f"the rule was closed or removed at {rev:.0f}s, but not by the policy deployment "
+                       f"(access {o.get('access_after')}, deployment {dep or 'none'})"), False, False
+    impact = rev is None
+    healed = le(rev, t["revert_s"])
+    why = (f"policy deployment {dep.get('name') or 'none'} ({dep.get('state') or '-'}), rule closed {fmt_s(rev)}, "
+           f"non-compliant reported {fmt_s(o.get('noncompliant_s'))}")
+    return True, why, impact, healed
+
+
+def judge_r2_aks(o: dict, t: dict):
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    a = o.get("alert") or {}
+    if not a:
+        return False, (f"no Defender alert naming the attacked pod within {t['alert_s']}s: the trigger never "
+                       f"fired, so there was nothing to respond to"), False, False
+    # Only the real detector counts: an alert generated after the attack,
+    # naming the lab cluster and the attacked pod. A portal sample alert
+    # names neither.
+    if a.get("sample") or str(a.get("display_name") or "").startswith("[SAMPLE ALERT]"):
+        return False, f"the alert is a sample alert ({a.get('display_name')})", False, False
+    if not a.get("names_cluster") or not a.get("names_pod"):
+        return False, (f"the alert does not name the lab cluster and the attacked pod "
+                       f"(cluster {a.get('names_cluster')}, pod {a.get('names_pod')})"), False, False
+    alert_s = a.get("generated_s")
+    if alert_s is None or alert_s < 0:
+        return False, f"the alert was generated before the attack ({alert_s}s)", False, False
+    if alert_s > t["alert_s"]:
+        return False, f"the alert came at {alert_s:.0f}s, past Defender's documented hour", False, False
+    if not o.get("reachable_before"):
+        return False, "the target was not reachable before the attack, so isolation proves nothing", False, False
+    iso, ev = o.get("isolated_s"), o.get("evidence_s")
+    if iso is not None and o.get("reachable_after"):
+        return False, "isolation was reported but the pod still answered the prober", False, False
+    rel = lambda v: None if v is None else v - alert_s  # noqa: E731
+    iso_a, ev_a = rel(iso), rel(ev)
+    # The automation is triggered by the alert, so nothing can act before
+    # it was generated: a negative time is clock skew, not a fast heal.
+    if (iso_a is not None and iso_a < 0) or (ev_a is not None and ev_a < 0):
+        return False, (f"a response time is earlier than the alert (isolated {iso_a}, evidence {ev_a} s after it): "
+                       f"clock skew, cannot be judged"), False, False
+    impact = iso is None
+    healed = (le(iso_a, t["isolate_s"]) and le(ev_a, t["evidence_s"]) and o.get("pod_kept") is True
+              and o.get("scale_down_disabled") is True and o.get("snapshot_state") == "Succeeded"
+              and (o.get("capture_bytes") or 0) > 0 and o.get("replacement_on_quarantined_node") is False
+              and o["error_rate"] < t["error_rate"])
+    why = (f"{a.get('display_name')} generated {fmt_s(alert_s)} after the attack; isolated {fmt_s(iso_a)} and "
+           f"evidence {fmt_s(ev_a)} after the alert (snapshot {o.get('snapshot_state') or 'none'}, "
+           f"{o.get('capture_bytes', 0)} B captured)"
+           + ("; a replacement web pod landed on the quarantined node" if o.get("replacement_on_quarantined_node") else "")
+           + (f"; Logic App: {o.get('failed_reason')}" if o.get("failed_reason") else "")
+           + f"; errors {o['error_rate']:.2%}")
+    return True, why, impact, healed
+
+
+JUDGES_BY_TARGET = {"aks": {"A4": judge_a4_aks, "S4": judge_s4_aks, "R2": judge_r2_aks}}
+
+
+def void_reason(row: str, target: str, o: dict) -> str | None:
+    """Conditions that void a row as an error before anything else, the
+    abort line included: the row did not test the control it names."""
+    if o.get("void"):
+        return str(o["void"])
+    if target == "aks" and row == "A4" and o.get("repair_events"):
+        return (f"AKS auto-repair acted on the stopped node inside the window ({', '.join(o['repair_events'])}): "
+                f"the repair, not the lab's controls, would have healed it (ADR-0007 row 17)")
+    return None
+
+
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2}
@@ -352,8 +497,11 @@ JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:
     t = THRESHOLDS[target][row]
     ab = obs.get("abort_evidence")
+    void = void_reason(row, target, obs)
     if obs.get("exception"):
         status, why = "error", f"runner exception: {obs['exception']}"
+    elif void:
+        status, why = "error", void
     elif ab and ab.get("n", 0) >= 10 and (ab.get("error_rate") or 0) > ABORT_ERROR_RATE:
         # The abort line is evidence on its own: at least 10 samples in a 10s
         # window with more than half failing. Impact in the baseline, a miss
@@ -362,7 +510,8 @@ def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, targ
                f"requests failed in 10s")
         status, why = classify(profile, True, why, True, False, baseline_status)
     else:
-        ok, why, impact, healed = JUDGES[row](obs, t)
+        judge = JUDGES_BY_TARGET.get(target, {}).get(row, JUDGES[row])
+        ok, why, impact, healed = judge(obs, t)
         status, why = classify(profile, ok, why, impact, healed, baseline_status)
     return {"status": status, "reason": why, "thresholds": t,
             "pass": status == "healed" if profile == "hardened" else status == "impact"}
