@@ -300,7 +300,7 @@ resource "azurerm_security_center_automation" "r2" {
   tags                = local.tags
 
   action {
-    type        = "logicapp"
+    type        = "LogicApp"
     resource_id = azapi_resource.responder.id
     trigger_url = azapi_resource_action.responder_callback.sensitive_output.value
   }

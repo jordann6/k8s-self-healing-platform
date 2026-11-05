@@ -276,6 +276,12 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   so it cannot block the teardown; the preflight accepts exactly that one
   (system-protected, that name, the lab workspace's group) and still fails on
   any other deny assignment on a lab scope.
+  The second apply created the cluster and the workload pool (the D2s_v6
+  nodes came up in about three minutes) and stopped at the workflow
+  automation: azurerm 5 accepts only `EventHub`, `LogicApp` or `Workspace` as
+  the action type, and the code said `logicapp`. `terraform validate` and the
+  plan did not catch it because the action block also holds the trigger URL,
+  which is unknown until apply, so the provider checks the block only then.
 - checkov's HCL parser rejects a bare `if` key, so the policy rule quotes
   `"if"` and `"then"`. azurerm 5 needs `node_provisioning_profile`, and
   subnet service endpoints are blocks.
