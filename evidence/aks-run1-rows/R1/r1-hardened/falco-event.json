@@ -1,0 +1,25 @@
+{
+  "hostname": "aks-work-37698655-vmss000001",
+  "output": "19:51:03.382334002: Warning Shell in selfheal web pod (user=lab cmd=sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 & pod=web-7dc96f5788-g5fzf ns=selfheal container=4259e3d19577 image=acrselfhealdqd4ug.azurecr.io/selfheal/app) container_id=4259e3d19577 container_name=web container_image_repository=acrselfhealdqd4ug.azurecr.io/selfheal/app container_image_tag=8b7df6f-v1 k8s_pod_name=web-7dc96f5788-g5fzf k8s_ns_name=selfheal",
+  "output_fields": {
+    "container.id": "4259e3d19577",
+    "container.image.repository": "acrselfhealdqd4ug.azurecr.io/selfheal/app",
+    "container.image.tag": "8b7df6f-v1",
+    "container.name": "web",
+    "evt.time": 1793908263382334002,
+    "k8s.ns.name": "selfheal",
+    "k8s.pod.name": "web-7dc96f5788-g5fzf",
+    "proc.cmdline": "sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 &",
+    "user.name": "lab"
+  },
+  "priority": "Warning",
+  "rule": "Shell spawned in selfheal web pod",
+  "source": "syscall",
+  "tags": [
+    "T1059",
+    "mitre_execution",
+    "selfheal"
+  ],
+  "time": "2026-11-05T19:51:03.382334002Z",
+  "_t": 1793908263.382334
+}

@@ -1,0 +1,98 @@
+{
+  "trace": [
+    {
+      "t": 3.4,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 18.2,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 29.5,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 41.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 52.4,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 63.8,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 75.2,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 86.7,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 98.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 109.4,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 120.9,
+      "access": "Deny",
+      "noncompliant": true,
+      "deployment": "Succeeded"
+    }
+  ],
+  "rule_after": {
+    "access": "Deny",
+    "description": "Closed by policy selfheal-close-open-ingress (row S4).",
+    "destinationAddressPrefix": "*",
+    "destinationAddressPrefixes": [],
+    "destinationPortRange": "8080",
+    "destinationPortRanges": [],
+    "direction": "Inbound",
+    "etag": "W/\"<azure-guid>\"",
+    "id": "/subscriptions/<azure-subscription>/resourceGroups/rg-selfheal-lab/providers/Microsoft.Network/networkSecurityGroups/nsg-selfheal-nodes/securityRules/selfheal-s4-drift",
+    "name": "selfheal-s4-drift",
+    "priority": 300,
+    "protocol": "Tcp",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "rg-selfheal-lab",
+    "sourceAddressPrefix": "*",
+    "sourceAddressPrefixes": [],
+    "sourcePortRange": "*",
+    "sourcePortRanges": [],
+    "type": "Microsoft.Network/networkSecurityGroups/securityRules"
+  },
+  "deployment": {
+    "name": "PolicyDeployment_12368233620176165940",
+    "state": "Succeeded",
+    "timestamp": "2026-11-05T21:21:50.293496+00:00",
+    "after_t0": true,
+    "targets_rule": true
+  }
+}

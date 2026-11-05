@@ -1,0 +1,6 @@
+LAST SEEN   TYPE      REASON      OBJECT                     MESSAGE
+23m         Normal    Scheduled   pod/web-7dc96f5788-g5fzf   Successfully assigned selfheal/web-7dc96f5788-g5fzf to aks-work-37698655-vmss000001
+23m         Normal    Pulled      pod/web-7dc96f5788-g5fzf   Container image "acrselfhealdqd4ug.azurecr.io/selfheal/app:8b7df6f-v1" already present on machine
+23m         Normal    Created     pod/web-7dc96f5788-g5fzf   Created container: web
+23m         Normal    Started     pod/web-7dc96f5788-g5fzf   Started container web
+23m         Warning   Unhealthy   pod/web-7dc96f5788-g5fzf   Readiness probe failed: Get "http://10.244.4.6:8080/readyz": dial tcp 10.244.4.6:8080: connect: connection refused

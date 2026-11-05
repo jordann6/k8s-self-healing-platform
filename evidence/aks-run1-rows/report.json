@@ -1,0 +1,349 @@
+{
+  "run_id": "aks-run1-rows",
+  "target": "aks",
+  "started": "2026-11-05T17:55:34.008Z",
+  "rows": [
+    "S3",
+    "S4",
+    "R1",
+    "R2"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "kubernetes": "v1.34.12",
+    "web_image": "acrselfhealdqd4ug.azurecr.io/selfheal/app:8b7df6f-v1",
+    "node_images": [
+      "AKSUbuntu-2204gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "S3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy restored never, hand edit reverted never",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "policy restored 2s, hand edit reverted 10s",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": true
+      }
+    },
+    "S4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy deployment none (-), rule closed never, non-compliant reported 996s",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "miss",
+        "reason": "policy deployment none (-), rule closed never, non-compliant reported never",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": false
+      }
+    },
+    "R1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "detected 1s, isolated never (0 Hubble policy drops), evidence never, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "detected 1s, isolated 8s (22 Hubble policy drops), evidence 24s, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "R2": {
+      "baseline": {
+        "status": "error",
+        "reason": "no Defender alert naming the attacked pod within 3600s: the trigger never fired, so there was nothing to respond to",
+        "thresholds": {
+          "alert_s": 3600,
+          "isolate_s": 300,
+          "evidence_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": false
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "no Defender alert naming the attacked pod within 3600s: the trigger never fired, so there was nothing to respond to",
+        "thresholds": {
+          "alert_s": 3600,
+          "isolate_s": 300,
+          "evidence_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "S3": {
+      "baseline": {
+        "t0": 1793901517.805826,
+        "injected": true,
+        "policy_restored_s": null,
+        "edit_reverted_s": null,
+        "window": "T0 to T0+120s",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793906935.291281,
+        "injected": true,
+        "policy_restored_s": 2.5,
+        "edit_reverted_s": 9.7,
+        "window": "T0 to T0+120s",
+        "alerts_fired": []
+      }
+    },
+    "S4": {
+      "baseline": {
+        "t0": 1793901674.6392052,
+        "nsg": "nsg-selfheal-nodes",
+        "rule": "selfheal-s4-drift",
+        "injected": true,
+        "reverted_s": null,
+        "noncompliant_s": 996.5,
+        "access_after": "Allow",
+        "description_after": "selfheal S4 drift",
+        "deployment": null,
+        "window": "T0 to the policy deployment or T0+1260s",
+        "impact": {},
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793906966.512939,
+        "nsg": "nsg-selfheal-nodes",
+        "rule": "selfheal-s4-drift",
+        "injected": true,
+        "reverted_s": null,
+        "noncompliant_s": null,
+        "access_after": "Allow",
+        "description_after": "selfheal S4 drift",
+        "deployment": null,
+        "window": "T0 to the policy deployment or T0+1260s",
+        "impact": {},
+        "alerts_fired": []
+      }
+    },
+    "R1": {
+      "baseline": {
+        "t0": 1793902969.579882,
+        "target_pod": "web-559544dffd-hhstj",
+        "reachable_before": true,
+        "detected_s": 0.8,
+        "labelled_s": null,
+        "isolated_s": null,
+        "hubble_policy_drops": 0,
+        "evidence_s": null,
+        "pod_kept_for_capture": null,
+        "error_rate": 0.0,
+        "samples": 386,
+        "expected": 385.70902585983276,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793902969.6447873,
+          "until": 1793903046.7865925,
+          "n": 386,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 145.0,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-hhstj",
+            "web-559544dffd-lzgmt",
+            "web-559544dffd-xnsth"
+          ],
+          "expected": 385.70902585983276
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793908262.5927198,
+        "target_pod": "web-7dc96f5788-g5fzf",
+        "reachable_before": true,
+        "detected_s": 0.8,
+        "labelled_s": 0.8,
+        "isolated_s": 8.4,
+        "hubble_policy_drops": 22,
+        "evidence_s": 24.5,
+        "pod_kept_for_capture": true,
+        "error_rate": 0.0,
+        "samples": 300,
+        "expected": 300.02227663993835,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793908262.6576252,
+          "until": 1793908322.6620805,
+          "n": 300,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 143.0,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-6jwd6",
+            "web-7dc96f5788-h75dh",
+            "web-7dc96f5788-z84ls"
+          ],
+          "expected": 300.02227663993835
+        },
+        "alerts_fired": []
+      }
+    },
+    "R2": {
+      "baseline": {
+        "t0": 1793903158.164737,
+        "target_pod": "web-559544dffd-6lqhk",
+        "node": "aks-work-37698655-vmss000002",
+        "reachable_before": true,
+        "reachable_after": null,
+        "alert": null,
+        "alert_s": null,
+        "isolated_s": null,
+        "evidence_s": null,
+        "pod_kept": true,
+        "scale_down_disabled": false,
+        "replacement_on_quarantined_node": null,
+        "snapshot_state": null,
+        "capture_bytes": 0,
+        "logic_app_run": null,
+        "logic_app_runs": [],
+        "failed_reason": null,
+        "error_rate": 0.0,
+        "samples": 18056,
+        "expected": 18056.103444099426,
+        "window": "T0 (attack) to evidence, or to the alert plus the response window",
+        "impact": {
+          "kind": "http",
+          "since": 1793903158.2296424,
+          "until": 1793906769.4503312,
+          "n": 18056,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 146.0,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-6lqhk",
+            "web-559544dffd-lzgmt",
+            "web-559544dffd-xnsth"
+          ],
+          "expected": 18056.103444099426
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793908342.11482,
+        "target_pod": "web-7dc96f5788-6jwd6",
+        "node": "aks-work-37698655-vmss000002",
+        "reachable_before": true,
+        "reachable_after": null,
+        "alert": null,
+        "alert_s": null,
+        "isolated_s": null,
+        "evidence_s": null,
+        "pod_kept": true,
+        "scale_down_disabled": false,
+        "replacement_on_quarantined_node": null,
+        "snapshot_state": null,
+        "capture_bytes": 0,
+        "logic_app_run": null,
+        "logic_app_runs": [],
+        "failed_reason": null,
+        "error_rate": 0.0,
+        "samples": 18070,
+        "expected": 18070.557140111923,
+        "window": "T0 (attack) to evidence, or to the alert plus the response window",
+        "impact": {
+          "kind": "http",
+          "since": 1793908342.1797254,
+          "until": 1793911956.2911534,
+          "n": 18070,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 143.6,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-6jwd6",
+            "web-7dc96f5788-h75dh",
+            "web-7dc96f5788-z84ls"
+          ],
+          "expected": 18070.557140111923
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-05T20:52:41.652Z",
+  "pass": false
+}

@@ -1,0 +1,102 @@
+{
+  "run_id": "aks-run1-s4",
+  "target": "aks",
+  "started": "2026-11-05T20:53:45.082Z",
+  "rows": [
+    "S4"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "kubernetes": "v1.34.12",
+    "web_image": "acrselfhealdqd4ug.azurecr.io/selfheal/app:8b7df6f-v1",
+    "node_images": [
+      "AKSUbuntu-2204gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "S4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy deployment none (-), rule closed never, non-compliant reported 293s",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "policy deployment PolicyDeployment_12368233620176165940 (Succeeded), rule closed 121s, non-compliant reported 3s",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "S4": {
+      "baseline": {
+        "t0": 1793912135.136396,
+        "nsg": "nsg-selfheal-nodes",
+        "rule": "selfheal-s4-drift",
+        "injected": true,
+        "reverted_s": null,
+        "noncompliant_s": 292.6,
+        "access_after": "Allow",
+        "description_after": "selfheal S4 drift",
+        "deployment": null,
+        "window": "T0 to the policy deployment or T0+1260s",
+        "impact": {},
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793913594.090539,
+        "nsg": "nsg-selfheal-nodes",
+        "rule": "selfheal-s4-drift",
+        "injected": true,
+        "reverted_s": 120.9,
+        "noncompliant_s": 3.4,
+        "access_after": "Deny",
+        "description_after": "Closed by policy selfheal-close-open-ingress (row S4).",
+        "deployment": {
+          "name": "PolicyDeployment_12368233620176165940",
+          "state": "Succeeded",
+          "timestamp": "2026-11-05T21:21:50.293496+00:00",
+          "after_t0": true,
+          "targets_rule": true
+        },
+        "window": "T0 to the policy deployment or T0+1260s",
+        "impact": {},
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-05T21:22:03.757Z",
+  "pass": true
+}

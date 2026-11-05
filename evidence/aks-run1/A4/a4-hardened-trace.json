@@ -1,0 +1,765 @@
+[
+  {
+    "t": 1.0,
+    "power": "PowerState/stopping",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 8.4,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 16.1,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 22.8,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 29.5,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 36.1,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 42.9,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 49.6,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 56.2,
+    "power": "PowerState/stopped",
+    "not_ready": false,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 62.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 70.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 76.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 83.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 89.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 96.2,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 102.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 108.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 115.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 121.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 127.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 134.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 140.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 146.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": false,
+    "recovered": false
+  },
+  {
+    "t": 153.2,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": false
+  },
+  {
+    "t": 160.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": false
+  },
+  {
+    "t": 166.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": false
+  },
+  {
+    "t": 172.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 177.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 183.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 188.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 193.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 198.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 203.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 208.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 213.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 219.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 224.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 229.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 234.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 239.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 244.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 249.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 255.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 260.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 265.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 270.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 275.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 281.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 286.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 291.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 296.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 301.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 306.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 311.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 317.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 322.2,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 327.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 332.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 337.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 342.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 347.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 353.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 358.2,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 363.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 368.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 373.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 378.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 384.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 389.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 394.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 399.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 404.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 409.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 414.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 420.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 425.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 430.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 435.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 440.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 445.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 450.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 456.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 461.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 466.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 471.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 476.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 481.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 486.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 492.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 497.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 502.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 507.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 512.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 517.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 523.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 528.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 533.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 538.4,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 543.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 548.7,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 553.9,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 559.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 564.2,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 569.3,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 574.5,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 579.6,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 584.8,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 590.0,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  },
+  {
+    "t": 595.1,
+    "power": "PowerState/stopped",
+    "not_ready": true,
+    "replacement": true,
+    "recovered": true
+  }
+]

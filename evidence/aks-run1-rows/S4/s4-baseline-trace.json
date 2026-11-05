@@ -1,0 +1,656 @@
+{
+  "trace": [
+    {
+      "t": 7.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 19.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 30.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 41.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 54.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 65.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 76.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 89.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 100.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 111.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 123.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 134.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 145.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 158.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 169.4,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 180.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 192.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 203.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 214.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 226.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 237.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 249.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 261.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 272.4,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 285.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 297.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 309.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 320.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 334.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 345.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 356.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 369.6,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 380.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 391.6,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 404.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 414.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 426.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 437.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 449.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 460.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 472.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 483.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 494.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 507.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 519.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 530.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 543.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 553.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 565.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 577.4,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 588.4,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 599.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 612.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 623.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 634.1,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 646.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 658.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 669.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 681.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 692.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 703.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 715.9,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 727.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 738.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 750.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 761.6,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 772.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 785.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 796.5,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 807.8,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 820.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 831.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 842.4,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 854.6,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 865.7,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 877.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 939.6,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 951.0,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 962.2,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 974.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 985.3,
+      "access": "Allow",
+      "noncompliant": false,
+      "deployment": null
+    },
+    {
+      "t": 996.5,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1008.9,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1020.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1031.4,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1042.6,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1053.9,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1065.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1076.2,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1087.3,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1098.4,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1109.3,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1120.1,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1131.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1142.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1153.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1165.1,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1176.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1187.1,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1198.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1208.9,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1219.9,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1231.0,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1241.9,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    },
+    {
+      "t": 1252.7,
+      "access": "Allow",
+      "noncompliant": true,
+      "deployment": null
+    }
+  ],
+  "rule_after": {
+    "access": "Allow",
+    "description": "selfheal S4 drift",
+    "destinationAddressPrefix": "*",
+    "destinationAddressPrefixes": [],
+    "destinationPortRange": "8080",
+    "destinationPortRanges": [],
+    "direction": "Inbound",
+    "etag": "W/\"<azure-guid>\"",
+    "id": "/subscriptions/<azure-subscription>/resourceGroups/rg-selfheal-lab/providers/Microsoft.Network/networkSecurityGroups/nsg-selfheal-nodes/securityRules/selfheal-s4-drift",
+    "name": "selfheal-s4-drift",
+    "priority": 300,
+    "protocol": "Tcp",
+    "provisioningState": "Succeeded",
+    "resourceGroup": "rg-selfheal-lab",
+    "sourceAddressPrefix": "0.0.0.0/0",
+    "sourceAddressPrefixes": [],
+    "sourcePortRange": "*",
+    "sourcePortRanges": [],
+    "type": "Microsoft.Network/networkSecurityGroups/securityRules"
+  },
+  "deployment": {}
+}

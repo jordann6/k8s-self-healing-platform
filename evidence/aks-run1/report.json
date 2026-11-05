@@ -1,0 +1,1094 @@
+{
+  "run_id": "aks-run1",
+  "target": "aks",
+  "started": "2026-11-05T15:29:23.429Z",
+  "rows": [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "S1",
+    "S2",
+    "S3",
+    "S4",
+    "R1",
+    "R2"
+  ],
+  "partial": false,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "kubernetes": "v1.34.12",
+    "web_image": "acrselfhealdqd4ug.azurecr.io/selfheal/app:8b7df6f-v1",
+    "node_images": [
+      "AKSUbuntu-2204gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "A1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "error rate after detection 33.70%; hung pod never recovered",
+        "thresholds": {
+          "recover_s": 60,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "error rate after detection 0.00%; hung pod restarted and serving at 31s",
+        "thresholds": {
+          "recover_s": 60,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A2": {
+      "baseline": {
+        "status": "impact",
+        "reason": "final error rate 30.00%, serving v2; no abort",
+        "thresholds": {
+          "abort_s": 180,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "final error rate 0.00%, serving v1; canary aborted at 80s",
+        "thresholds": {
+          "abort_s": 180,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "sustain window p95 2173.1 ms, errors 22.01%, replicas 3 -> 3",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "miss",
+        "reason": "sustain window p95 821.3 ms, errors 0.00%, replicas 3 -> 6",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    },
+    "A4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 70.1s: 100% of 45 http requests failed in 10s",
+        "thresholds": {
+          "recover_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "stopped aks-work-37698655-vmss/0 (1 web pods), NotReady at 59s; errors from NotReady 0.00% (before NotReady, reported not judged: 29.49%); all replicas serving 172s, new node aks-work-37698655-vmss000003",
+        "thresholds": {
+          "recover_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A5": {
+      "baseline": {
+        "status": "impact",
+        "reason": "OOMKilled never, recovered never, alert never fired, leaked pod memory at end 336.4 MiB, other restarts 0, errors 0.00%",
+        "thresholds": {
+          "recover_s": 60,
+          "alert_s": 120,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "OOMKilled at 9s, recovered at 12s, alert at 21s, leaked pod memory at end None MiB, other restarts 0, errors 0.39%",
+        "thresholds": {
+          "recover_s": 60,
+          "alert_s": 120,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "S1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 71.8s: 52% of 50 http requests failed in 10s",
+        "thresholds": {
+          "failed": 0,
+          "grace_s": 60
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "0 failed of 450; key synced at 11s, pods on the new key at 33s",
+        "thresholds": {
+          "failed": 0,
+          "grace_s": 60
+        },
+        "pass": true
+      }
+    },
+    "S2": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 34.7s: 65% of 20 tls requests failed in 10s",
+        "thresholds": {
+          "tls_errors": 0,
+          "renew_s": 60,
+          "serve_s": 150
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "0 TLS errors of 193; renewed at 1s, new certificate served at 79s",
+        "thresholds": {
+          "tls_errors": 0,
+          "renew_s": 60,
+          "serve_s": 150
+        },
+        "pass": true
+      }
+    },
+    "S3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy restored never, hand edit reverted never",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": false
+      }
+    },
+    "S4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy deployment none (-), rule closed never, non-compliant reported never",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "thresholds": {
+          "revert_s": 1200
+        },
+        "pass": false
+      }
+    },
+    "R1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "detected 1s, isolated never (0 Hubble policy drops), evidence never, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    },
+    "R2": {
+      "baseline": {
+        "status": "error",
+        "reason": "no Defender alert naming the attacked pod within 3600s: the trigger never fired, so there was nothing to respond to",
+        "thresholds": {
+          "alert_s": 3600,
+          "isolate_s": 300,
+          "evidence_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": false
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "thresholds": {
+          "alert_s": 3600,
+          "isolate_s": 300,
+          "evidence_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "A1": {
+      "baseline": {
+        "t0": 1793892627.657247,
+        "hung_pod": "web-559544dffd-99749",
+        "killed_pod": "web-559544dffd-fwh5q",
+        "injected": true,
+        "detected_s": null,
+        "recovered_s": null,
+        "chaos_at_s": 30.9,
+        "aborted": false,
+        "error_rate_after": 0.337,
+        "samples": 359,
+        "expected": 360.4353201389313,
+        "window": "T0+20s to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793892647.7234926,
+          "until": 1793892719.8105567,
+          "n": 359,
+          "errors": 121,
+          "error_rate": 0.337,
+          "p95_ms": 102.3,
+          "error_kinds": {
+            "TimeoutError": 119,
+            "URLError": 2
+          },
+          "first_error": 1793892648.0685,
+          "last_error": 1793892717.468526,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-7n9xb",
+            "web-559544dffd-fwh5q",
+            "web-559544dffd-j8n4q"
+          ],
+          "expected": 360.4353201389313
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793899507.4391282,
+        "hung_pod": "web-7dc96f5788-44t8l",
+        "killed_pod": "web-7dc96f5788-bdhcp",
+        "injected": true,
+        "detected_s": 8.9,
+        "recovered_s": 30.9,
+        "chaos_at_s": 30.9,
+        "aborted": false,
+        "error_rate_after": 0.0,
+        "samples": 361,
+        "expected": 362.0822787284851,
+        "window": "T0+20s to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793899527.5053737,
+          "until": 1793899599.9218295,
+          "n": 361,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 138.3,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-44t8l",
+            "web-7dc96f5788-bdhcp",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 362.0822787284851
+        },
+        "alerts_fired": []
+      }
+    },
+    "A2": {
+      "baseline": {
+        "t0": 1793892740.551303,
+        "aborted_s": null,
+        "fully_rolled_s": 17.4,
+        "v2_seen": true,
+        "abort_line": false,
+        "error_rate_final": 0.3,
+        "releases_final": [
+          "v2"
+        ],
+        "samples": 150,
+        "expected": 150,
+        "analysis": {
+          "phase": null,
+          "message": null,
+          "values": []
+        },
+        "window": "last 30s of the observation",
+        "impact": {
+          "kind": "http",
+          "since": 1793892740.6175485,
+          "until": 1793892800.8286996,
+          "n": 258,
+          "errors": 77,
+          "error_rate": 0.2984,
+          "p95_ms": 147.2,
+          "error_kinds": {
+            "http 502": 2,
+            "ConnectionResetError": 2,
+            "URLError": 1,
+            "http 500": 72
+          },
+          "first_error": 1793892749.3224607,
+          "last_error": 1793892800.7225823,
+          "releases": [
+            "v1",
+            "v2"
+          ],
+          "pods": [
+            "web-559544dffd-j8n4q",
+            "web-84879c57c9-7mmft",
+            "web-84879c57c9-csq9k",
+            "web-84879c57c9-p9fnt"
+          ],
+          "expected": 301.0557556152344
+        },
+        "alerts_fired": [
+          "WebAvailabilityBudgetBurn"
+        ]
+      },
+      "hardened": {
+        "t0": 1793899621.506207,
+        "aborted_s": 79.8,
+        "fully_rolled_s": null,
+        "v2_seen": true,
+        "abort_line": false,
+        "error_rate_final": 0.0,
+        "releases_final": [
+          "v1"
+        ],
+        "samples": 150,
+        "expected": 150,
+        "analysis": {
+          "phase": "Failed",
+          "message": "Metric \"canary-error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+          "values": [
+            "[0.5652173913043479]",
+            "[0.36]"
+          ]
+        },
+        "window": "last 30s of the observation",
+        "impact": {
+          "kind": "http",
+          "since": 1793899621.5724525,
+          "until": 1793899744.1815805,
+          "n": 579,
+          "errors": 23,
+          "error_rate": 0.0397,
+          "p95_ms": 87.7,
+          "error_kinds": {
+            "http 500": 23
+          },
+          "first_error": 1793899648.6431012,
+          "last_error": 1793899700.8431237,
+          "releases": [
+            "v1",
+            "v2"
+          ],
+          "pods": [
+            "web-799cbb989c-j4z67",
+            "web-7dc96f5788-44t8l",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 613.0456399917603
+        },
+        "alerts_fired": []
+      }
+    },
+    "A3": {
+      "baseline": {
+        "t0": 1793892843.520127,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 2173.1,
+        "error_rate": 0.2201,
+        "min_replicas": 3,
+        "max_replicas": 3,
+        "scaled_s": null,
+        "aborted": false,
+        "samples": 318,
+        "expected": 317.8068506717682,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.1498,
+          "p95_ms": 1974.7,
+          "n": 494
+        },
+        "k6": {
+          "sustain_p95_ms": 1198.0829137999997,
+          "sustain_failed_rate": 0.26517482517482516,
+          "dropped_iterations": 43
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1793892943.5863726,
+          "until": 1793893007.1477427,
+          "n": 318,
+          "errors": 70,
+          "error_rate": 0.2201,
+          "p95_ms": 2173.1,
+          "error_kinds": {
+            "URLError": 70
+          },
+          "first_error": 1793892943.8612976,
+          "last_error": 1793893000.4613657,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-b5p29",
+            "web-559544dffd-fcsxl",
+            "web-559544dffd-z9gqz"
+          ],
+          "expected": 317.8068506717682
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793899780.966433,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 821.3,
+        "error_rate": 0.0,
+        "min_replicas": 3,
+        "max_replicas": 6,
+        "scaled_s": 68.6,
+        "aborted": false,
+        "samples": 323,
+        "expected": 323.5885798931122,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.128,
+          "p95_ms": 2029.8,
+          "n": 500
+        },
+        "k6": {
+          "sustain_p95_ms": 1045.9900489999998,
+          "sustain_failed_rate": 0.06181818181818182,
+          "dropped_iterations": 37
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1793899881.0326786,
+          "until": 1793899945.7503946,
+          "n": 323,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 821.3,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-44t8l",
+            "web-7dc96f5788-4j9fk",
+            "web-7dc96f5788-dw42d",
+            "web-7dc96f5788-g27wn",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 323.5885798931122
+        },
+        "alerts_fired": []
+      }
+    },
+    "A4": {
+      "baseline": {
+        "t0": 1793893091.962676,
+        "node": "aks-work-37698655-vmss000002",
+        "vmss": "aks-work-37698655-vmss",
+        "instance_id": "2",
+        "web_pods_on_node": 3,
+        "stopped": true,
+        "power_state": "PowerState/stopped",
+        "stopped_s": 8.3,
+        "not_ready_s": 61.0,
+        "shutdown_taint_s": 70.1,
+        "recovered_s": 403.3,
+        "replacement_node": null,
+        "replacement_s": null,
+        "repair_events": [],
+        "error_rate": 0.6282,
+        "samples": 2703,
+        "expected": 2703.0029559135437,
+        "gap_error_rate": 0.9739,
+        "gap": {
+          "kind": "http",
+          "since": 1793893092.0289216,
+          "until": 1793893153.0662456,
+          "n": 306,
+          "errors": 298,
+          "error_rate": 0.9739,
+          "p95_ms": 93.1,
+          "error_kinds": {
+            "URLError": 298
+          },
+          "first_error": 1793893093.6613154,
+          "last_error": 1793893153.0613275,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-b5p29",
+            "web-559544dffd-fcsxl",
+            "web-559544dffd-z9gqz"
+          ],
+          "expected": 305.18661975860596
+        },
+        "window": "NotReady to T0+600s (fixed; D3), T0 to NotReady reported",
+        "impact": {
+          "kind": "http",
+          "since": 1793893153.0662456,
+          "until": 1793893693.6668367,
+          "n": 2703,
+          "errors": 1698,
+          "error_rate": 0.6282,
+          "p95_ms": 149.1,
+          "error_kinds": {
+            "URLError": 1698
+          },
+          "first_error": 1793893153.2613363,
+          "last_error": 1793893492.661476,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-287gj",
+            "web-559544dffd-cpg7g",
+            "web-559544dffd-z9zd7"
+          ],
+          "expected": 2703.0029559135437
+        },
+        "abort_evidence": {
+          "t": 1793893162.015466,
+          "kind": "http",
+          "n": 45,
+          "errors": 45,
+          "error_rate": 1.0,
+          "error_kinds": {
+            "URLError": 45
+          },
+          "at_s": 70.1
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793900048.070951,
+        "node": "aks-work-37698655-vmss000000",
+        "vmss": "aks-work-37698655-vmss",
+        "instance_id": "0",
+        "web_pods_on_node": 1,
+        "stopped": true,
+        "power_state": "PowerState/stopped",
+        "stopped_s": 8.4,
+        "not_ready_s": 58.9,
+        "shutdown_taint_s": 62.9,
+        "recovered_s": 172.0,
+        "replacement_node": "aks-work-37698655-vmss000003",
+        "replacement_s": 153.2,
+        "repair_events": [],
+        "error_rate": 0.0,
+        "samples": 2707,
+        "expected": 2706.5209197998047,
+        "gap_error_rate": 0.2949,
+        "gap": {
+          "kind": "http",
+          "since": 1793900048.1371965,
+          "until": 1793900107.0662456,
+          "n": 295,
+          "errors": 87,
+          "error_rate": 0.2949,
+          "p95_ms": 141.9,
+          "error_kinds": {
+            "URLError": 87
+          },
+          "first_error": 1793900050.3623488,
+          "last_error": 1793900105.76238,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-44t8l",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 294.64524507522583
+        },
+        "window": "NotReady to T0+600s (fixed; D3), T0 to NotReady reported",
+        "impact": {
+          "kind": "http",
+          "since": 1793900107.0662456,
+          "until": 1793900648.3704295,
+          "n": 2707,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 139.7,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-k9ptm",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 2706.5209197998047
+        },
+        "alerts_fired": []
+      }
+    },
+    "A5": {
+      "baseline": {
+        "t0": 1793893747.8643572,
+        "target_pod": "web-559544dffd-287gj",
+        "injected": true,
+        "oom_s": null,
+        "recovered_s": null,
+        "alert_s": null,
+        "alert_runbook": "",
+        "memory_end_mb": 336.4,
+        "other_restarts": 0,
+        "aborted": false,
+        "error_rate": 0.0,
+        "samples": 508,
+        "expected": 508.20830941200256,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793893747.9306028,
+          "until": 1793893849.5722647,
+          "n": 508,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 151.3,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-287gj",
+            "web-559544dffd-cpg7g",
+            "web-559544dffd-z9zd7"
+          ],
+          "expected": 508.20830941200256
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793900733.369462,
+        "target_pod": "web-7dc96f5788-k9ptm",
+        "injected": true,
+        "oom_s": 9.3,
+        "recovered_s": 12.1,
+        "alert_s": 20.7,
+        "alert_runbook": "docs/runbooks/oomkilled.md",
+        "memory_end_mb": null,
+        "other_restarts": 0,
+        "aborted": false,
+        "error_rate": 0.0039,
+        "samples": 507,
+        "expected": 507.06740975379944,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793900733.4357076,
+          "until": 1793900834.8491895,
+          "n": 507,
+          "errors": 2,
+          "error_rate": 0.0039,
+          "p95_ms": 139.7,
+          "error_kinds": {
+            "URLError": 2
+          },
+          "first_error": 1793900741.5625489,
+          "last_error": 1793900741.9625897,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-k9ptm",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 507.06740975379944
+        },
+        "alerts_fired": [
+          "WebContainerOOMKilled"
+        ]
+      }
+    },
+    "S1": {
+      "baseline": {
+        "t0": 1793893872.3485491,
+        "synced_s": null,
+        "rolled_s": null,
+        "revoked_s": 61.6,
+        "revoked": true,
+        "aborted": true,
+        "failed": 27,
+        "samples": 360,
+        "expected": 359.24654483795166,
+        "window": "T0 (backend rotation) to revoke + 30s",
+        "impact": {
+          "kind": "http",
+          "since": 1793893872.4147947,
+          "until": 1793893944.2641037,
+          "n": 360,
+          "errors": 27,
+          "error_rate": 0.075,
+          "p95_ms": 148.6,
+          "error_kinds": {
+            "http 502": 27
+          },
+          "first_error": 1793893938.861503,
+          "last_error": 1793893944.2615385,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-cpg7g",
+            "web-559544dffd-f6w78",
+            "web-559544dffd-z9zd7"
+          ],
+          "expected": 359.24654483795166
+        },
+        "abort_evidence": {
+          "t": 1793893944.197836,
+          "kind": "http",
+          "n": 50,
+          "errors": 26,
+          "error_rate": 0.52,
+          "error_kinds": {
+            "http 502": 26
+          },
+          "at_s": 71.8
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793900854.725726,
+        "synced_s": 11.3,
+        "rolled_s": 33.3,
+        "revoked_s": 61.7,
+        "revoked": true,
+        "aborted": false,
+        "failed": 0,
+        "samples": 450,
+        "expected": 450.8260250091553,
+        "window": "T0 (backend rotation) to revoke + 30s",
+        "impact": {
+          "kind": "http",
+          "since": 1793900854.7919714,
+          "until": 1793900944.9571764,
+          "n": 450,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 141.9,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7dc96f5788-4f7ml",
+            "web-7dc96f5788-hg2f5",
+            "web-7dc96f5788-k9ptm",
+            "web-7dc96f5788-xhs4w",
+            "web-7dc96f5788-xs9fs",
+            "web-7dc96f5788-zkl8b"
+          ],
+          "expected": 450.8260250091553
+        },
+        "alerts_fired": []
+      }
+    },
+    "S2": {
+      "baseline": {
+        "t0": 1793894050.240762,
+        "renewed_s": null,
+        "served_s": null,
+        "aborted": true,
+        "tls_errors": 14,
+        "samples": 69,
+        "expected": 69.3698501586914,
+        "error_kinds": {
+          "verify: certificate has expired": 14
+        },
+        "window": "last 30s of validity to expiry + 45s",
+        "impact": {
+          "kind": "tls",
+          "since": 1793894050.3070076,
+          "until": 1793894084.9919326,
+          "n": 69,
+          "errors": 14,
+          "error_rate": 0.2029,
+          "p95_ms": 114.3,
+          "error_kinds": {
+            "verify: certificate has expired": 14
+          },
+          "first_error": 1793894078.2633786,
+          "last_error": 1793894084.7633924,
+          "serials": [
+            "1B2C6B6EEB52E49833337F22B67D21C387079AF6",
+            "6FD47D364034A44D07CAD84CAD14067390836E65"
+          ],
+          "recent_serials": [
+            "6FD47D364034A44D07CAD84CAD14067390836E65"
+          ],
+          "expected": 69.3698501586914
+        },
+        "abort_evidence": {
+          "t": 1793894084.9256508,
+          "kind": "tls",
+          "n": 20,
+          "errors": 13,
+          "error_rate": 0.65,
+          "error_kinds": {
+            "verify: certificate has expired": 13
+          },
+          "at_s": 34.7
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1793900964.020062,
+        "renewed_s": 0.9,
+        "served_s": 79.1,
+        "aborted": false,
+        "serial_before": [
+          "59C0477221F3268E9DAD9AF382834CDF91B8E860"
+        ],
+        "serial_after": [
+          "57EC39C8069CBFC717487C1195AA174419B0586B"
+        ],
+        "tls_errors": 0,
+        "samples": 193,
+        "expected": 192.83063793182373,
+        "error_kinds": {},
+        "window": "T0 (renewal window) to new cert served + 15s",
+        "impact": {
+          "kind": "tls",
+          "since": 1793900964.0863075,
+          "until": 1793901060.5016265,
+          "n": 193,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 71.5,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "serials": [
+            "57EC39C8069CBFC717487C1195AA174419B0586B",
+            "59C0477221F3268E9DAD9AF382834CDF91B8E860"
+          ],
+          "recent_serials": [
+            "57EC39C8069CBFC717487C1195AA174419B0586B"
+          ],
+          "expected": 192.83063793182373
+        },
+        "alerts_fired": []
+      }
+    },
+    "S3": {
+      "baseline": {
+        "t0": 1793894147.160222,
+        "injected": true,
+        "policy_restored_s": null,
+        "edit_reverted_s": null,
+        "window": "T0 to T0+120s",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1246, in main\n    steady(lab)\n  File \"<repo>/scenarios/run.py\", line 522, in steady\n    CLOUD_ROWS[TARGET].steady(sys.modules[__name__])\n  File \"<repo>/scenarios/aks_rows.py\", line 231, in steady\n    eradicate_node(h, n[\"name\"])\n  File \"<repo>/scenarios/aks_rows.py\", line 180, in eradicate_node\n    az(\"aks\", \"nodepool\", \"delete-machines\", \"-g\", o[\"resource_group\"], \"--cluster-name\", o[\"cluster_id\"].rsplit(\"/\", 1)[-1],\n  File \"<repo>/scenarios/aks_rows.py\", line 52, in az\n    raise RuntimeError(f\"az {' '.join(args[:3])}: {p.stderr.strip()[:300]}\")\nRuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va\n"
+      }
+    },
+    "S4": {
+      "baseline": {
+        "t0": 1793894298.4299772,
+        "nsg": "nsg-selfheal-nodes",
+        "rule": "selfheal-s4-drift",
+        "injected": true,
+        "reverted_s": null,
+        "noncompliant_s": null,
+        "access_after": "Allow",
+        "description_after": "selfheal S4 drift",
+        "deployment": null,
+        "window": "T0 to the policy deployment or T0+1260s",
+        "impact": {},
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1246, in main\n    steady(lab)\n  File \"<repo>/scenarios/run.py\", line 522, in steady\n    CLOUD_ROWS[TARGET].steady(sys.modules[__name__])\n  File \"<repo>/scenarios/aks_rows.py\", line 231, in steady\n    eradicate_node(h, n[\"name\"])\n  File \"<repo>/scenarios/aks_rows.py\", line 180, in eradicate_node\n    az(\"aks\", \"nodepool\", \"delete-machines\", \"-g\", o[\"resource_group\"], \"--cluster-name\", o[\"cluster_id\"].rsplit(\"/\", 1)[-1],\n  File \"<repo>/scenarios/aks_rows.py\", line 52, in az\n    raise RuntimeError(f\"az {' '.join(args[:3])}: {p.stderr.strip()[:300]}\")\nRuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va\n"
+      }
+    },
+    "R1": {
+      "baseline": {
+        "t0": 1793895591.748677,
+        "target_pod": "web-559544dffd-m8psw",
+        "reachable_before": true,
+        "detected_s": 0.8,
+        "labelled_s": null,
+        "isolated_s": null,
+        "hubble_policy_drops": 0,
+        "evidence_s": null,
+        "pod_kept_for_capture": null,
+        "error_rate": 0.0,
+        "samples": 391,
+        "expected": 391.16394877433777,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1793895591.8149226,
+          "until": 1793895670.0477123,
+          "n": 391,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 152.9,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-m8psw",
+            "web-559544dffd-rnsxw",
+            "web-559544dffd-s7n96"
+          ],
+          "expected": 391.16394877433777
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1246, in main\n    steady(lab)\n  File \"<repo>/scenarios/run.py\", line 522, in steady\n    CLOUD_ROWS[TARGET].steady(sys.modules[__name__])\n  File \"<repo>/scenarios/aks_rows.py\", line 231, in steady\n    eradicate_node(h, n[\"name\"])\n  File \"<repo>/scenarios/aks_rows.py\", line 180, in eradicate_node\n    az(\"aks\", \"nodepool\", \"delete-machines\", \"-g\", o[\"resource_group\"], \"--cluster-name\", o[\"cluster_id\"].rsplit(\"/\", 1)[-1],\n  File \"<repo>/scenarios/aks_rows.py\", line 52, in az\n    raise RuntimeError(f\"az {' '.join(args[:3])}: {p.stderr.strip()[:300]}\")\nRuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va\n"
+      }
+    },
+    "R2": {
+      "baseline": {
+        "t0": 1793895689.450308,
+        "target_pod": "web-559544dffd-n92zg",
+        "node": "aks-work-37698655-vmss000001",
+        "reachable_before": true,
+        "reachable_after": null,
+        "alert": null,
+        "alert_s": null,
+        "isolated_s": null,
+        "evidence_s": null,
+        "pod_kept": true,
+        "scale_down_disabled": false,
+        "replacement_on_quarantined_node": null,
+        "snapshot_state": null,
+        "capture_bytes": 0,
+        "logic_app_run": null,
+        "logic_app_runs": [],
+        "failed_reason": null,
+        "error_rate": 0.0005,
+        "samples": 18051,
+        "expected": 18051.98898434639,
+        "window": "T0 (attack) to evidence, or to the alert plus the response window",
+        "impact": {
+          "kind": "http",
+          "since": 1793895689.5165536,
+          "until": 1793899299.9143505,
+          "n": 18051,
+          "errors": 9,
+          "error_rate": 0.0005,
+          "p95_ms": 143.7,
+          "error_kinds": {
+            "TimeoutError": 4,
+            "http 502": 5
+          },
+          "first_error": 1793897422.8624463,
+          "last_error": 1793898241.262493,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-559544dffd-n92zg",
+            "web-559544dffd-rnsxw",
+            "web-559544dffd-s7n96"
+          ],
+          "expected": 18051.98898434639
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "RuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1246, in main\n    steady(lab)\n  File \"<repo>/scenarios/run.py\", line 522, in steady\n    CLOUD_ROWS[TARGET].steady(sys.modules[__name__])\n  File \"<repo>/scenarios/aks_rows.py\", line 231, in steady\n    eradicate_node(h, n[\"name\"])\n  File \"<repo>/scenarios/aks_rows.py\", line 180, in eradicate_node\n    az(\"aks\", \"nodepool\", \"delete-machines\", \"-g\", o[\"resource_group\"], \"--cluster-name\", o[\"cluster_id\"].rsplit(\"/\", 1)[-1],\n  File \"<repo>/scenarios/aks_rows.py\", line 52, in az\n    raise RuntimeError(f\"az {' '.join(args[:3])}: {p.stderr.strip()[:300]}\")\nRuntimeError: az aks nodepool delete-machines: ERROR: (InvalidParameter) Cannot find any valid machines to delete. Please check your input machine names. The valid machines to delete in agent pool 'work' are: aks-work-37698655-vmss000001,aks-work-37698655-vmss000002,aks-work-37698655-vmss000003.\nCode: InvalidParameter\nMessage: Cannot find any va\n"
+      }
+    }
+  },
+  "finished": "2026-11-05T17:51:31.330Z",
+  "pass": false
+}

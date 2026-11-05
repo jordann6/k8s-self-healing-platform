@@ -32,6 +32,13 @@ evidence/*
 !evidence/eks-run2/
 !evidence/eks-run2-rows/
 !evidence/eks-run2-a4r1/
+# AKS reference runs (subscription, tenant, GUIDs and operator IP redacted).
+# aks-run1 is the full run; -rows reruns S3, S4, R1, R2 after the A4 runner
+# fix; -s4 after the DINE template fix; -a3 with KEDA (ADR-0008).
+!evidence/aks-run1/
+!evidence/aks-run1-rows/
+!evidence/aks-run1-s4/
+!evidence/aks-run1-a3/
 
 # Terraform saved plans and Lambda build output
 *.tfplan
