@@ -44,12 +44,12 @@ resource "azurerm_kubernetes_cluster" "lab" {
   #checkov:skip=CKV_AZURE_172:The Secrets Store CSI driver is not used; ESO syncs Key Vault secrets (row S1).
   #checkov:skip=CKV_AZURE_115:Public API server limited to the operator's /32 by authorized IP ranges, as on EKS (ADR-0007 row 10).
   #checkov:skip=CKV_AZURE_117:Encryption at host with platform-managed keys; no customer-managed key in this lab (ADR-0007 row 3).
+  #checkov:skip=CKV_AZURE_6:Authorized IP ranges come from var.api_authorized_cidrs, which has no default (the operator's /32 at plan time), so checkov's directory scan sees no ranges; a literal list passes the check.
   #checkov:skip=CKV_AZURE_7:Bring your own CNI; the pinned Cilium enforces network policy (ADR-0007 row 1).
   #checkov:skip=CKV2_AZURE_29:Bring your own CNI on purpose: the same Cilium and Hubble as kind and EKS (ADR-0007 row 1, D2).
   #checkov:skip=CKV_AZURE_232:The system pool runs the lab platform and probers; only the workload pool is a fault target.
   #checkov:skip=CKV_AZURE_226:Row R2 snapshots the OS disk, which an ephemeral disk cannot give (ADR-0007, OS disks).
   #checkov:skip=CKV_AZURE_116:Azure Policy for Kubernetes is not part of the experiment; admission is unchanged across targets (ADR-0001).
-  #checkov:skip=CKV_AZURE_6:Authorized IP ranges are set from var.api_authorized_cidrs, which checkov cannot resolve.
   #checkov:skip=CKV_AZURE_171:No cluster upgrade channel so the control plane cannot change version mid-run; node images upgrade weekly (ADR-0007 row 17).
   #checkov:skip=CKV_AZURE_4:Container Insights is not used; in-cluster Prometheus remote-writes to the Azure Monitor workspace.
   name                = local.name

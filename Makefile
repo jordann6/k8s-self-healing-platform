@@ -253,8 +253,14 @@ eks-verify-gone: ## Teardown 4 of 4: read-only proof nothing survived (every tea
 # Same rule as EKS: these targets plan, check and print; the operator applies
 # every saved plan.
 
+.PHONY: aks-render
+aks-render: repos ## Render the AKS platform values against the pinned charts and assert the design facts (network, no credentials)
+	$(CHART_VERSIONS) scripts/render-aks-platform.sh
+
+# OFFLINE=1 skips the chart renders (they fetch the pinned charts); say so in
+# any report that uses it.
 .PHONY: aks-check
-aks-check: ## Azure Terraform gates (no credentials): fmt, validate, tflint, checkov, trivy, conftest
+aks-check: $(if $(filter 1,$(OFFLINE)),,aks-render) ## Azure gates (no credentials): chart renders unless OFFLINE=1, fmt, validate, tflint, checkov, trivy, conftest
 	terraform -chdir=infra/azure fmt -check -recursive
 	terraform -chdir=infra/azure init -backend=false -input=false >/dev/null
 	terraform -chdir=infra/azure validate

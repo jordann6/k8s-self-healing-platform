@@ -38,8 +38,18 @@ variable "node_vm_size" {
 }
 
 variable "system_node_count" {
-  type    = number
-  default = 2
+  description = <<-EOT
+    Three, from the requests of everything that runs on system nodes
+    (rendered pinned charts, 2026-11-04): about 1380m in Deployments
+    (platform 585m, lab pods 170m, AKS metrics-server about 306m, CoreDNS,
+    konnectivity, Defender misc) plus about 820m per node in DaemonSets with
+    the Defender sensor at its 420m limit. Allocatable per D2s_v3 is 1900m
+    (AKS reserves 100m on 2 cores). Two nodes: 3020m of 3800m (79%); three:
+    3840m of 5700m (67%). Peak vCPU with A4's fourth workload node: 3x2 + 4x2
+    = 14 of the 16 in decision D1.
+  EOT
+  type        = number
+  default     = 3
 }
 
 variable "workload_min_nodes" {

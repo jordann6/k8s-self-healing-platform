@@ -114,3 +114,47 @@ spec:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities: {drop: [ALL]}
+---
+# Least egress for the worker: the API server, cluster DNS (through Cilium's
+# DNS proxy so the FQDN rules can resolve), Entra ID token exchange, and the
+# one storage account's blob and queue endpoints. No ingress at all. A
+# compromised worker cannot reach anything else, in the cluster or outside.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: r2-worker-egress
+  namespace: responder
+spec:
+  endpointSelector:
+    matchLabels: {app: r2-worker}
+  # Default deny in both directions, stated rather than implied (Cilium:
+  # default deny is per direction and set by the presence of a section).
+  # The ingress rule names no peers, so nothing may connect in; the worker
+  # listens on no port anyway.
+  enableDefaultDeny: {ingress: true, egress: true}
+  ingress:
+    - {}
+  egress:
+    - toEntities: [kube-apiserver]
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - {port: "53", protocol: UDP}
+            - {port: "53", protocol: TCP}
+          rules:
+            dns:
+              - matchName: login.microsoftonline.com
+              - matchName: "${STORAGE_ACCOUNT}.blob.core.windows.net"
+              - matchName: "${STORAGE_ACCOUNT}.queue.core.windows.net"
+              - matchPattern: "*.cluster.local"
+    - toFQDNs:
+        - matchName: login.microsoftonline.com
+        - matchName: "${STORAGE_ACCOUNT}.blob.core.windows.net"
+        - matchName: "${STORAGE_ACCOUNT}.queue.core.windows.net"
+      toPorts:
+        - ports: [{port: "443", protocol: TCP}]
