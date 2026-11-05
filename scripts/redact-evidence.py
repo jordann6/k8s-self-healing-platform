@@ -2,10 +2,13 @@
 """Redact account identifiers from EKS evidence before it is committed.
 
 Replaces the lab and security account IDs (read from the gitignored
-infra/aws/lab.auto.tfvars) with <lab-account> and <security-account>, and any
-operator IPv4 address given with --ip with <operator-ip>, in every text file
-and gzipped file under the given run directories. Idempotent; prints what it
-changed and fails if anything is left afterwards.
+infra/aws/lab.auto.tfvars) with <lab-account> and <security-account>, AWS
+access key IDs and IAM unique IDs (AKIA, ASIA, AROA, AIDA and the other
+prefixes; they decode offline to the account ID) with <aws-key-id> and
+<aws-unique-id>, and any operator IPv4 address given with --ip with
+<operator-ip>, in every text file and gzipped file under the given run
+directories. Idempotent; prints what it changed and fails if anything is left
+afterwards.
 
     scripts/redact-evidence.py --ip 203.0.113.7 evidence/eks-run2 evidence/eks-run2-rows
 """
@@ -31,10 +34,20 @@ def account_ids() -> dict[str, str]:
     return out
 
 
+# EKS audit events carry the caller's session key ID and role unique ID.
+KEY_ID = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
+UNIQUE_ID = re.compile(r"\bA(?:ROA|IDA|GPA|NPA|NVA|PKA|CCA|3T)[A-Z0-9]{16,17}\b")
+
+
 def redact(text: str, subs: dict[str, str]) -> str:
     for old, new in subs.items():
         text = text.replace(old, new)
-    return text
+    text = KEY_ID.sub("<aws-key-id>", text)
+    return UNIQUE_ID.sub("<aws-unique-id>", text)
+
+
+def leftover(text: str, subs: dict[str, str]) -> bool:
+    return any(s in text for s in subs) or bool(KEY_ID.search(text) or UNIQUE_ID.search(text))
 
 
 def main() -> int:
@@ -58,7 +71,7 @@ def main() -> int:
                 f.write_bytes(gzip.compress(new.encode(), mtime=0) if gz else new.encode())
                 changed += 1
                 print(f"  redacted {f}")
-            if any(s in new for s in subs):
+            if leftover(new, subs):
                 left.append(str(f))
     print(f"redact-evidence: {changed} file(s) changed")
     if left:
