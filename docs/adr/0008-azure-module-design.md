@@ -346,6 +346,15 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
   HPA `web`, so the runner and the row are unchanged. Argo CD now includes
   `keda.sh/ScaledObject`. This is a per-target deviation in how the HPA gets
   its metric, not in what it targets; the 300 ms bar is unchanged.
+  Result (aks-run1-a3): scaled at 41.5s, 7 replicas, sustain p95 320.2 ms,
+  errors 0.00%, ramp errors 0.6% (aks-run1: 12.8%). Still a miss, recorded
+  as one. p50 held at about 116 ms across the window, so no backlog was
+  left; the tail is capacity at the shared target. From 80s on, average CPU
+  sat at 100 to 108% of the request, inside the HPA's 10% tolerance, so it
+  stopped at 7 pods (eks-run2: 8), and 37 to 45% of the web containers' CFS
+  periods were throttled against the 200m limit. Lowering the target on AKS
+  alone would tune a hardened control on the target that missed; it was
+  not done.
 - **R2 recorded as blocked on Azure (2026-11-05).** Three triggers (aks-run1
   baseline, aks-run1-rows baseline and hardened), each Microsoft's own
   threat-intelligence request (the POST to `mdc-eicar.alerts.security.azure.com`
