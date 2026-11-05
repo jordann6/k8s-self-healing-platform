@@ -14,7 +14,10 @@
       "type": "If",
       "runAfter": {},
       "expression": {
-        "and": [ { "contains": [ "@toLower(string(triggerBody()))", "${cluster_id_lower}" ] } ]
+        "and": [
+          { "contains": [ "@toLower(string(triggerBody()))", "${cluster_id_lower}" ] },
+          { "not": { "equals": [ "@string(coalesce(triggerBody()?['SystemAlertId'], ''))", "" ] } }
+        ]
       },
       "actions": {},
       "else": {
@@ -26,140 +29,219 @@
         }
       }
     },
-    "Received_at": {
-      "type": "Compose",
-      "runAfter": { "Refuse_unless_lab_cluster": [ "Succeeded" ] },
-      "inputs": "@utcNow()"
-    },
-    "Save_alert": {
-      "type": "Http",
-      "runAfter": { "Received_at": [ "Succeeded" ] },
-      "inputs": {
-        "method": "PUT",
-        "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/alert.json",
-        "headers": {
-          "x-ms-version": "${storage_api_version}",
-          "x-ms-blob-type": "BlockBlob",
-          "Content-Type": "application/json"
-        },
-        "body": "@triggerBody()",
-        "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
-      }
-    },
-    "Incident": {
-      "type": "Compose",
-      "runAfter": { "Save_alert": [ "Succeeded" ] },
-      "inputs": {
-        "run_id": "@{workflow()['run']['name']}",
-        "alert_blob": "r2/@{workflow()['run']['name']}/alert.json",
-        "received_at": "@{outputs('Received_at')}"
-      }
-    },
-    "Enqueue": {
-      "type": "Http",
-      "runAfter": { "Incident": [ "Succeeded" ] },
-      "inputs": {
-        "method": "POST",
-        "uri": "${queue_url}/messages?messagettl=${incident_ttl_seconds}",
-        "headers": {
-          "x-ms-version": "${storage_api_version}",
-          "Content-Type": "application/xml"
-        },
-        "body": "<QueueMessage><MessageText>@{base64(string(outputs('Incident')))}</MessageText></QueueMessage>",
-        "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
-      }
-    },
-    "Wait_for_isolation": {
-      "type": "Until",
-      "runAfter": { "Enqueue": [ "Succeeded" ] },
-      "expression": "@equals(outputs('Get_isolated')?['statusCode'], 200)",
-      "limit": { "count": 120, "timeout": "PT${isolation_wait_minutes}M" },
-      "actions": {
-        "Get_isolated": {
-          "type": "Http",
-          "runAfter": {},
-          "inputs": {
-            "method": "GET",
-            "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/isolated.json",
-            "headers": { "x-ms-version": "${storage_api_version}" },
-            "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" },
-            "retryPolicy": { "type": "none" }
-          }
-        },
-        "Pause": {
-          "type": "Wait",
-          "runAfter": { "Get_isolated": [ "Succeeded", "Failed" ] },
-          "inputs": { "interval": { "count": 3, "unit": "Second" } }
-        }
-      }
-    },
-    "Refuse_without_isolation_report": {
-      "type": "If",
-      "runAfter": { "Wait_for_isolation": [ "Succeeded", "Failed", "TimedOut" ] },
-      "expression": {
-        "and": [ { "equals": [ "@outputs('Get_isolated')?['statusCode']", 200 ] } ]
-      },
-      "actions": {},
-      "else": {
-        "actions": {
-          "No_isolation_report": {
-            "type": "Terminate",
-            "inputs": {
-              "runStatus": "Failed",
-              "runError": { "code": "NoIsolationReport", "message": "The responder wrote no isolated.json within ${isolation_wait_minutes} minutes." }
-            }
-          }
-        }
-      }
-    },
-    "Parse_isolation": {
-      "type": "ParseJson",
-      "runAfter": { "Refuse_without_isolation_report": [ "Succeeded" ] },
-      "inputs": {
-        "content": "@json(string(body('Get_isolated')))",
-        "schema": {
-          "type": "object",
-          "required": [ "status", "run_id" ],
-          "properties": {
-            "status": { "type": "string", "enum": [ "isolated", "refused" ] },
-            "run_id": { "type": "string", "pattern": "^[A-Za-z0-9]{1,80}$" },
-            "reason": { "type": "string" },
-            "node": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$" },
-            "pod": { "type": "string", "pattern": "^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$" },
-            "vmss": { "type": "string", "pattern": "^[A-Za-z0-9][-A-Za-z0-9_]{0,63}$" },
-            "instance_id": { "type": "string", "pattern": "^[0-9]{1,6}$" }
-          }
-        }
-      }
-    },
-    "Refuse_unless_isolated": {
-      "type": "If",
-      "runAfter": { "Parse_isolation": [ "Succeeded" ] },
-      "expression": {
-        "and": [
-          { "equals": [ "@body('Parse_isolation')?['status']", "isolated" ] },
-          { "equals": [ "@body('Parse_isolation')?['run_id']", "@workflow()['run']['name']" ] }
-        ]
-      },
-      "actions": {},
-      "else": {
-        "actions": {
-          "Responder_refused": {
-            "type": "Terminate",
-            "inputs": {
-              "runStatus": "Cancelled"
-            }
-          }
-        }
-      }
-    },
-    "Preserve": {
+    "Respond": {
       "type": "Scope",
-      "runAfter": { "Refuse_unless_isolated": [ "Succeeded" ] },
+      "runAfter": { "Refuse_unless_lab_cluster": [ "Succeeded" ] },
       "actions": {
+        "Received_at": {
+          "type": "Compose",
+          "runAfter": {},
+          "inputs": "@utcNow()"
+        },
+        "Save_trigger": {
+          "type": "Http",
+          "runAfter": { "Received_at": [ "Succeeded" ] },
+          "inputs": {
+            "method": "PUT",
+            "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/trigger.json",
+            "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
+            "body": "@triggerBody()",
+            "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
+          }
+        },
+        "Find_alert_in_arm": {
+          "type": "Until",
+          "runAfter": { "Save_trigger": [ "Succeeded" ] },
+          "expression": "@equals(length(coalesce(body('Matching_alert'), json('[]'))), 1)",
+          "limit": { "count": 60, "timeout": "PT${alert_lookup_minutes}M" },
+          "actions": {
+            "List_lab_alerts": {
+              "type": "Http",
+              "runAfter": {},
+              "inputs": {
+                "method": "GET",
+                "uri": "${arm}/subscriptions/${subscription_id}/resourceGroups/${lab_resource_group}/providers/Microsoft.Security/alerts?api-version=${alerts_api_version}",
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "${arm}/" }
+              }
+            },
+            "Matching_alert": {
+              "type": "Query",
+              "runAfter": { "List_lab_alerts": [ "Succeeded" ] },
+              "inputs": {
+                "from": "@coalesce(body('List_lab_alerts')?['value'], json('[]'))",
+                "where": "@and(equals(item()?['properties']?['systemAlertId'], triggerBody()?['SystemAlertId']), equals(toLower(string(item()?['properties']?['status'])), 'active'), contains(toLower(string(item()?['properties']?['resourceIdentifiers'])), '${cluster_id_lower}'))"
+              }
+            },
+            "Lookup_pause": {
+              "type": "Wait",
+              "runAfter": { "Matching_alert": [ "Succeeded", "Failed", "Skipped" ] },
+              "inputs": { "interval": { "count": 10, "unit": "Second" } }
+            }
+          }
+        },
+        "Refuse_unless_arm_has_the_alert": {
+          "type": "If",
+          "runAfter": { "Find_alert_in_arm": [ "Succeeded", "Failed", "TimedOut" ] },
+          "expression": { "and": [ { "equals": [ "@length(coalesce(body('Matching_alert'), json('[]')))", 1 ] } ] },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Record_no_arm_alert": {
+                "type": "Http",
+                "runAfter": {},
+                "inputs": {
+                  "method": "PUT",
+                  "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/failed.json",
+                  "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
+                  "body": {
+                    "run_id": "@{workflow()['run']['name']}",
+                    "failed_at": "@{utcNow()}",
+                    "reason": "No single active Defender alert in the lab group matched the posted SystemAlertId and named the lab cluster within ${alert_lookup_minutes} minutes; the posted body is never trusted on its own."
+                  },
+                  "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
+                }
+              },
+              "No_arm_alert": {
+                "type": "Terminate",
+                "runAfter": { "Record_no_arm_alert": [ "Succeeded", "Failed" ] },
+                "inputs": { "runStatus": "Cancelled" }
+              }
+            }
+          }
+        },
+        "Save_alert": {
+          "type": "Http",
+          "runAfter": { "Refuse_unless_arm_has_the_alert": [ "Succeeded" ] },
+          "inputs": {
+            "method": "PUT",
+            "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/alert.json",
+            "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
+            "body": "@first(body('Matching_alert'))",
+            "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
+          }
+        },
+        "Incident": {
+          "type": "Compose",
+          "runAfter": { "Save_alert": [ "Succeeded" ] },
+          "inputs": {
+            "run_id": "@{workflow()['run']['name']}",
+            "alert_blob": "r2/@{workflow()['run']['name']}/alert.json",
+            "received_at": "@{outputs('Received_at')}"
+          }
+        },
+        "Enqueue": {
+          "type": "Http",
+          "runAfter": { "Incident": [ "Succeeded" ] },
+          "inputs": {
+            "method": "POST",
+            "uri": "${queue_url}/messages?messagettl=${incident_ttl_seconds}",
+            "headers": { "x-ms-version": "${storage_api_version}", "Content-Type": "application/xml" },
+            "body": "<QueueMessage><MessageText>@{base64(string(outputs('Incident')))}</MessageText></QueueMessage>",
+            "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
+          }
+        },
+        "Wait_for_isolation": {
+          "type": "Until",
+          "runAfter": { "Enqueue": [ "Succeeded" ] },
+          "expression": "@equals(outputs('Get_isolated')?['statusCode'], 200)",
+          "limit": { "count": 200, "timeout": "PT${isolation_wait_minutes}M" },
+          "actions": {
+            "Get_isolated": {
+              "type": "Http",
+              "runAfter": {},
+              "inputs": {
+                "method": "GET",
+                "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/isolated.json",
+                "headers": { "x-ms-version": "${storage_api_version}" },
+                "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" },
+                "retryPolicy": { "type": "none" }
+              }
+            },
+            "Pause": {
+              "type": "Wait",
+              "runAfter": { "Get_isolated": [ "Succeeded", "Failed" ] },
+              "inputs": { "interval": { "count": 3, "unit": "Second" } }
+            }
+          }
+        },
+        "Refuse_without_isolation_report": {
+          "type": "If",
+          "runAfter": { "Wait_for_isolation": [ "Succeeded", "Failed", "TimedOut" ] },
+          "expression": { "and": [ { "equals": [ "@outputs('Get_isolated')?['statusCode']", 200 ] } ] },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Record_no_isolation_report": {
+                "type": "Http",
+                "runAfter": {},
+                "inputs": {
+                  "method": "PUT",
+                  "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/failed.json",
+                  "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
+                  "body": {
+                    "run_id": "@{workflow()['run']['name']}",
+                    "failed_at": "@{utcNow()}",
+                    "reason": "The responder wrote no isolated.json within ${isolation_wait_minutes} minutes."
+                  },
+                  "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
+                }
+              },
+              "No_isolation_report": {
+                "type": "Terminate",
+                "runAfter": { "Record_no_isolation_report": [ "Succeeded", "Failed" ] },
+                "inputs": {
+                  "runStatus": "Failed",
+                  "runError": { "code": "NoIsolationReport", "message": "The responder wrote no isolated.json within ${isolation_wait_minutes} minutes." }
+                }
+              }
+            }
+          }
+        },
+        "Parse_isolation": {
+          "type": "ParseJson",
+          "runAfter": { "Refuse_without_isolation_report": [ "Succeeded" ] },
+          "inputs": {
+            "content": "@json(string(body('Get_isolated')))",
+            "schema": {
+              "type": "object",
+              "required": [ "status", "run_id", "node", "pod", "vmss", "instance_id" ],
+              "properties": {
+                "status": { "type": "string", "enum": [ "isolated", "refused" ] },
+                "run_id": { "type": "string", "pattern": "^[A-Za-z0-9]{1,80}$" },
+                "reason": { "type": "string" },
+                "node": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)?$" },
+                "pod": { "type": "string", "pattern": "^([a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?)?$" },
+                "vmss": { "type": "string", "pattern": "^([A-Za-z0-9][-A-Za-z0-9_]{0,63})?$" },
+                "instance_id": { "type": "string", "pattern": "^([0-9]{1,6})?$" }
+              }
+            }
+          }
+        },
+        "Refuse_unless_isolated": {
+          "type": "If",
+          "runAfter": { "Parse_isolation": [ "Succeeded" ] },
+          "expression": {
+            "and": [
+              { "equals": [ "@body('Parse_isolation')?['status']", "isolated" ] },
+              { "equals": [ "@body('Parse_isolation')?['run_id']", "@workflow()['run']['name']" ] },
+              { "not": { "equals": [ "@body('Parse_isolation')?['vmss']", "" ] } },
+              { "not": { "equals": [ "@body('Parse_isolation')?['instance_id']", "" ] } },
+              { "not": { "equals": [ "@body('Parse_isolation')?['pod']", "" ] } }
+            ]
+          },
+          "actions": {},
+          "else": {
+            "actions": {
+              "Responder_refused": {
+                "type": "Terminate",
+                "inputs": { "runStatus": "Cancelled" }
+              }
+            }
+          }
+        },
         "Get_instance": {
           "type": "Http",
-          "runAfter": {},
+          "runAfter": { "Refuse_unless_isolated": [ "Succeeded" ] },
           "inputs": {
             "method": "GET",
             "uri": "${arm}/subscriptions/${subscription_id}/resourceGroups/${node_resource_group}/providers/Microsoft.Compute/virtualMachineScaleSets/@{body('Parse_isolation')?['vmss']}/virtualMachines/@{body('Parse_isolation')?['instance_id']}?api-version=${compute_api_version}",
@@ -230,6 +312,7 @@
               "commandId": "RunShellScript",
               "script": [
                 "set +e",
+                "echo '== note: action Run Command returns only the last 4096 bytes of output (Learn), so each section is capped'",
                 "echo '== captured_at'; date -u +%Y-%m-%dT%H:%M:%SZ",
                 "echo '== pod containers'; crictl ps -a --label io.kubernetes.pod.namespace=${lab_namespace} --label 'io.kubernetes.pod.name=@{body('Parse_isolation')?['pod']}' 2>&1 | head -10",
                 "echo '== container pids'; for c in $(crictl ps -q --label 'io.kubernetes.pod.name=@{body('Parse_isolation')?['pod']}'); do crictl inspect \"$c\" 2>/dev/null | grep -m1 '\"pid\"'; done",
@@ -251,15 +334,13 @@
           "inputs": {
             "method": "PUT",
             "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/manifest.json",
-            "headers": {
-              "x-ms-version": "${storage_api_version}",
-              "x-ms-blob-type": "BlockBlob",
-              "Content-Type": "application/json"
-            },
+            "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
             "body": {
               "run_id": "@{workflow()['run']['name']}",
               "cluster": "${cluster_name}",
               "received_at": "@{outputs('Received_at')}",
+              "alert_id": "@{first(body('Matching_alert'))?['id']}",
+              "alert_time_generated": "@{first(body('Matching_alert'))?['properties']?['timeGeneratedUtc']}",
               "alert_blob": "r2/@{workflow()['run']['name']}/alert.json",
               "isolation": "@body('Parse_isolation')",
               "os_disk": "@{body('Get_instance')?['properties']?['storageProfile']?['osDisk']?['managedDisk']?['id']}",
@@ -282,29 +363,25 @@
     },
     "Record_failure": {
       "type": "Http",
-      "runAfter": { "Preserve": [ "Failed", "TimedOut" ] },
+      "runAfter": { "Respond": [ "Failed", "TimedOut" ] },
       "inputs": {
         "method": "PUT",
         "uri": "${blob_container_url}/r2/@{workflow()['run']['name']}/failed.json",
-        "headers": {
-          "x-ms-version": "${storage_api_version}",
-          "x-ms-blob-type": "BlockBlob",
-          "Content-Type": "application/json"
-        },
+        "headers": { "x-ms-version": "${storage_api_version}", "x-ms-blob-type": "BlockBlob", "Content-Type": "application/json" },
         "body": {
           "run_id": "@{workflow()['run']['name']}",
           "failed_at": "@{utcNow()}",
-          "steps": "@result('Preserve')"
+          "steps": "@result('Respond')"
         },
         "authentication": { "type": "ManagedServiceIdentity", "audience": "https://storage.azure.com/" }
       }
     },
-    "Preserve_failed": {
+    "Respond_failed": {
       "type": "Terminate",
       "runAfter": { "Record_failure": [ "Succeeded", "Failed" ] },
       "inputs": {
         "runStatus": "Failed",
-        "runError": { "code": "PreserveFailed", "message": "An Azure-side step failed; see failed.json in the evidence container." }
+        "runError": { "code": "RespondFailed", "message": "A response step failed; see failed.json in the evidence container." }
       }
     }
   }

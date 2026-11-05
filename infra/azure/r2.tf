@@ -139,15 +139,21 @@ resource "azurerm_role_assignment" "operator_evidence" {
 
 # --- the Logic App's Azure-side permissions ----------------------------------
 
-# The least the Azure-side steps need: find the instance, run the capture
-# script on it, read its OS disk, write a snapshot of it into the lab group,
-# and poll the long-running operations. No disk export (beginGetAccess), no
-# VM write. Defined after the cluster so the node group can be an assignable
-# scope.
+# The least the Azure-side steps need: read the lab group's Defender alerts
+# (the workflow trusts ARM's copy of an alert, never the posted body), find
+# the instance, run the capture script on it, read its OS disk, write a
+# snapshot of it into the lab group, and poll the long-running operations.
+# No disk export (beginGetAccess), no VM write. Every action name is on the
+# Learn resource provider operations pages (compute, security).
+#
+# A role definition is a subscription-level resource ("a role definition is a
+# management group or subscription-level resource", Learn, Azure custom
+# roles), so it is created at the subscription; it can only be ASSIGNED in
+# the two lab groups. Defined after the cluster so the node group exists.
 resource "azurerm_role_definition" "responder_arm" {
   name        = "${local.name}-r2-responder-${random_string.suffix.result}"
-  scope       = azurerm_resource_group.lab.id
-  description = "Self-healing lab row R2: Run Command capture and OS-disk snapshot of one node."
+  scope       = "/subscriptions/${data.azurerm_client_config.current.subscription_id}"
+  description = "Self-healing lab row R2: read lab alerts, Run Command capture and OS-disk snapshot of one node."
 
   permissions {
     actions = [
@@ -159,6 +165,8 @@ resource "azurerm_role_definition" "responder_arm" {
       "Microsoft.Compute/snapshots/write",
       "Microsoft.Compute/locations/operations/read",
       "Microsoft.Compute/locations/diskOperations/read",
+      "Microsoft.Security/alerts/read",
+      "Microsoft.Security/locations/alerts/read",
     ]
     not_actions = []
   }
@@ -178,6 +186,7 @@ locals {
     storage = "2023-11-03"
     compute = "2024-07-01"
     disk    = "2023-10-02"
+    alerts  = "2022-01-01"
   }
 }
 
@@ -199,22 +208,28 @@ resource "azapi_resource" "responder" {
     properties = {
       state = "Enabled"
       definition = jsondecode(templatefile("${path.module}/responder/workflow.json.tftpl", {
-        cluster_id_lower       = lower(azurerm_kubernetes_cluster.lab.id)
-        cluster_name           = local.name
-        lab_namespace          = "selfheal"
-        subscription_id        = data.azurerm_client_config.current.subscription_id
-        lab_resource_group     = azurerm_resource_group.lab.name
-        node_resource_group    = azurerm_kubernetes_cluster.lab.node_resource_group
-        location               = azurerm_resource_group.lab.location
-        arm                    = "https://management.azure.com"
-        blob_container_url     = "${azurerm_storage_account.evidence.primary_blob_endpoint}${azurerm_storage_container.evidence.name}"
-        queue_url              = "${azurerm_storage_account.evidence.primary_queue_endpoint}${azurerm_storage_queue.incidents.name}"
-        storage_api_version    = local.workflow_api.storage
-        compute_api_version    = local.workflow_api.compute
-        disk_api_version       = local.workflow_api.disk
-        incident_ttl_seconds   = 900
-        isolation_wait_minutes = 5
-        snapshot_tags          = jsonencode(merge(local.tags, { "selfheal.lab/evidence" = "source" }))
+        cluster_id_lower     = lower(azurerm_kubernetes_cluster.lab.id)
+        cluster_name         = local.name
+        lab_namespace        = "selfheal"
+        subscription_id      = data.azurerm_client_config.current.subscription_id
+        lab_resource_group   = azurerm_resource_group.lab.name
+        node_resource_group  = azurerm_kubernetes_cluster.lab.node_resource_group
+        location             = azurerm_resource_group.lab.location
+        arm                  = "https://management.azure.com"
+        blob_container_url   = "${azurerm_storage_account.evidence.primary_blob_endpoint}${azurerm_storage_container.evidence.name}"
+        queue_url            = "${azurerm_storage_account.evidence.primary_queue_endpoint}${azurerm_storage_queue.incidents.name}"
+        storage_api_version  = local.workflow_api.storage
+        compute_api_version  = local.workflow_api.compute
+        disk_api_version     = local.workflow_api.disk
+        alerts_api_version   = local.workflow_api.alerts
+        incident_ttl_seconds = 900
+        # Covers the worker's three attempts on a 120s queue visibility timeout
+        # with margin; R2 is still judged on isolation within 300s.
+        isolation_wait_minutes = 8
+        # ARM's alert list can lag the automation's delivery (the AWS
+        # ListFindings lesson, ADR-0007 row 5): poll before refusing.
+        alert_lookup_minutes = 10
+        snapshot_tags        = jsonencode(merge(local.tags, { "selfheal.lab/evidence" = "source" }))
       }))
       parameters = {}
     }

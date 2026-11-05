@@ -266,6 +266,13 @@ def respond(incident: dict, api) -> dict:
     }
 
 
+def refusal(run_id: str, reason: str) -> dict:
+    """A refusal report with every key the Logic App's schema requires; the
+    location fields are empty so nothing downstream can act on them."""
+    return {"status": "refused", "run_id": run_id, "reason": reason, "at": now(),
+            "node": "", "pod": "", "vmss": "", "instance_id": ""}
+
+
 def handle_message(text: str, dequeue_count: int, api) -> tuple[dict | None, bool]:
     """One queue message. Returns (isolated.json body or None, delete?).
     Refusals and successes are final; a transient error is retried by the
@@ -281,12 +288,12 @@ def handle_message(text: str, dequeue_count: int, api) -> tuple[dict | None, boo
         return body, True
     except Refused as e:
         log(event="refused", run_id=incident["run_id"], reason=str(e))
-        return {"status": "refused", "run_id": incident["run_id"], "reason": str(e), "at": now()}, True
+        return refusal(incident["run_id"], str(e)), True
     except Exception as e:  # noqa: BLE001 - every failure is recorded, none swallowed
         log(event="error", run_id=incident["run_id"], attempt=dequeue_count, error=str(e)[:500])
         if dequeue_count >= MAX_ATTEMPTS:
             reason = f"gave up after {dequeue_count} attempts: {str(e)[:300]}"
-            return {"status": "refused", "run_id": incident["run_id"], "reason": reason, "at": now()}, True
+            return refusal(incident["run_id"], reason), True
         return None, False
 
 

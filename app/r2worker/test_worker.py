@@ -191,6 +191,22 @@ class Respond(unittest.TestCase):
             self.assertEqual(api.patches(), [])
 
 
+class ReportShape(unittest.TestCase):
+    """The Logic App's ParseJson schema requires these keys; a refusal must
+    carry them empty so no Azure-side step can target anything."""
+    KEYS = {"status", "run_id", "node", "pod", "vmss", "instance_id"}
+
+    def test_refusal_report_has_every_key_and_empty_targets(self):
+        body, _ = worker.handle_message(incident(), 1, FakeApi(n=node(pool="system")))
+        self.assertTrue(self.KEYS <= set(body))
+        self.assertEqual({body[k] for k in ("node", "pod", "vmss", "instance_id")}, {""})
+
+    def test_isolated_report_has_every_key_filled(self):
+        body = worker.respond(worker.parse_incident(incident()), FakeApi())
+        self.assertTrue(self.KEYS <= set(body))
+        self.assertTrue(all(body[k] for k in self.KEYS))
+
+
 class Retries(unittest.TestCase):
     class Broken(FakeApi):
         def get_pod(self, name):
