@@ -25,16 +25,16 @@ lives in the gitignored `lab.auto.tfvars`; the provider registers no resource
 provider itself (`resource_provider_registrations = "none"`), so an
 unexpected registration can never hide in an apply. East US 2.
 
-### Capacity: three system nodes, three to four workload nodes, 16 vCPUs (D1)
+### Capacity: three system nodes, three to four workload nodes, 16 vCPUs (D1, revised)
 
 ADR-0007 sized two system nodes. Adding up the requests of everything that
 runs there (rendered pinned charts, AKS's own metrics-server and CoreDNS, the
 Defender sensor at its 420m limit per node) gave 3020m of 3800m allocatable
-on two `Standard_D2s_v3` nodes (79%), too tight for a platform that must not
+on two 2-vCPU nodes (79%), too tight for a platform that must not
 be the bottleneck. Three system nodes give 67%. The workload pool is tainted
 and autoscaled from three (the hardened spread needs three domains) to four
-(row A4's replacement). Peak: 14 of the 16 vCPUs decision D1 raises the DSv3
-family to. A stopped VM keeps its quota, which is why A4 needs that headroom.
+(row A4's replacement). Peak: 14 of the 16 vCPUs decision D1 raises the Dsv6
+family to. Nodes are `Standard_D2s_v6` (see Changes below for why not D2s_v3). A stopped VM keeps its quota, which is why A4 needs that headroom.
 The preflight fails closed below 16.
 
 ### Bring your own CNI, the same Cilium (D2)
@@ -214,6 +214,29 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
 ## Changes from ADR-0007, made while building
 
 - Three system nodes, not two (capacity above).
+- **Nodes are `Standard_D2s_v6`, not D2s_v3 (decision D1 revised, 2026-11-05,
+  before any apply).** The DSv3 quota request returned `DeprecatedQuotaType`:
+  "Additional quota isn't available for the requested family
+  standardDSv3Family". The capacity restriction page: "Existing subscription
+  requesting additional quota: Additional quota isn't approved", starting
+  July 2026
+  ([VM size series retirements and capacity growth restrictions](https://learn.microsoft.com/azure/virtual-machines/sizes/lifecycle/retirements-and-capacity-restrictions), updated 2026-09-25).
+  `Standard_D2s_v5` is `NotAvailableForSubscription` in East US 2, so the
+  lab takes the same 2 vCPU and 8 GiB shape in the Dsv6 series ($0.101 an
+  hour against $0.096). Dsv6 is Generation 2 only, has no temporary disk,
+  supports no ephemeral OS disk (the lab already uses managed OS disks for
+  R2's snapshot), and requires accelerated networking (MANA)
+  ([Dsv6 series](https://learn.microsoft.com/azure/virtual-machines/sizes/general-purpose/dsv6-series), updated 2026-10-27).
+  For AKS, "the platform supplies the image and already meets the
+  Generation 2, NVMe, and MANA prerequisites"
+  ([v6 and v7 modernization FAQ](https://learn.microsoft.com/azure/virtual-machines/sizes/lifecycle/sizes-v6-v7-modernization-faq), updated 2026-09-25).
+  Raising a series' quota raises the regional limit "by the same amount"
+  ([Increase regional vCPU quotas](https://learn.microsoft.com/azure/quotas/regional-quota-requests)),
+  so one request covers both. `az vm list-skus` reports encryption at host
+  supported. Nothing in the lab uses SCSI device paths. What no doc settles
+  is the bring-your-own Cilium dataplane on a MANA NIC: live check L20. If
+  the landing zone is deployed again, its allowed-size list would need
+  D2s_v6 added.
 - Key Vault and the evidence account admit the node subnet, not the egress IP.
 - `aks-images` runs before `aks-platform` (the platform step deploys the
   worker, which needs its image).
@@ -239,11 +262,12 @@ L1 to L10 are in ADR-0007. Added while building:
 - **L17** A Logic App run on the success path is `Succeeded`, though earlier `Until` iterations had 404s.
 - **L18** The DINE deployment's name and timing for a child `securityRules` write.
 - **L19** A `PATCH` of `isEnabled` alone keeps the automation's Logic App action and trigger URI.
+- **L20** Cilium 1.20.4 (BYO CNI, VXLAN) runs on the Dsv6 MANA NIC: agents ready, nodes Ready, pod traffic across nodes.
 
 ## Consequences
 
 - AKS rows: A1 to A5, S1 to S4, R1, R2 (no S1b, no S5).
-- Cost while up: about $0.85 to $1.00 an hour (seven D2s_v3 at peak, Defender
+- Cost while up: about $0.85 to $1.00 an hour (seven D2s_v6 at peak, Defender
   per vCore, one public IP, ingestion), a 5 to 6 hour session about $5 to $6.
   R2 alone can take two hours (Defender's hour, twice). Infracost runs first;
   the cost gate fails closed.

@@ -32,9 +32,9 @@ variable "cost_center" {
 }
 
 variable "node_vm_size" {
-  description = "On the landing zone's allowed-size list and its family has quota (ADR-0007; DSv5 quota is 0)."
+  description = "Dsv6 (ADR-0008, D1 revised): DSv3 quota can no longer be raised and DSv5 is not available to the subscription. Gen2, NVMe, MANA, no temp disk."
   type        = string
-  default     = "Standard_D2s_v3"
+  default     = "Standard_D2s_v6"
 }
 
 variable "system_node_count" {
@@ -43,7 +43,7 @@ variable "system_node_count" {
     (rendered pinned charts, 2026-11-04): about 1380m in Deployments
     (platform 585m, lab pods 170m, AKS metrics-server about 306m, CoreDNS,
     konnectivity, Defender misc) plus about 820m per node in DaemonSets with
-    the Defender sensor at its 420m limit. Allocatable per D2s_v3 is 1900m
+    the Defender sensor at its 420m limit. Allocatable per D2s_v6 is 1900m
     (AKS reserves 100m on 2 cores). Two nodes: 3020m of 3800m (79%); three:
     3840m of 5700m (67%). Peak vCPU with A4's fourth workload node: 3x2 + 4x2
     = 14 of the 16 in decision D1.

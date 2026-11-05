@@ -121,7 +121,7 @@ echo "preflight: capacity (decision D1)"
 usage="$(az vm list-usage -l "$location" -o json)"
 lim() { jq -r --arg n "$1" '.[] | select(.name.value == $n) | .limit' <<<"$usage"; }
 cur() { jq -r --arg n "$1" '.[] | select(.name.value == $n) | .currentValue' <<<"$usage"; }
-for q in standardDSv3Family cores; do
+for q in StandardDsv6Family cores; do
 	l="$(lim "$q")"
 	c="$(cur "$q")"
 	if [[ -z "$l" ]]; then
@@ -129,7 +129,7 @@ for q in standardDSv3Family cores; do
 	elif ((l < 16)); then
 		bad "$q quota is $l in $location; the lab needs 16 (decision D1, run the az quota update in the runbook)"
 	elif [[ $in_progress -eq 0 ]] && ((l - c < 14)); then
-		bad "$q: $c of $l in use; the lab peaks at 14 (3 system + 4 workload D2s_v3)"
+		bad "$q: $c of $l in use; the lab peaks at 14 (3 system + 4 workload D2s_v6)"
 	else
 		ok "$q quota $l, $c in use"
 	fi
