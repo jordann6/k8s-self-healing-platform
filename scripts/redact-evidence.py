@@ -91,6 +91,15 @@ def leftover(text: str, subs: dict[str, str], azure: bool = False) -> bool:
             or (azure and bool(GUID.search(text))))
 
 
+def path_subs(repo: Path | None = None, home: Path | None = None) -> dict[str, str]:
+    """Runner tracebacks carry the operator's checkout path. The repo root
+    goes first (dicts keep order), then the home directory for anything
+    outside the repo."""
+    repo = repo or Path(__file__).resolve().parent.parent
+    home = home or Path.home()
+    return {str(repo): "<repo>", str(home): "<home>"}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ip", action="append", default=[], help="operator IPv4 address to redact (repeatable)")
@@ -101,6 +110,7 @@ def main() -> int:
     azure = args.cloud == "azure"
     subs = azure_ids(args.tenant) if azure else account_ids()
     subs.update({ip: "<operator-ip>" for ip in args.ip})
+    subs.update(path_subs())
     changed, left = 0, []
     for run in args.runs:
         for f in sorted(p for p in run.rglob("*") if p.is_file()):

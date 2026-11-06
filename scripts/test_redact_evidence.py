@@ -58,5 +58,18 @@ class Credentials(unittest.TestCase):
         self.assertFalse(R.leftover(out, {}))
 
 
+class LocalPaths(unittest.TestCase):
+    def test_traceback_paths_become_repo_and_home(self):
+        subs = R.path_subs(Path("/Users/op/lab"), Path("/Users/op"))
+        t = 'File "/Users/op/lab/scenarios/run.py", line 1 ... File "/Users/op/.pyenv/x.py"'
+        out = R.redact(t, subs)
+        self.assertIn('"<repo>/scenarios/run.py"', out)
+        self.assertIn('"<home>/.pyenv/x.py"', out)
+        self.assertFalse(R.leftover(out, subs))
+
+    def test_a_path_left_fails(self):
+        self.assertTrue(R.leftover("/Users/op/lab/run.py", R.path_subs(Path("/Users/op/lab"), Path("/Users/op"))))
+
+
 if __name__ == "__main__":
     unittest.main()
