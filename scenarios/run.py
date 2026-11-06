@@ -1126,8 +1126,22 @@ def preconditions() -> dict:
     return checks
 
 
+def repo_commit() -> str:
+    """The git commit the runner was launched from, recorded in every report so
+    a result can be tied to the exact code. 'unknown' outside a git checkout."""
+    try:
+        r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT),
+                           capture_output=True, text=True, timeout=5)
+        head = r.stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=str(ROOT),
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+        return head + ("-dirty" if dirty else "") if head else "unknown"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
 def versions() -> dict:
-    out = {}
+    out = {"repo_commit": repo_commit()}
     components = [("kube-system", "daemonset", "cilium"), ("falco", "daemonset", "falco"),
                   ("falco", "deploy", "falco-talon"), ("argo-rollouts", "deploy", "argo-rollouts"),
                   ("external-secrets", "deploy", "external-secrets"), ("cert-manager", "deploy", "cert-manager"),

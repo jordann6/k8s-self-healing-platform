@@ -220,14 +220,26 @@ def node_target(node: dict) -> dict:
 
 def respond(incident: dict, api) -> dict:
     """Resolve, cordon, confirm, relabel. Returns the isolated.json body.
-    Refused propagates before any patch is made."""
+    Refused propagates before any patch is made.
+
+    Idempotent on the alert id: a repeated delivery of the same Defender alert
+    (the SystemAlertId) is not acted on twice. And the pod is re-read and its uid
+    re-checked right before the relabel, so a pod that was replaced between
+    resolve and now (same name, new uid) is never quarantined in the victim's
+    place; the patch pins the live resourceVersion for optimistic concurrency."""
     alert = api.get_blob(incident["alert_blob"])
     target = alert_target(alert)
+    dedup_key = str(target.get("alert_id") or incident["run_id"])
+    if _already_handled(api, dedup_key):
+        return {"status": "duplicate", "run_id": incident["run_id"], "dedup_key": dedup_key,
+                "reason": f"alert {dedup_key} already handled", "at": now(),
+                "node": "", "pod": "", "vmss": "", "instance_id": ""}
     pod = api.get_pod(target["pod"])
     node_name = check_pod(pod)
+    pod_uid = pod.get("metadata", {}).get("uid")
     node = api.get_node(node_name)
     where = node_target(node)
-    alert_ref = str(target.get("alert_id") or incident["run_id"])[-250:]
+    alert_ref = dedup_key[-250:]
 
     api.patch_node(node_name, {
         "spec": {"unschedulable": True},
@@ -243,20 +255,29 @@ def respond(incident: dict, api) -> dict:
         raise RuntimeError(f"node {node_name} did not report unschedulable after the cordon")
     cordoned_at = now()
 
+    # Re-read the pod and refuse if it was replaced; the victim's uid must match.
+    live = api.get_pod(target["pod"])
+    live_uid = live.get("metadata", {}).get("uid")
+    if pod_uid and live_uid != pod_uid:
+        raise Refused(f"pod {target['pod']} uid changed ({pod_uid!r} -> {live_uid!r}); "
+                      f"refusing to relabel a replacement pod")
+    rv = live.get("metadata", {}).get("resourceVersion")
     api.patch_pod(target["pod"], {
         "metadata": {
+            "uid": pod_uid, "resourceVersion": rv,
             "labels": QUARANTINE_LABELS,
             "annotations": {"selfheal.lab/quarantined-by": "r2-worker", "selfheal.lab/alert": alert_ref},
         },
     })
     isolated_at = now()
-    return {
+    body = {
         "status": "isolated",
         "run_id": incident["run_id"],
         "received_at": incident["received_at"],
+        "dedup_key": dedup_key,
         "alert": {k: target.get(k) for k in ("alert_id", "alert_type", "display_name", "time_generated", "start_time")},
         "pod": target["pod"],
-        "pod_uid": pod.get("metadata", {}).get("uid"),
+        "pod_uid": pod_uid,
         "pod_labels_before": pod.get("metadata", {}).get("labels", {}),
         "node": node_name,
         "vmss": where["vmss"],
@@ -264,6 +285,22 @@ def respond(incident: dict, api) -> dict:
         "cordoned_at": cordoned_at,
         "isolated_at": isolated_at,
     }
+    _mark_handled(api, dedup_key, body)
+    return body
+
+
+def _already_handled(api, dedup_key: str) -> bool:
+    """True if this alert was already isolated. Backed by a marker blob on the
+    real Api; absent (older) Api objects are treated as 'not seen' so dedup is
+    best-effort, never a crash."""
+    fn = getattr(api, "already_handled", None)
+    return bool(fn(dedup_key)) if fn else False
+
+
+def _mark_handled(api, dedup_key: str, body: dict) -> None:
+    fn = getattr(api, "mark_handled", None)
+    if fn:
+        fn(dedup_key, body)
 
 
 def refusal(run_id: str, reason: str) -> dict:
@@ -407,6 +444,25 @@ class Api:
 
     def patch_pod(self, name: str, body: dict) -> dict:
         return self.kube._call("PATCH", f"/api/v1/namespaces/{NAMESPACE}/pods/{name}", body)
+
+    def already_handled(self, dedup_key: str) -> bool:
+        """A marker blob under r2/by-alert/ records every handled alert id, so a
+        re-delivered Defender alert is isolated at most once."""
+        try:
+            self.azure.get_blob(f"r2/by-alert/{_safe_key(dedup_key)}.json")
+            return True
+        except Exception:  # noqa: BLE001 - absent blob (404) means not handled
+            return False
+
+    def mark_handled(self, dedup_key: str, body: dict) -> None:
+        self.azure.put_blob(f"r2/by-alert/{_safe_key(dedup_key)}.json",
+                            {"dedup_key": dedup_key, "run_id": body.get("run_id"),
+                             "pod": body.get("pod"), "at": body.get("isolated_at")})
+
+
+def _safe_key(dedup_key: str) -> str:
+    """A blob-name-safe form of the alert id (ARM ids contain slashes)."""
+    return re.sub(r"[^A-Za-z0-9._-]", "_", dedup_key)[-200:]
 
 
 def main() -> int:

@@ -90,6 +90,38 @@ class FakeApi:
         return [c for c in self.calls if c[0].startswith("patch")]
 
 
+class DedupApi(FakeApi):
+    """FakeApi with the alert-id dedup store the real Api carries."""
+
+    def __init__(self, *a, seen=None, **kw):
+        super().__init__(*a, **kw)
+        self.seen = set(seen or [])
+
+    def already_handled(self, dedup_key):
+        self.calls.append(("already_handled", dedup_key))
+        return dedup_key in self.seen
+
+    def mark_handled(self, dedup_key, body):
+        self.calls.append(("mark_handled", dedup_key))
+        self.seen.add(dedup_key)
+
+
+class ReplacedPodApi(FakeApi):
+    """The pod is replaced (same name, new uid) between resolve and the relabel."""
+
+    def __init__(self, *a, **kw):
+        super().__init__(*a, **kw)
+        self._pod_reads = 0
+
+    def get_pod(self, name):
+        self.calls.append(("get_pod", name))
+        self._pod_reads += 1
+        if self._pod_reads == 1:
+            return self.p
+        return {"metadata": dict(self.p["metadata"], uid="pod-uid-REPLACED"),
+                "spec": self.p["spec"]}
+
+
 class Incident(unittest.TestCase):
     def test_fresh_incident_is_accepted(self):
         self.assertEqual(worker.parse_incident(incident())["run_id"], "08584abc")
@@ -189,6 +221,41 @@ class Respond(unittest.TestCase):
             body, delete = worker.handle_message(incident(), 1, api)
             self.assertEqual((body["status"], delete), ("refused", True))
             self.assertEqual(api.patches(), [])
+
+
+class PreconditionAndDedup(unittest.TestCase):
+    def test_replacement_pod_is_never_relabelled(self):
+        api = ReplacedPodApi()
+        with self.assertRaisesRegex(worker.Refused, "refusing to relabel a replacement pod"):
+            worker.respond(worker.parse_incident(incident()), api)
+        # the node was cordoned, but the pod relabel never happened
+        self.assertEqual([c[0] for c in api.patches()], ["patch_node"])
+
+    def test_patch_pod_carries_uid_and_resource_version(self):
+        api = FakeApi()
+        worker.respond(worker.parse_incident(incident()), api)
+        pod_patch = next(c for c in api.patches() if c[0] == "patch_pod")
+        md = pod_patch[2]["metadata"]
+        self.assertEqual(md["uid"], "pod-uid-1")
+        self.assertIn("resourceVersion", md)
+
+    def test_duplicate_alert_is_not_acted_on_twice(self):
+        key = worker.alert_target(alert())["alert_id"]
+        api = DedupApi(seen=[key])
+        body = worker.respond(worker.parse_incident(incident()), api)
+        self.assertEqual(body["status"], "duplicate")
+        self.assertEqual(body["dedup_key"], key)
+        self.assertEqual(api.patches(), [])
+
+    def test_first_delivery_marks_the_alert_handled(self):
+        key = worker.alert_target(alert())["alert_id"]
+        api = DedupApi()
+        body = worker.respond(worker.parse_incident(incident()), api)
+        self.assertEqual(body["status"], "isolated")
+        self.assertIn(key, api.seen)
+        # a second delivery of the same alert now short-circuits
+        body2 = worker.respond(worker.parse_incident(incident()), api)
+        self.assertEqual(body2["status"], "duplicate")
 
 
 class ReportShape(unittest.TestCase):
