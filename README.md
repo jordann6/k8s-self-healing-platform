@@ -5,10 +5,11 @@ threat, proven with before/after experiments. The third lab in the arc after
 the EKS Attack Range (gain access, detect) and the Kubernetes Network
 Segmentation Lab (contain): this one responds and recovers.
 
-**Status:** phase 1 (portable core on kind, zero cloud spend) and phase 2 (the
-AWS module, `infra/aws/`, every row on EKS) have both run live. On EKS 11 of 13
-hardened rows healed, one missed and one was inconclusive (see below); the
-cluster was then destroyed. Azure and GCP come after.
+**Status:** three phases have run live and been destroyed: the portable core
+on kind (zero cloud spend), the AWS module on EKS (11 of 13 hardened rows
+healed, one missed, one inconclusive) and the Azure module on AKS (9 of 11
+healed, A3 missed by 20 ms, R2 blocked because Defender never raised the
+alert). GCP comes next.
 
 ![Self-healing platform on EKS](docs/architecture.png)
 
@@ -19,6 +20,15 @@ red is runtime threat response (Falco to a Cilium quarantine, GuardDuty to a
 Step Functions responder that cordons, isolates and captures evidence). The
 dashed grey edges are the scenario runner injecting faults from outside.
 Source: `docs/diagram.py`.*
+
+![Self-healing platform on AKS](docs/architecture-azure.png)
+
+*The AKS module, same colours. Availability adds a scale set instance stop
+and KEDA scaling the HPA from Prometheus; drift adds Key Vault through
+workload identity and an Azure Policy deployIfNotExists that rewrites an open
+NSG rule to Deny; threat response runs Defender for Containers to a Logic App
+that checks ARM's own copy of the alert before an in-cluster worker cordons
+and relabels. Source: `docs/diagram_azure.py`.*
 
 ## The experiment
 
@@ -59,6 +69,17 @@ counts as healed only if the same run's baseline showed impact; a row that
 cannot be measured is an error, never a skip (`scenarios/judge.py`, unit
 tested by `make test`).
 
+On AKS (phase 3) eleven rows run: the eight core rows, A4, S4 and R2, each
+rebuilt on Azure's own services ([ADR-0008](docs/adr/0008-azure-module-design.md),
+facts in [ADR-0007](docs/adr/0007-azure-facts-before-the-module.md), session in
+[docs/runbook-azure.md](docs/runbook-azure.md)):
+
+| Row | Fault | Injected with | Healing control |
+|---|---|---|---|
+| A4 | The workload node hosting the most web pods stops | `az vmss stop` of one scale set instance by ID | cluster autoscaler, PDB, topology spread with `minDomains`, 30s not-ready tolerations |
+| S4 | Node subnet NSG opened to 0.0.0.0/0 | an inbound Allow rule | Azure Policy deployIfNotExists rewrites the rule to Deny |
+| R2 | Runtime threat in a web pod | Microsoft's threat-intelligence test request | Defender for Containers -> workflow automation -> Logic App (checks ARM's copy) -> queue -> worker: cordon, relabel, OS-disk snapshot, Run Command capture |
+
 ## Run it
 
 ```
@@ -70,13 +91,16 @@ make down
 Needs docker (about 4 GB free for the cluster), kind, kubectl, helm, cilium,
 hubble, jq, openssl 3.4+ and python3. The lab uses its own kubeconfig
 (`.kube/config`), so it never touches other clusters on the machine.
+The cloud modules run from saved plans in one bounded session each:
+[docs/runbook-aws.md](docs/runbook-aws.md) and
+[docs/runbook-azure.md](docs/runbook-azure.md).
 
 ## Stack (pinned in the Makefile)
 
 Cilium 1.20.4, Argo CD v3.5.7, Argo Rollouts v1.10.1, External Secrets
 v2.14.0, Reloader v1.4.23, cert-manager v1.21.3, Falco 0.45.2 + Falcosidekick
 2.35.1 + Falco Talon 0.3.0, kube-prometheus-stack 92.17.1, Sloth v0.13.0,
-Chaos Mesh 2.8.7, k6 v2.3.0. CI: platform-guardrails v1.10.0.
+Chaos Mesh 2.8.7, k6 v2.3.0; on AKS, the managed KEDA add-on. CI: platform-guardrails v1.10.0.
 
 ## Phase 1 result (kind)
 
@@ -122,7 +146,81 @@ node, 56% errors). R1 met 30s once and missed once on EKS: Talon labels the pod
 within 2s, and the rest is Cilium applying the quarantine identity plus the
 runner proving unreachability through `kubectl exec` over the internet.
 
+## Phase 3 result (AKS)
+
+One bounded live session on 2026-11-05 (AKS 1.34, three Standard_D2s_v3
+system nodes, a tainted Standard_D2s_v6 workload pool autoscaled 3 to 4,
+Cilium on bring-your-own CNI, about $8 for roughly nine and a half hours up).
+Reference evidence: `evidence/aks-run1` (every row), `evidence/aks-run1-rows`
+(S3, S4, R1, R2 after a runner fix), `evidence/aks-run1-s4` and
+`evidence/aks-run1-a3` (after the fixes below). No threshold was changed.
+
+| Row | Hardened result on AKS | Run |
+|---|---|---|
+| A1 | healed: 0.00% errors after detection, hung pod serving again at 31s | aks-run1 |
+| A2 | healed: canary aborted at 80s, only v1 after, 0.00% | aks-run1 |
+| A3 | **miss**: sustained-spike p95 **320 ms** (bar 300), 0.00% errors, HPA 3 to 7 through KEDA | aks-run1-a3 |
+| A4 | healed: node NotReady at 59s, 0.00% errors from then, every replica serving at 172s on a new node; the same run's baseline hit 100% errors | aks-run1 |
+| A5 | healed: OOMKilled at 9s, serving at 12s, paged at 21s | aks-run1 |
+| S1 | healed: 0 failed of 450, pods on the new key at 33s | aks-run1 |
+| S2 | healed: 0 TLS errors of 193, renewed certificate served at 79s | aks-run1 |
+| S3 | healed: policy restored at 2s, hand edit reverted at 10s | aks-run1-rows |
+| S4 | healed: the policy's own deployment rewrote the rule to Deny at 121s (bar 1200) | aks-run1-s4 |
+| R1 | healed: detected at 1s, isolated at 8s, evidence at 24s, 0.00% errors | aks-run1-rows |
+| R2 | **blocked**: no Defender alert naming the pod in 3600s, three times, so the response never had anything to act on | aks-run1-rows |
+
+A4 is conclusive on AKS where it was not on EKS: the baseline packs every
+replica onto one node by design, so the same run shows both the failure and
+the heal. A3 got from 821 ms to 320 ms once the HPA stopped waiting on
+metrics-server (below); the rest is the shared CPU target, and lowering it on
+AKS alone would be tuning a control on the target that missed. R2's
+responder is built and its parts passed their live checks, but the row is
+unproven on Azure until Defender fires.
+
 ## What broke (and what it taught)
+
+### On Azure (phase 3)
+
+- **The policy fired and its template failed.** Azure Policy started the S4
+  remediation 100 seconds after the rule opened, and ARM rejected the
+  deployment: a parameter typed array received a string. The rule has one
+  port, so its port list is empty, and Policy's `field()` hands an empty
+  property over as a string, not null, so `coalesce()` never applied. A
+  deployment that fails validation never appears in the resource group, so
+  the row only saw "no deployment"; the Activity Log's
+  `deployIfNotExists/action` entry held the reason. Every value now crosses as
+  a string and the template decides the defaults, checked with `what-if` for
+  every shape before the rerun healed at 121s.
+- **The managed metrics-server is a 60s ceiling.** AKS runs its own
+  metrics-server without `--metric-resolution`, so the upstream 60s default
+  (kind and EKS run 15s), and it cannot be replaced. The HPA scaled at 69s
+  against EKS's 32s and the sustain window opened on a backlog: p95 821 ms.
+  KEDA, the managed add-on, now drives the same HPA from Prometheus's 10s
+  cAdvisor scrape: scaled at 42s, p95 320 ms.
+- **Defender's runtime detection never fired.** Microsoft's own
+  threat-intelligence test request (the one in their attack simulation) ran
+  three times from a web pod: no alert in an hour each time, while a
+  control-plane alert did arrive. The managed sensor was chart 0.8.61 with its
+  antimalware collector off although the plan and the cluster profile both
+  said enabled, and Microsoft's antimalware detection needs 0.10.x. R2 is
+  recorded as blocked, not as a heal or a miss.
+- **The autoscaler's cleanup looked like a quarantine.** After A4 the runner
+  started the stopped instance again, the autoscaler had already added a
+  replacement and removed the now-empty node, and the steady-state check read
+  its cordon as an R2 leftover and asked AKS to delete a machine that was
+  gone. Four rows errored in 20 seconds. Nodes carrying
+  `ToBeDeletedByClusterAutoscaler` are now left to the autoscaler.
+- **A wildcard that stops at a dot.** The R2 worker's egress policy allowed
+  `*.cluster.local`, but Cilium's `*` matches one label, and with `ndots:5`
+  every lookup first walks the search domains, so DNS for the queue failed
+  with `EAI_AGAIN`. `**.` matches across labels.
+- **Quota is a design input.** Legacy DSv3 increases are frozen, D2s_v5 was
+  not offered to the subscription and a Dsv6 increase to 16 was refused; the
+  regional total alone was raised. System and workload pools now use
+  different families so each fits its own quota.
+- **The same rule name brings back old records.** The runner reported S4
+  non-compliant at 3s by matching the previous run's compliance record for
+  the same rule. It now counts only records written after T0.
 
 ### On AWS (phase 2)
 
@@ -197,3 +295,23 @@ runner proving unreachability through `kubectl exec` over the internet.
   rest p95 is 130-230 ms. A3 keeps its 300 ms bar everywhere: on kind it is
   recorded as errors healed, latency not reachable on one shared node, and
   the latency claim is proven on EKS ([ADR-0003](docs/adr/0003-per-target-thresholds.md)).
+
+## At production scale
+
+- **Prevent first, repair second.** S4 proves the detective layer; production
+  puts a Deny policy (or an SCP and a permissions boundary on AWS) in front
+  of it, so the repair only catches what prevention misses.
+- **Pin the runtime sensor.** Install the Defender sensor (or GuardDuty's
+  agent) at a pinned version, and alert on the sensor's own heartbeat and on
+  a scheduled test detection, so a silent detector is an incident, not a
+  surprise during one.
+- **Size the autoscaler from a load test, not a default.** A3 showed the
+  signal's freshness and the target utilization both decide tail latency;
+  production sets the target per service from its latency objective and
+  keeps a scale-up path that does not wait on a 60s metric.
+- **Spread across zones and keep budgets explicit.** Topology spread with
+  `minDomains`, PDBs and node disruption budgets per pool, with the
+  replacement capacity sized so one zone loss stays under the error budget.
+- **Evidence goes to an account the cluster cannot touch.** The labs write
+  to a bucket or container in the lab; production writes to a separate
+  security account or subscription with object lock or immutability.

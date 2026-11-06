@@ -1,7 +1,7 @@
 """Architecture diagram for the self-healing platform on AKS (phase 3).
 
 Renders docs/architecture-azure.png with official Azure and Kubernetes icons
-(mingrammer diagrams) and the official Cilium and Falco icons from the CNCF
+(mingrammer diagrams) and the official Cilium, Falco and KEDA icons from the CNCF
 artwork repo (docs/icons/). Run from the repo root:
 python3 docs/diagram_azure.py (needs graphviz `dot` on PATH).
 
@@ -30,6 +30,7 @@ from diagrams.onprem.monitoring import Prometheus
 HERE = os.path.dirname(os.path.abspath(__file__))
 CILIUM = os.path.join(HERE, "icons", "cilium.png")
 FALCO = os.path.join(HERE, "icons", "falco.png")
+KEDA = os.path.join(HERE, "icons", "keda.png")
 
 graph_attrs = {"fontsize": "13", "bgcolor": "white", "pad": "0.5", "nodesep": "0.55", "ranksep": "1.0", "splines": "spline"}
 node_attrs = {"fontsize": "11"}
@@ -53,13 +54,14 @@ with Diagram(
         with Cluster("AKS 1.34 (bring your own CNI, workload identity)"):
             aks = KubernetesServices("control plane")
             with Cluster("tainted workload pool, autoscaled 3 to 4\n(spread minDomains 3, Honor, 30s tolerations)"):
-                web = Pod("web Rollout\nprobes, HPA,\nmemory limit")
+                web = Pod("web Rollout\nprobes, HPA (KEDA),\nmemory limit")
             with Cluster("system pool"):
                 cilium = Custom("Cilium + Hubble\n(cluster pool, VXLAN)", CILIUM)
                 falco = Custom("Falco -> Talon\nquarantine label", FALCO)
                 argo = Argocd("Argo CD self-heal\n+ Rollouts canary")
                 prom = Prometheus("Prometheus\n+ Sloth SLOs")
                 chaos = ChaosMesh("Chaos Mesh\npod faults")
+                keda = Custom("KEDA (AKS add-on)\nHPA on Prometheus CPU", KEDA)
                 worker = Pod("R2 worker\ncordon, then relabel")
 
         vmss = VMScaleSet("stopped or\nquarantined instance")
@@ -83,6 +85,8 @@ with Diagram(
     prom >> Edge(label="canary analysis", **avail) >> argo
     argo >> Edge(label="abort / revert", **avail) >> web
     prom >> Edge(label="remote write", **avail) >> amw
+    prom >> Edge(label="pod CPU, 10s", **avail) >> keda
+    keda >> Edge(label="scale (A3)", **avail) >> web
     acr >> Edge(**avail) >> web
     vmss >> Edge(label="NotReady; replica moves to an autoscaled node", **avail) >> web
 

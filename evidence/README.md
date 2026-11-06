@@ -38,3 +38,24 @@ Not reference evidence, kept local: `eks-run1`, `eks-run1-s1b` and
 `eks-run1-rerun` (overlapping runners), `eks-run2-rerun` (the operator's
 laptop slept and froze the runner). ADR-0003 lists every fix with the run that
 prompted it.
+
+## Reference runs (AKS, phase 3)
+
+One live session, 2026-11-05. The subscription, the tenant, every other GUID
+and the operator's IP are replaced by `scripts/redact-evidence.py --cloud
+azure` before commit.
+
+- `aks-run1`: every row, both profiles. Every baseline showed impact except
+  R2, whose trigger raised no Defender alert (an error, not an impact).
+  Hardened A1, A2, A4, A5, S1 and S2 healed; A3 missed (p95 821 ms); S3, S4,
+  R1 and R2 errored because the steady-state check took a cluster autoscaler
+  scale-down for an R2 leftover (fixed afterwards, ADR-0008).
+- `aks-run1-rows`: S3, S4, R1 and R2 after that fix. Hardened S3 and R1
+  healed (R1 isolated at 8s); S4 missed (the policy's remediation template
+  failed validation); R2 errored again (no Defender alert in 3600s).
+- `aks-run1-s4`: S4 after the template fix. Healed: the rule was rewritten to
+  Deny at 121s by the policy's own deployment. Its "non-compliant reported
+  3s" matched the previous run's compliance record; the row now counts only
+  records after T0 (ADR-0008 has the real times).
+- `aks-run1-a3`: A3 with KEDA scaling the HPA from Prometheus. Missed: p95
+  320 ms against 300, 0.00% errors, HPA 3 to 7, scaled at 41.5s.
