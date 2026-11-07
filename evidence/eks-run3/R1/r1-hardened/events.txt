@@ -1,0 +1,10 @@
+LAST SEEN   TYPE      REASON             OBJECT                     MESSAGE
+5m          Warning   FailedScheduling   pod/web-7fc9c5599d-7tvqj   0/5 nodes are available: 1 node(s) had untolerated taint(s), 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod topology spread constraints. no new claims to deallocate, preemption: 0/5 nodes are available: 2 No preemption victims found for incoming pod, 3 Preemption is not helpful for scheduling.
+5m47s       Normal    Nominated          pod/web-7fc9c5599d-7tvqj   Pod should schedule on: nodeclaim/workload-8899r
+5m25s       Warning   FailedScheduling   pod/web-7fc9c5599d-7tvqj   0/6 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 2 node(s) didn't match pod topology spread constraints, 2 node(s) had untolerated taint(s). no new claims to deallocate, preemption: 0/6 nodes are available: 2 No preemption victims found for incoming pod, 4 Preemption is not helpful for scheduling.
+4m58s       Normal    Scheduled          pod/web-7fc9c5599d-7tvqj   Successfully assigned selfheal/web-7fc9c5599d-7tvqj to ip-10-30-1-193.ec2.internal
+4m56s       Normal    Pulling            pod/web-7fc9c5599d-7tvqj   Pulling image "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:66a190f-v1"
+4m53s       Normal    Pulled             pod/web-7fc9c5599d-7tvqj   Successfully pulled image "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:66a190f-v1" in 3.036s (3.036s including waiting). Image size: 20408201 bytes.
+4m53s       Normal    Created            pod/web-7fc9c5599d-7tvqj   Created container: web
+4m53s       Normal    Started            pod/web-7fc9c5599d-7tvqj   Started container web
+4m51s       Warning   Unhealthy          pod/web-7fc9c5599d-7tvqj   Readiness probe failed: Get "http://10.30.0.44:8080/readyz": dial tcp 10.30.0.44:8080: connect: connection refused

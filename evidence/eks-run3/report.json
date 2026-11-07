@@ -1,0 +1,277 @@
+{
+  "run_id": "eks-run3",
+  "target": "eks",
+  "started": "2026-11-06T23:38:22.174Z",
+  "rows": [
+    "A4",
+    "R1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "kube-system/karpenter": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "66a190fbe6f77385523bae95dbe0f99c5cda5453",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.34.12-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:66a190f-v1",
+    "workload_ami": [
+      "ami-09696b17488e356ab"
+    ]
+  },
+  "results": {
+    "A4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 24.1s: 100% of 50 http requests failed in 10s",
+        "thresholds": {
+          "recover_s": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "killed i-073e318eae1babf84 (1 web pods), errors 0.00%, all replicas serving 72s, replacement node ip-10-30-1-193.ec2.internal",
+        "thresholds": {
+          "recover_s": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "R1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "detected 1s, isolated never (0 Hubble policy drops), evidence never, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "detected 1s, isolated 11s (26 Hubble policy drops), evidence 30s, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "A4": {
+      "baseline": {
+        "t0": 1794008415.113717,
+        "experiment_id": "EXPihJexX1RSGpYDT8",
+        "experiment_state": {
+          "status": "completed",
+          "reason": "Experiment completed."
+        },
+        "instance_id": "i-0b56b462a1b1a8eb5",
+        "node": "ip-10-30-27-170.ec2.internal",
+        "web_pods_on_node": 3,
+        "terminated": true,
+        "stopped_by_alarm": false,
+        "node_gone_s": 59.9,
+        "recovered_s": 77.2,
+        "replacement_node": "ip-10-30-4-216.ec2.internal",
+        "replacement_s": 59.9,
+        "error_rate": 0.2047,
+        "samples": 1500,
+        "expected": 1500.009444952011,
+        "window": "T0 to T0+300s (fixed)",
+        "impact": {
+          "kind": "http",
+          "since": 1794008415.2685187,
+          "until": 1794008715.2704077,
+          "n": 1500,
+          "errors": 307,
+          "error_rate": 0.2047,
+          "p95_ms": 119.9,
+          "error_kinds": {
+            "ConnectionResetError": 6,
+            "URLError": 301
+          },
+          "first_error": 1794008428.963753,
+          "last_error": 1794008490.1636605,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6d58b5bc57-58p59",
+            "web-6d58b5bc57-clc7r",
+            "web-6d58b5bc57-d4q99",
+            "web-6d58b5bc57-lfvxq",
+            "web-6d58b5bc57-ncvh9",
+            "web-6d58b5bc57-zldzg"
+          ],
+          "expected": 1500.009444952011
+        },
+        "abort_evidence": {
+          "t": 1794008439.218388,
+          "kind": "http",
+          "n": 50,
+          "errors": 50,
+          "error_rate": 1.0,
+          "error_kinds": {
+            "ConnectionResetError": 4,
+            "URLError": 46
+          },
+          "at_s": 24.1
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794009176.9842932,
+        "experiment_id": "EXPbZXL9mRWZaAdiqG",
+        "experiment_state": {
+          "status": "completed",
+          "reason": "Experiment completed."
+        },
+        "instance_id": "i-073e318eae1babf84",
+        "node": "ip-10-30-21-73.ec2.internal",
+        "web_pods_on_node": 1,
+        "terminated": true,
+        "stopped_by_alarm": false,
+        "node_gone_s": 48.0,
+        "recovered_s": 72.3,
+        "replacement_node": "ip-10-30-1-193.ec2.internal",
+        "replacement_s": 64.6,
+        "error_rate": 0.0,
+        "samples": 1500,
+        "expected": 1499.9750792980194,
+        "window": "T0 to T0+300s (fixed)",
+        "impact": {
+          "kind": "http",
+          "since": 1794009177.1390948,
+          "until": 1794009477.1341107,
+          "n": 1500,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 111.1,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7fc9c5599d-778t5",
+            "web-7fc9c5599d-7tvqj",
+            "web-7fc9c5599d-dnqm5",
+            "web-7fc9c5599d-h29jj"
+          ],
+          "expected": 1499.9750792980194
+        },
+        "alerts_fired": []
+      }
+    },
+    "R1": {
+      "baseline": {
+        "t0": 1794008746.499087,
+        "target_pod": "web-6d58b5bc57-58p59",
+        "reachable_before": true,
+        "detected_s": 1.0,
+        "labelled_s": null,
+        "isolated_s": null,
+        "hubble_policy_drops": 0,
+        "evidence_s": null,
+        "pod_kept_for_capture": null,
+        "error_rate": 0.0,
+        "samples": 422,
+        "expected": 422.5099992752075,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1794008746.6538887,
+          "until": 1794008831.1558886,
+          "n": 422,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 117.4,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6d58b5bc57-58p59",
+            "web-6d58b5bc57-ncvh9",
+            "web-6d58b5bc57-zldzg"
+          ],
+          "expected": 422.5099992752075
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794009510.070265,
+        "target_pod": "web-7fc9c5599d-7tvqj",
+        "reachable_before": true,
+        "detected_s": 1.1,
+        "labelled_s": 1.1,
+        "isolated_s": 11.0,
+        "hubble_policy_drops": 26,
+        "evidence_s": 29.5,
+        "pod_kept_for_capture": true,
+        "error_rate": 0.0,
+        "samples": 299,
+        "expected": 300.0465452671051,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1794009510.2250667,
+          "until": 1794009570.2343757,
+          "n": 299,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 124.6,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-7fc9c5599d-7tvqj",
+            "web-7fc9c5599d-dnqm5",
+            "web-7fc9c5599d-f8tqz",
+            "web-7fc9c5599d-h29jj"
+          ],
+          "expected": 300.0465452671051
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-06T23:59:32.142Z",
+  "pass": true
+}
