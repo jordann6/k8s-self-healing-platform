@@ -1,0 +1,9 @@
+# Row Q1 broker, shared by both profiles. The worker and (hardened only) the
+# KEDA ScaledObject live in the profile overlays, so those files are the whole
+# difference between the two runs, exactly as rollout.yaml / hpa.yaml are for
+# the web workload.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - rabbitmq.yaml

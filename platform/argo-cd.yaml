@@ -42,9 +42,10 @@ configs:
       - apiGroups: [monitoring.coreos.com]
         kinds: [PrometheusRule, PodMonitor]
         clusters: ["*"]
-      # Row A3 on AKS only (KEDA add-on); no such objects on kind or EKS.
+      # Row A3 on AKS (KEDA add-on) and row Q1 on kind (KEDA chart): the
+      # ScaledObjects, plus Q1's TriggerAuthentication (rare, so cheap to watch).
       - apiGroups: [keda.sh]
-        kinds: [ScaledObject]
+        kinds: [ScaledObject, TriggerAuthentication]
         clusters: ["*"]
 controller:
   resources:

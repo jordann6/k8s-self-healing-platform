@@ -2,6 +2,7 @@
 # on EKS, and the Azure module on AKS.
 #
 #   make up        kind + Cilium + every platform chart + bootstrap (zero spend)
+#   make q1-up     kind + only the controllers and workloads required by Q1
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
 #
@@ -43,6 +44,8 @@ TALON_VERSION           := 0.5.0    # app 0.3.0 (alpha, pinned; actionner kubern
 SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
 KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
+KEDA_VERSION            := 2.21.0    # kind row Q1 only; AKS uses the managed add-on, EKS has none yet
+RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
 
 HELM := helm
 
@@ -57,6 +60,9 @@ help: ## List targets
 .PHONY: up
 up: kind-up platform bootstrap ## Everything: cluster, platform, bootstrap
 
+.PHONY: q1-up
+q1-up: q1-kind-up q1-platform q1-bootstrap ## Focused Q1 cluster without unrelated platform controllers
+
 .PHONY: kind-up
 kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the lab images
 	mkdir -p .kube
@@ -67,13 +73,32 @@ kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the la
 	cilium/readiness-gate.sh
 	$(MAKE) images
 
+.PHONY: q1-kind-up
+q1-kind-up: ## Create the kind cluster, install Cilium, and load only Q1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) q1-images
+
 .PHONY: images
 images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-app:v1 --build-arg RELEASE=v1 app
 	docker build -q -t selfheal-app:v2 --build-arg RELEASE=v2 app
 	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-qworker:v1 app/qworker
 	docker pull -q $(K6_IMAGE) >/dev/null
-	kind load docker-image selfheal-app:v1 selfheal-app:v2 selfheal-gitserver:dev $(K6_IMAGE) --name $(KIND_CLUSTER)
+	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
+	kind load docker-image selfheal-app:v1 selfheal-app:v2 selfheal-gitserver:dev selfheal-qworker:v1 $(K6_IMAGE) $(RABBITMQ_IMAGE) --name $(KIND_CLUSTER)
+
+.PHONY: q1-images
+q1-images: ## Build and load only the Git server, Q1 worker, and RabbitMQ images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-qworker:v1 app/qworker
+	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
+	kind load docker-image selfheal-gitserver:dev selfheal-qworker:v1 $(RABBITMQ_IMAGE) --name $(KIND_CLUSTER)
 
 .PHONY: repos
 repos:
@@ -86,12 +111,15 @@ repos:
 	@helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
 	@helm repo add chaos-mesh https://charts.chaos-mesh.org >/dev/null 2>&1 || true
 	@helm repo add falcosecurity https://falcosecurity.github.io/charts >/dev/null 2>&1 || true
+	@helm repo add kedacore https://kedacore.github.io/charts >/dev/null 2>&1 || true
 	@helm repo update >/dev/null
 
 .PHONY: platform
 platform: repos ## Install every platform chart (order matters: Prometheus CRDs first)
 	$(HELM) upgrade --install metrics-server metrics-server/metrics-server --version $(METRICS_SERVER_VERSION) \
 		-n kube-system -f platform/metrics-server.yaml --wait
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
 	$(HELM) upgrade --install kps prometheus-community/kube-prometheus-stack --version $(KPS_VERSION) \
 		-n monitoring --create-namespace -f platform/kube-prometheus-stack.yaml --wait --timeout 10m
 	$(HELM) upgrade --install cert-manager jetstack/cert-manager --version $(CERT_MANAGER_VERSION) \
@@ -115,9 +143,20 @@ platform: repos ## Install every platform chart (order matters: Prometheus CRDs 
 	$(HELM) upgrade --install falco falcosecurity/falco --version $(FALCO_VERSION) \
 		-n falco -f platform/falco.yaml --wait --timeout 10m
 
+.PHONY: q1-platform
+q1-platform: repos ## Install only KEDA and Argo CD for the focused Q1 proof
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: bootstrap
 bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD root app
 	scripts/bootstrap.sh
+
+.PHONY: q1-bootstrap
+q1-bootstrap: ## Namespaces, RabbitMQ credentials, Git seed, and the Q1 Argo CD app
+	FOCUSED_Q1=1 scripts/bootstrap.sh
 
 .PHONY: down
 down: ## Delete the kind cluster
@@ -157,16 +196,19 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd scenarios && python3 -m unittest -v test_classify test_aks_rows
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
+	cd app/qworker && python3 -m unittest -v test_worker
 	cd scripts && python3 -m unittest -v test_redact_evidence
 
 .PHONY: check
 check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
+	kubectl kustomize gitops/q1/baseline >/dev/null
+	kubectl kustomize gitops/q1/hardened >/dev/null
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

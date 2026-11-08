@@ -8,6 +8,7 @@ import unittest
 
 from eks_rows import rotation_finished
 from judge import THRESHOLDS, classify, overall, verdict
+import run
 
 T = THRESHOLDS["kind"]
 
@@ -137,6 +138,87 @@ class Thresholds(unittest.TestCase):
     def test_half_reverted_drift_is_miss(self):
         o = {"injected": True, "policy_restored_s": 5, "edit_reverted_s": None}
         self.assertEqual(verdict("S3", "hardened", o, "impact")["status"], "miss")
+
+
+def q1(**kw):
+    o = {"published": 240, "n_target": 240, "distinct_done": 240, "expected_done": 240,
+         "unexpected_done": 0, "duplicates": 7,
+         "profile_start_replicas": 0, "max_replicas": 8, "end_replicas": 0, "scaled_up_s": 6.0,
+         "drained_s": 40.0, "scaled_to_zero_s": 70.0, "killed_pod": "qworker-abc",
+         "unacked_at_kill": 1, "workers_at_kill": 1, "metrics_source_ok": True}
+    o.update(kw)
+    return o
+
+
+class Q1QueueScaling(unittest.TestCase):
+    def test_scale_from_zero_drain_and_return_heals(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(), "impact")["status"], "healed")
+
+    def test_one_lost_message_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(distinct_done=239), "impact")["status"], "miss")
+
+    def test_wrong_ids_cannot_hide_missing_work(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(expected_done=239, unexpected_done=1), "impact")["status"], "miss")
+
+    def test_short_backlog_is_error(self):
+        v = verdict("Q1", "hardened", q1(published=200), "impact")
+        self.assertEqual(v["status"], "error")
+        self.assertIn("backlog under test was not established", v["reason"])
+
+    def test_unreadable_done_queue_is_error(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(distinct_done=None), "impact")["status"], "error")
+
+    def test_keda_metric_source_down_is_error_not_a_pass(self):
+        v = verdict("Q1", "hardened", q1(metrics_source_ok=False), "impact")
+        self.assertEqual(v["status"], "error")
+        self.assertIn("cannot be attributed", v["reason"])
+
+    def test_no_scale_out_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(max_replicas=0, scaled_up_s=None), "impact")["status"], "miss")
+
+    def test_kill_without_an_in_flight_message_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(unacked_at_kill=0), "impact")["status"], "miss")
+        self.assertEqual(verdict("Q1", "hardened", q1(killed_pod=None), "impact")["status"], "miss")
+        self.assertEqual(verdict("Q1", "hardened", q1(workers_at_kill=2), "impact")["status"], "miss")
+
+    def test_slow_drain_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=T["Q1"]["drain_s"] + 1), "impact")["status"], "miss")
+
+    def test_never_back_to_zero_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(end_replicas=2, scaled_to_zero_s=None), "impact")["status"], "miss")
+
+    def test_zero_window_starts_after_drain(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=110, scaled_to_zero_s=140), "impact")["status"], "healed")
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=10, scaled_to_zero_s=131), "impact")["status"], "miss")
+
+    def test_baseline_never_idles_to_zero_is_impact(self):
+        self.assertEqual(verdict("Q1", "baseline", q1(end_replicas=2, scaled_to_zero_s=None), None)["status"], "impact")
+
+
+class Q1FocusedPreflight(unittest.TestCase):
+    def test_q1_only_uses_queue_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertIn(("gitops", "deploy", "gitserver"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+        self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
+
+    def test_mixed_kind_run_keeps_full_preflight(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["A1", "Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("falco", "daemonset", "falco"), resources)
+        self.assertIn(("monitoring", "deploy", "kps-operator"), resources)
 
 
 class AbortLine(unittest.TestCase):
@@ -343,10 +425,20 @@ class R2NativeResponse(unittest.TestCase):
 
 
 class EksThresholds(unittest.TestCase):
-    def test_every_row_has_a_judge_threshold_and_hypothesis(self):
+    def test_every_judge_has_a_hypothesis(self):
         from judge import HYPOTHESES, JUDGES
-        self.assertEqual(set(THRESHOLDS["eks"]), set(JUDGES))
         self.assertEqual(set(HYPOTHESES), set(JUDGES))
+
+    def test_every_eks_threshold_row_has_a_judge(self):
+        # eks runs the cloud superset; Q1 is kind-only (Phase 3), so JUDGES is a
+        # superset of the eks rows, not equal to it.
+        from judge import JUDGES
+        self.assertTrue(set(THRESHOLDS["eks"]) <= set(JUDGES))
+
+    def test_q1_is_kind_only(self):
+        self.assertIn("Q1", THRESHOLDS["kind"])
+        self.assertNotIn("Q1", THRESHOLDS["eks"])
+        self.assertNotIn("Q1", THRESHOLDS["aks"])
 
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])

@@ -1,0 +1,44 @@
+# Baseline Q1 worker: a fixed replica count, no autoscaler. An idle queue still
+# burns these two replicas (never scales to zero), and a burst has only this
+# fixed capacity to drain it. The same image and the same ack ordering as the
+# hardened worker, so no-lost-work holds here too; only the scaling differs.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qworker
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: qworker}
+  template:
+    metadata:
+      labels: {app: qworker}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: qworker
+          image: selfheal-qworker
+          args: ["consume"]
+          env:
+            - {name: RABBITMQ_HOST, value: rabbitmq.selfheal.svc.cluster.local}
+            - {name: RABBITMQ_PORT, value: "5672"}
+            - {name: RABBITMQ_USER, valueFrom: {secretKeyRef: {name: rabbitmq, key: username}}}
+            - {name: RABBITMQ_PASS, valueFrom: {secretKeyRef: {name: rabbitmq, key: password}}}
+            - {name: WORK_QUEUE, value: work}
+            - {name: DONE_QUEUE, value: done}
+            - {name: DEAD_QUEUE, value: dead}
+            - {name: PREFETCH, value: "1"}
+          resources:
+            requests: {cpu: 25m, memory: 32Mi}
+            limits: {memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

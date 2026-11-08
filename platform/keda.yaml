@@ -1,0 +1,10 @@
+# KEDA for row Q1 on kind: queue-driven scaling of the worker from zero on
+# RabbitMQ depth. AKS uses the managed KEDA add-on instead (row A3); EKS has no
+# KEDA yet (Phase 4 parity). Modest requests for a laptop.
+resources:
+  operator:
+    requests: {cpu: 50m, memory: 128Mi}
+  metricServer:
+    requests: {cpu: 25m, memory: 64Mi}
+  webhooks:
+    requests: {cpu: 25m, memory: 64Mi}

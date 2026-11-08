@@ -1,0 +1,10 @@
+# Baseline Q1: the broker and a fixed-replica worker, no autoscaler.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+  - worker.yaml
+images:
+  - name: selfheal-qworker
+    newTag: v1

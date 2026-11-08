@@ -36,6 +36,10 @@ THRESHOLDS = {
         "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
         "S3": {"revert_s": 60},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        # Row Q1 (kind only, Phase 3). drain_s: a 240-message backlog is drained
+        # (work queue empty, nothing unacknowledged). zero_s: the worker is back
+        # to zero replicas after the drain. The cloud ports are Phase 4.
+        "Q1": {"drain_s": 120, "zero_s": 120},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -96,6 +100,9 @@ HYPOTHESES = {
     "S3": "A deleted network policy and a hand-edited Deployment are reverted to Git within 60s.",
     "R1": "A shell in a web pod is isolated within 30s and evidence is preserved within 90s, "
           "with the pod kept for capture rather than killed.",
+    "Q1": "A backlog of 240 messages scales the worker from zero, drains within 120s with no lost work "
+          "even when a busy worker is killed mid-message, and the worker returns to zero, while the fixed "
+          "baseline never scales to zero.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -283,6 +290,41 @@ def judge_r1(o: dict, t: dict):
 
 
 fmt_s = lambda v: f"{v:.0f}s" if v is not None else "never"  # noqa: E731
+
+
+def judge_q1(o: dict, t: dict):
+    pub, n = o.get("published"), o.get("n_target")
+    # No data is never a pass: the backlog under test must have been enqueued.
+    if n is None or pub != n:
+        return False, f"the producer enqueued {pub} of {n}, so the backlog under test was not established", False, False
+    dd = o.get("distinct_done")
+    if dd is None:
+        return False, "the done queue could not be read, so completion is unknown", False, False
+    # Telemetry-failure honesty: if KEDA could not read the queue (hardened),
+    # any scaling cannot be attributed to the control.
+    if o.get("metrics_source_ok") is False:
+        return False, "the ScaledObject was not Ready (KEDA could not read the queue), so scaling cannot be attributed", False, False
+    start, mx, end = o.get("profile_start_replicas") or 0, o.get("max_replicas") or 0, o.get("end_replicas")
+    no_lost_work = dd == pub and o.get("expected_done") == pub and o.get("unexpected_done") == 0
+    scaled_out = o.get("scaled_up_s") is not None and mx > start
+    # The kill only has teeth if a worker held an in-flight (unacknowledged)
+    # message when it died; otherwise a drop could not have been tested.
+    kill_had_teeth = (o.get("killed_pod") is not None and o.get("workers_at_kill") == 1
+                      and (o.get("unacked_at_kill") or 0) >= 1)
+    drained_ok = le(o.get("drained_s"), t["drain_s"])
+    zero_after_drain = (o["scaled_to_zero_s"] - o["drained_s"]
+                        if o.get("scaled_to_zero_s") is not None and o.get("drained_s") is not None else None)
+    zero_ok = le(zero_after_drain, t["zero_s"]) and end == 0
+    # Baseline shows impact by never idling to zero (fixed replicas); hardened
+    # heals by scaling from zero, draining in time, losing no work across the
+    # kill, and returning to zero.
+    impact = (end or 0) > 0 or not drained_ok
+    healed = no_lost_work and scaled_out and kill_had_teeth and drained_ok and zero_ok
+    why = (f"published {pub}, distinct done {dd} ({o.get('duplicates')} duplicate completions), replicas "
+           f"{start} to {mx} to {end}, drained {fmt_s(o.get('drained_s'))}, back to zero "
+           f"{fmt_s(o.get('scaled_to_zero_s'))}, killed {o.get('killed_pod') or 'none'} "
+           f"(unacked {o.get('unacked_at_kill')})")
+    return True, why, impact, healed
 
 
 def judge_a4(o: dict, t: dict):
@@ -491,7 +533,7 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
-          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2}
+          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:
