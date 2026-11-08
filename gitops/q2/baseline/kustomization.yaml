@@ -1,0 +1,11 @@
+# Baseline Q2 has the same autoscaler but no fallback when the metric source
+# fails. KEDA therefore retains the current replica count.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+  - scaledobject.yaml
+images:
+  - name: selfheal-q2
+    newTag: v1

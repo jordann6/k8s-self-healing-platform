@@ -221,6 +221,103 @@ class Q1FocusedPreflight(unittest.TestCase):
         self.assertIn(("monitoring", "deploy", "kps-operator"), resources)
 
 
+class Q2FocusedPreflight(unittest.TestCase):
+    def test_q2_only_uses_scaling_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q2"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertIn(("gitops", "deploy", "gitserver"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+        self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
+
+
+def q2(**kw):
+    conditions = {
+        "scaledobject_conditions": {"Ready": {"status": "False", "reason": "ScalerError"}},
+        "hpa_conditions": {"ScalingActive": {"status": "False", "reason": "FailedGetExternalMetric"}},
+    }
+    limited = {
+        "actual_replicas": 4, "ready_replicas": 4, "max_replicas": 4,
+        "hpa_conditions": {"ScalingLimited": {"status": "True", "reason": "TooManyReplicas"}},
+    }
+    pending = {"desired_replicas": 4, "actual_replicas": 1, "pending": [
+        {"pod": "q2-target-x", "reason": "Unschedulable",
+         "message": "0/1 nodes are available: 1 Insufficient cpu."}]}
+    o = {
+        "metric_source_available_before": True,
+        "metric_outage_observed": True,
+        "conditions_present": True,
+        "metric_error_state": conditions,
+        "metric_failure_detected_s": 8.0,
+        "fallback_condition_observed": True,
+        "fallback_replicas_s": 18.0,
+        "metric_recovered_s": 7.0,
+        "outage_requests": {"samples": 300, "failures": 0, "failure_rate": 0.0, "p95_ms": 120.0},
+        "ceiling": {"demand": 12, "state": limited},
+        "capacity": {"pending_state": pending, "recovered_s": 12.0,
+                     "recovery_requests": {"samples": 300, "failures": 0,
+                                           "failure_rate": 0.0, "p95_ms": 110.0}},
+        "scale_down_s": 35.0,
+        "end_state": {"ready_replicas": 1},
+    }
+    o.update(kw)
+    return o
+
+
+class Q2ScalingFailure(unittest.TestCase):
+    def test_hardened_fallback_ceilings_and_recovery_heal(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact")["status"], "healed")
+
+    def test_baseline_user_impact_is_measured(self):
+        obs = q2(fallback_condition_observed=False, fallback_replicas_s=None,
+                 outage_requests={"samples": 300, "failures": 90,
+                                  "failure_rate": 0.3, "p95_ms": 700.0})
+        self.assertEqual(verdict("Q2", "baseline", obs, None)["status"], "impact")
+
+    def test_missing_metric_outage_is_an_error(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(metric_outage_observed=False), "impact")["status"], "error")
+
+    def test_missing_autoscaler_conditions_is_an_error(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(metric_error_state={}), "impact")["status"], "error")
+
+    def test_replica_max_without_scaling_limited_is_a_miss(self):
+        obs = q2()
+        obs["ceiling"] = {"demand": 12, "state": {"actual_replicas": 4, "max_replicas": 4,
+                                                   "hpa_conditions": {"ScalingLimited": {"status": "False"}}}}
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "miss")
+
+    def test_pending_without_scheduler_reason_is_an_error(self):
+        obs = q2()
+        obs["capacity"]["pending_state"]["pending"][0]["message"] = None
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_no_pending_pod_is_an_error(self):
+        obs = q2()
+        obs["capacity"]["pending_state"]["pending"] = []
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_thin_request_telemetry_is_an_error(self):
+        obs = q2(outage_requests={"samples": 0, "failures": 0, "failure_rate": None, "p95_ms": None})
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_slow_fallback_is_a_miss(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(fallback_replicas_s=31), "impact")["status"], "miss")
+
+    def test_slow_capacity_recovery_is_a_miss(self):
+        obs = q2()
+        obs["capacity"]["recovered_s"] = 61
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "miss")
+
+    def test_never_scales_down_is_a_miss(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(scale_down_s=None), "impact")["status"], "miss")
+
+
 class AbortLine(unittest.TestCase):
     AB = {"n": 40, "errors": 30, "error_rate": 0.75, "at_s": 14, "kind": "http"}
 
@@ -430,15 +527,16 @@ class EksThresholds(unittest.TestCase):
         self.assertEqual(set(HYPOTHESES), set(JUDGES))
 
     def test_every_eks_threshold_row_has_a_judge(self):
-        # eks runs the cloud superset; Q1 is kind-only (Phase 3), so JUDGES is a
+        # eks runs the cloud superset; Q1 and Q2 are kind-only in Phase 3, so JUDGES is a
         # superset of the eks rows, not equal to it.
         from judge import JUDGES
         self.assertTrue(set(THRESHOLDS["eks"]) <= set(JUDGES))
 
-    def test_q1_is_kind_only(self):
-        self.assertIn("Q1", THRESHOLDS["kind"])
-        self.assertNotIn("Q1", THRESHOLDS["eks"])
-        self.assertNotIn("Q1", THRESHOLDS["aks"])
+    def test_q_rows_are_kind_only(self):
+        for row in ("Q1", "Q2"):
+            self.assertIn(row, THRESHOLDS["kind"])
+            self.assertNotIn(row, THRESHOLDS["eks"])
+            self.assertNotIn(row, THRESHOLDS["aks"])
 
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])

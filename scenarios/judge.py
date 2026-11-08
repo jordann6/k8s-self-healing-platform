@@ -40,6 +40,13 @@ THRESHOLDS = {
         # (work queue empty, nothing unacknowledged). zero_s: the worker is back
         # to zero replicas after the drain. The cloud ports are Phase 4.
         "Q1": {"drain_s": 120, "zero_s": 120},
+        # Row Q2 (kind only, Phase 3). Fixed before the first live run in
+        # ADR-0010. Missing metric, condition, request, or scheduler evidence
+        # is an error rather than a protected pass.
+        "Q2": {"detect_s": 30, "fallback_s": 30, "metric_recover_s": 45,
+               "capacity_recover_s": 60, "scale_down_s": 90,
+               "p95_ms": 300, "error_rate": 0.01, "fallback_replicas": 3,
+               "max_replicas": 4, "min_replicas": 1, "min_request_samples": 20},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -103,6 +110,10 @@ HYPOTHESES = {
     "Q1": "A backlog of 240 messages scales the worker from zero, drains within 120s with no lost work "
           "even when a busy worker is killed mid-message, and the worker returns to zero, while the fixed "
           "baseline never scales to zero.",
+    "Q2": "When the scaling metric fails, the failure is visible within 30s and the hardened fallback reaches "
+          "three replicas within 30s while meeting the request SLO. Restored telemetry recovers within 45s, "
+          "the maximum-replica and CPU scheduling ceilings are explicitly observed, restored capacity recovers "
+          "within 60s, and withdrawn demand scales back to one within 90s.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -327,6 +338,85 @@ def judge_q1(o: dict, t: dict):
     return True, why, impact, healed
 
 
+def judge_q2(o: dict, t: dict):
+    # The planned source outage is a fault. Missing evidence that it occurred
+    # is not a successful fallback demonstration.
+    if o.get("metric_source_available_before") is not True:
+        return False, "the metric source was not readable before the fault", False, False
+    if o.get("metric_outage_observed") is not True:
+        return False, "the planned metric-source outage was not observed", False, False
+    if o.get("conditions_present") is not True:
+        return False, "ScaledObject or HPA conditions were missing before the fault", False, False
+    error_state = o.get("metric_error_state") or {}
+    if not error_state.get("scaledobject_conditions") or not error_state.get("hpa_conditions"):
+        return False, "autoscaler conditions were missing during the metric failure", False, False
+
+    detected = o.get("metric_failure_detected_s")
+    recovered = o.get("metric_recovered_s")
+    if detected is None:
+        return False, "no autoscaler condition reported the metric failure", False, False
+    if recovered is None:
+        return False, "metric recovery was not measured", False, False
+
+    ceiling = o.get("ceiling") or {}
+    ceiling_state = ceiling.get("state") or {}
+    limit_condition = (ceiling_state.get("hpa_conditions") or {}).get("ScalingLimited")
+    if not limit_condition:
+        return False, "the HPA ScalingLimited condition was missing at the replica ceiling", False, False
+    ceiling_observed = (ceiling.get("demand", 0) > t["max_replicas"]
+                        and ceiling_state.get("max_replicas") == t["max_replicas"]
+                        and ceiling_state.get("actual_replicas") == t["max_replicas"]
+                        and limit_condition.get("status") == "True")
+
+    capacity = o.get("capacity") or {}
+    pending_state = capacity.get("pending_state") or {}
+    pending = pending_state.get("pending") or []
+    if pending and any(not p.get("message") for p in pending):
+        return False, "a Pending pod had no scheduler message", False, False
+    if not pending:
+        return False, "no Pending workload pod was observed at the node-capacity ceiling", False, False
+    scheduler_attributed = any("Insufficient cpu" in (p.get("message") or "") for p in pending)
+    if not scheduler_attributed:
+        return False, f"Pending pods were not attributed to Insufficient cpu: {pending}", False, False
+
+    outage = o.get("outage_requests") or {}
+    recovery_requests = capacity.get("recovery_requests") or {}
+    for label, stats in (("metric-outage", outage), ("capacity-recovery", recovery_requests)):
+        if (stats.get("samples") or 0) < t["min_request_samples"]:
+            return False, f"{label} request telemetry was too thin ({stats.get('samples')} samples)", False, False
+        if stats.get("failure_rate") is None:
+            return False, f"{label} request failures were missing", False, False
+        if stats.get("p95_ms") is None and stats.get("failure_rate") < 1:
+            return False, f"{label} request latency was missing", False, False
+
+    outage_bad = (outage.get("p95_ms") is None or outage["p95_ms"] > t["p95_ms"]
+                  or outage["failure_rate"] >= t["error_rate"])
+    healthy_outage = (outage.get("p95_ms") is not None and outage["p95_ms"] <= t["p95_ms"]
+                      and outage["failure_rate"] < t["error_rate"])
+    healthy_recovery = (recovery_requests.get("p95_ms") is not None
+                        and recovery_requests["p95_ms"] <= t["p95_ms"]
+                        and recovery_requests["failure_rate"] < t["error_rate"])
+    fallback_ok = (o.get("fallback_condition_observed") is True
+                   and le(o.get("fallback_replicas_s"), t["fallback_s"]))
+    capacity_ok = le(capacity.get("recovered_s"), t["capacity_recover_s"])
+    scale_down_ok = (le(o.get("scale_down_s"), t["scale_down_s"])
+                     and (o.get("end_state") or {}).get("ready_replicas") == t["min_replicas"])
+    timing_ok = le(detected, t["detect_s"]) and le(recovered, t["metric_recover_s"])
+
+    # Baseline impact comes from measured user impact during the signal loss.
+    # Hardened healing additionally requires every negative mode and recovery.
+    impact = outage_bad
+    healed = (timing_ok and fallback_ok and healthy_outage and ceiling_observed
+              and scheduler_attributed and capacity_ok and healthy_recovery and scale_down_ok)
+    why = (f"metric error detected {fmt_s(detected)}, fallback {fmt_s(o.get('fallback_replicas_s'))}, "
+           f"metric recovered {fmt_s(recovered)}; outage p95 {outage.get('p95_ms')} ms, "
+           f"failures {outage.get('failure_rate')}; ceiling {ceiling_state.get('actual_replicas')} of "
+           f"{ceiling_state.get('max_replicas')} (limited {limit_condition.get('status')}); "
+           f"Pending {len(pending)} ({pending[0].get('message')}); capacity recovered "
+           f"{fmt_s(capacity.get('recovered_s'))}, scale-down {fmt_s(o.get('scale_down_s'))}")
+    return True, why, impact, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -533,7 +623,7 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
-          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1}
+          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

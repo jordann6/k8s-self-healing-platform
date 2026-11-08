@@ -3,6 +3,7 @@
 #
 #   make up        kind + Cilium + every platform chart + bootstrap (zero spend)
 #   make q1-up     kind + only the controllers and workloads required by Q1
+#   make q2-up     kind + only the controllers and workloads required by Q2
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
 #
@@ -44,7 +45,7 @@ TALON_VERSION           := 0.5.0    # app 0.3.0 (alpha, pinned; actionner kubern
 SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
 KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
-KEDA_VERSION            := 2.21.0    # kind row Q1 only; AKS uses the managed add-on, EKS has none yet
+KEDA_VERSION            := 2.21.0    # kind rows Q1/Q2; AKS uses the managed add-on, EKS has none yet
 RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
 
 HELM := helm
@@ -62,6 +63,9 @@ up: kind-up platform bootstrap ## Everything: cluster, platform, bootstrap
 
 .PHONY: q1-up
 q1-up: q1-kind-up q1-platform q1-bootstrap ## Focused Q1 cluster without unrelated platform controllers
+
+.PHONY: q2-up
+q2-up: q2-kind-up q2-platform q2-bootstrap ## Focused Q2 cluster without unrelated platform controllers
 
 .PHONY: kind-up
 kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the lab images
@@ -83,6 +87,16 @@ q1-kind-up: ## Create the kind cluster, install Cilium, and load only Q1 images
 	cilium/readiness-gate.sh
 	$(MAKE) q1-images
 
+.PHONY: q2-kind-up
+q2-kind-up: ## Create the kind cluster, install Cilium, and load only Q2 images
+	mkdir -p .kube
+	kind create cluster --config kind/q2-cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) q2-images
+
 .PHONY: images
 images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-app:v1 --build-arg RELEASE=v1 app
@@ -99,6 +113,12 @@ q1-images: ## Build and load only the Git server, Q1 worker, and RabbitMQ images
 	docker build -q -t selfheal-qworker:v1 app/qworker
 	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
 	kind load docker-image selfheal-gitserver:dev selfheal-qworker:v1 $(RABBITMQ_IMAGE) --name $(KIND_CLUSTER)
+
+.PHONY: q2-images
+q2-images: ## Build and load only the Git server and Q2 workload image
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-q2:v1 app/q2
+	kind load docker-image selfheal-gitserver:dev selfheal-q2:v1 --name $(KIND_CLUSTER)
 
 .PHONY: repos
 repos:
@@ -150,6 +170,13 @@ q1-platform: repos ## Install only KEDA and Argo CD for the focused Q1 proof
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
+.PHONY: q2-platform
+q2-platform: repos ## Install only KEDA and Argo CD for the focused Q2 proof
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: bootstrap
 bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD root app
 	scripts/bootstrap.sh
@@ -157,6 +184,10 @@ bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD ro
 .PHONY: q1-bootstrap
 q1-bootstrap: ## Namespaces, RabbitMQ credentials, Git seed, and the Q1 Argo CD app
 	FOCUSED_Q1=1 scripts/bootstrap.sh
+
+.PHONY: q2-bootstrap
+q2-bootstrap: ## Namespaces, Git seed, and the Q2 Argo CD app
+	FOCUSED_Q2=1 scripts/bootstrap.sh
 
 .PHONY: down
 down: ## Delete the kind cluster
@@ -193,10 +224,11 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
+	cd app/q2 && python3 -m unittest -v test_app
 	cd scripts && python3 -m unittest -v test_redact_evidence
 
 .PHONY: check
@@ -205,10 +237,13 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind, E
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	kubectl kustomize gitops/q1/baseline >/dev/null
 	kubectl kustomize gitops/q1/hardened >/dev/null
+	kubectl kustomize gitops/q2/baseline >/dev/null
+	kubectl kustomize gitops/q2/hardened >/dev/null
+	scripts/render-q2-profiles.sh
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

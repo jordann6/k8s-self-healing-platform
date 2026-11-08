@@ -46,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from judge import THRESHOLDS, hypothesis, overall, verdict  # noqa: E402
 import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
+import q2_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -55,9 +56,9 @@ TARGET = "kind"
 CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks"}
 NS = "selfheal"
 ROWS_BY_TARGET = {
-    # Q1 last on kind: it is a separate workload (queue + worker), independent
-    # of the web Rollout the other rows exercise.
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1"],
+    # Q1 and Q2 are separate focused workloads, independent of the web Rollout
+    # the original rows exercise.
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
@@ -86,6 +87,7 @@ ACTIONS = {
     "S3": "Argo CD self-heal re-applies Git",
     "R1": "Falco -> Falcosidekick -> Talon labels the pod; quarantine CiliumNetworkPolicy isolates it",
     "Q1": "KEDA scales the worker from zero on queue depth and back to zero; manual-ack redelivery keeps a killed worker from losing work",
+    **q2_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -1227,11 +1229,14 @@ def row_q1(lab: Lab, profile: str, d: Path) -> dict:
 
 
 RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3,
-           "R1": row_r1, "Q1": row_q1}
+           "R1": row_r1, "Q1": row_q1,
+           "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
-            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s"}
+            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
+            "Q2": "metric_failure_detected_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
-             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s"}
+             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
+             "Q2": "metric_recovered_s"}
 
 
 def runner(row: str):
@@ -1264,7 +1269,7 @@ FULL_PRECONDITIONS = [
     ("falco", "deploy", "falco-falcosidekick"), ("falco", "deploy", "falco-talon"),
     ("gitops", "deploy", "gitserver"),
 ]
-Q1_PRECONDITIONS = [
+FOCUSED_PRECONDITIONS = [
     ("kube-system", "daemonset", "cilium"), ("kube-system", "deploy", "cilium-operator"),
     ("keda", "deploy", "keda-operator"), ("keda", "deploy", "keda-operator-metrics-apiserver"),
     ("keda", "deploy", "keda-admission-webhooks"),
@@ -1276,9 +1281,21 @@ def q1_only(rows: list[str]) -> bool:
     return TARGET == "kind" and rows == ["Q1"]
 
 
-def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
+def q2_only(rows: list[str]) -> bool:
+    return TARGET == "kind" and rows == ["Q2"]
+
+
+def focused_kind_row(rows: list[str]) -> str | None:
     if q1_only(rows):
-        return Q1_PRECONDITIONS
+        return "Q1"
+    if q2_only(rows):
+        return "Q2"
+    return None
+
+
+def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
+    if focused_kind_row(rows):
+        return FOCUSED_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1299,17 +1316,20 @@ def preconditions(rows: list[str]) -> dict:
         checks[f"{ns}/{name}"] = p.returncode == 0
         if p.returncode != 0:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
-    if q1_only(rows):
-        wait_for(lambda: app_state("selfheal-q1").get("health") == "Healthy"
-                 and app_state("selfheal-q1").get("sync") == "Synced", 180, step=5,
-                 what="Q1 app Synced and Healthy")
-        for name in ("rabbitmq", "qworker"):
+    focused = focused_kind_row(rows)
+    if focused:
+        app = f"selfheal-{focused.lower()}"
+        wait_for(lambda: app_state(app).get("health") == "Healthy"
+                 and app_state(app).get("sync") == "Synced", 180, step=5,
+                 what=f"{focused} app Synced and Healthy")
+        names = ("rabbitmq", "qworker") if focused == "Q1" else ("q2-signal", "q2-target")
+        for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
             if p.returncode != 0:
                 raise SystemExit(f"precondition failed: {NS}/deploy/{name} not ready: "
                                  f"{(p.stderr or p.stdout).strip()}")
-        checks["q1_synced"] = True
+        checks[f"{focused.lower()}_synced"] = True
         return checks
     # Right after `make up`, Argo CD may not have synced the lab yet.
     wait_for(lambda: app_state("selfheal-workload").get("health") == "Healthy"
@@ -1349,6 +1369,28 @@ def apply_q1_profile(profile: str) -> None:
              what="Q1 app Synced and Healthy")
 
 
+def apply_q2_profile(profile: str) -> None:
+    """Switch only the isolated Q2 application."""
+    log(f"profile -> {profile} (Q2 only)")
+    k("-n", "argocd", "patch", "application", "selfheal-q2", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": f"q2/{profile}"}}}), check=True)
+    refresh("selfheal-q2")
+    wait_for(lambda: app_state("selfheal-q2")["path"] == f"q2/{profile}", 120, step=3,
+             what="Q2 app path")
+    wait_for(lambda: app_state("selfheal-q2")["sync"] == "Synced"
+             and app_state("selfheal-q2")["health"] == "Healthy", 180, step=3,
+             what="Q2 app Synced and Healthy")
+
+
+def apply_focused_profile(row: str, profile: str) -> None:
+    if row == "Q1":
+        apply_q1_profile(profile)
+    elif row == "Q2":
+        apply_q2_profile(profile)
+    else:
+        raise ValueError(f"unknown focused row {row}")
+
+
 def repo_commit() -> str:
     """The git commit the runner was launched from, recorded in every report so
     a result can be tied to the exact code. 'unknown' outside a git checkout."""
@@ -1370,7 +1412,8 @@ def versions() -> dict:
                   ("external-secrets", "deploy", "external-secrets"), ("cert-manager", "deploy", "cert-manager"),
                   ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader"),
                   ("keda", "deploy", "keda-operator"), (NS, "deploy", "rabbitmq"),
-                  (NS, "deploy", "qworker")]
+                  (NS, "deploy", "qworker"), (NS, "deploy", "q2-signal"),
+                  (NS, "deploy", "q2-target")]
     if TARGET == "eks":
         components.append(("kube-system", "deploy", "karpenter"))
     for ns, kind, name in components:
@@ -1427,6 +1470,8 @@ def write_report(outdir: Path, doc: dict) -> None:
     L.append("```json\n" + json.dumps({"preconditions": doc["preconditions"], "versions": doc["versions"]}, indent=2) + "\n```")
     if doc["target"] == "kind" and doc["rows"] == ["Q1"]:
         L.append("\nQ1 uses RabbitMQ queue telemetry and distinct completion IDs. The measured observations are in `report.json`.")
+    elif doc["target"] == "kind" and doc["rows"] == ["Q2"]:
+        L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, node CPU capacity, and timestamped request samples.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
                  "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
@@ -1468,8 +1513,9 @@ def main() -> int:
 
     checks = preconditions(rows)
     if args.only_profile:
-        if q1_only(rows):
-            apply_q1_profile(args.only_profile)
+        focused = focused_kind_row(rows)
+        if focused:
+            apply_focused_profile(focused, args.only_profile)
         else:
             with Lab() as lab:
                 apply_profile(lab, args.only_profile)
@@ -1480,13 +1526,13 @@ def main() -> int:
     doc = {"run_id": args.run_id, "target": TARGET, "started": iso(now()), "rows": rows,
            "partial": rows != ROWS, "preconditions": checks, "versions": versions(),
            "results": {}, "observations": {}}
-    focused_q1 = q1_only(rows)
-    lab_context = contextlib.nullcontext(None) if focused_q1 else Lab()
-    hubble_context = contextlib.nullcontext() if focused_q1 else HubbleRelay()
+    focused = focused_kind_row(rows)
+    lab_context = contextlib.nullcontext(None) if focused else Lab()
+    hubble_context = contextlib.nullcontext() if focused else HubbleRelay()
     with lab_context as lab, hubble_context:
         for profile in ("baseline", "hardened"):
-            if focused_q1:
-                apply_q1_profile(profile)
+            if focused:
+                apply_focused_profile(focused, profile)
             else:
                 apply_profile(lab, profile)
             for row in rows:
@@ -1494,13 +1540,13 @@ def main() -> int:
                 d.mkdir(exist_ok=True)
                 log(f"{profile} {row}: {hypothesis(row, TARGET)}")
                 try:
-                    if not focused_q1:
+                    if not focused:
                         steady(lab)
                     ABORT.clear()
                     obs = runner(row)(lab, profile, d)
                     if ABORT:
                         obs["abort_evidence"] = {**ABORT, "at_s": round(ABORT["t"] - obs.get("t0", ABORT["t"]), 1)}
-                    obs["alerts_fired"] = [] if focused_q1 else alerts_fired(lab, obs.get("t0", now()))
+                    obs["alerts_fired"] = [] if focused else alerts_fired(lab, obs.get("t0", now()))
                 except Exception as e:  # noqa: BLE001 - recorded as error, never skipped
                     obs = {"exception": f"{type(e).__name__}: {e}", "traceback": traceback.format_exc()}
                     log(f"  exception: {obs['exception']}")

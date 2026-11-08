@@ -1,0 +1,8 @@
+# Q2's HTTP workload and controllable metric source are identical in both
+# profiles. Only the ScaledObject fallback differs.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - workload.yaml
+  - signal.yaml
