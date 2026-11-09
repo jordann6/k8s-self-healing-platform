@@ -1,0 +1,191 @@
+{
+  "run_id": "kind-20261109-142748",
+  "target": "kind",
+  "started": "2026-11-09T20:27:59.871Z",
+  "rows": [
+    "D1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "selfheal-d1-store/d1-minio": true,
+    "selfheal-d1-source/d1-source": true,
+    "d1_synced": true
+  },
+  "versions": {
+    "repo_commit": "908f75f075ca9d4b51d79aa0037a6acbbb44d1dc-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "D1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "backup d1-backup-1794256103-x8nmg version 4c4abcfe-15d8-40d3-be9e-8eefd4f3ef1d completed in 3s; restored 100 exact rows into selfheal-d1-restore/d1 in 14s; RPO 1 row and 3s; truncated restore failed atomically True; writer and WORM deletion denied True",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "D1": {
+      "baseline": {
+        "t0": 1794256081.3883278,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "cronjob_present": false,
+        "backup": null,
+        "loss": {
+          "started_at": "2026-11-09T20:28:01.816Z",
+          "elapsed_s": 11.882,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore_available": false,
+        "window": "deterministic source creation through unprotected source PVC replacement",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794256103.624104,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "backup": {
+          "backup_id": "d1-backup-1794256103-x8nmg",
+          "archive_key": "backups/d1-backup-1794256103-x8nmg.dump",
+          "archive_sha256": "4e6bcc4624c2d1ca5cb937fa9108a4244952ea3e6fdb9cf4754451b91a3af113",
+          "source_max_seq": 100,
+          "created_at": "2026-11-09T20:28:24Z",
+          "manifest_sha256": "f1e5acd889f887a44282f831afea70f1049021810d2f801cd0239eb71be33581",
+          "object_version": "4c4abcfe-15d8-40d3-be9e-8eefd4f3ef1d",
+          "object_size": 6401,
+          "retain_until": null,
+          "retention_mode": "COMPLIANCE",
+          "retention_days": 1,
+          "job_name": "d1-backup-1794256103",
+          "job_uid": "bb63886c-1e09-4bf1-926d-1b164195c680",
+          "completed": true,
+          "completion_s": 3.327,
+          "started_at": "2026-11-09T20:28:23.890Z"
+        },
+        "backup_s": 3.327,
+        "post_backup_sentinel": {
+          "seq": 101,
+          "acknowledged": true,
+          "at": "2026-11-09T20:28:27.360Z"
+        },
+        "loss": {
+          "started_at": "2026-11-09T20:28:27.460Z",
+          "elapsed_s": 10.649,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore": {
+          "target_db": "d1",
+          "archive_sha256": "4e6bcc4624c2d1ca5cb937fa9108a4244952ea3e6fdb9cf4754451b91a3af113",
+          "job_name": "d1-restore-1794256118",
+          "job_uid": "414126ac-793f-4cd1-a91f-a95c17494b36",
+          "completed": true,
+          "completion_s": 3.334,
+          "target_namespace": "selfheal-d1-restore",
+          "target_database": "d1"
+        },
+        "restored": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "rpo_rows": 1,
+        "rpo_seconds": 3.36,
+        "rto_s": 14.281,
+        "invalid_restore": {
+          "job_name": "d1-invalid-1794256121",
+          "job_uid": "1f0a3c7d-8bfc-4f25-b9df-135dd3dd2f69",
+          "failed": true,
+          "completion_s": 3.357,
+          "reason": "NOTICE:  database \"d1_invalid\" does not exist, skipping\npg_restore: error: could not read from input file: end of file",
+          "application_tables": 0
+        },
+        "deletion_resistance": {
+          "writer_delete_denied": true,
+          "writer_reason": "mc: <ERROR> Failed to remove `store/d1-backups/backups/d1-backup-1794256103-x8nmg.dump`. Access Denied.",
+          "admin_version_delete_denied": true,
+          "admin_reason": "mc: <ERROR> Failed to remove `store/d1-backups/backups/d1-backup-1794256103-x8nmg.dump`. Object, 'backups/d1-backup-1794256103-x8nmg.dump (Version ID=4c4abcfe-15d8-40d3-be9e-8eefd4f3ef1d)' is WORM protected and cannot be overwritten",
+          "archive_readable_after": true,
+          "manifest_readable_after": true,
+          "verified_checksums": {
+            "archive_sha256": "4e6bcc4624c2d1ca5cb937fa9108a4244952ea3e6fdb9cf4754451b91a3af113",
+            "manifest_sha256": "f1e5acd889f887a44282f831afea70f1049021810d2f801cd0239eb71be33581"
+          }
+        },
+        "window": "backup completion through source PVC replacement, fresh-target restore, integrity, invalid restore, and delete denial",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-09T20:29:00.033Z",
+  "pass": true
+}

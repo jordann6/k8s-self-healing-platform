@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bootstrap.sh: everything outside GitOps, after the platform charts are up.
-# Idempotent. FOCUSED_Q1=1 through FOCUSED_P1=1 creates only that
+# Idempotent. FOCUSED_Q1=1 through FOCUSED_D1=1 creates only that
 # capability's dependencies. The default path creates the complete lab.
 set -euo pipefail
 
@@ -10,13 +10,42 @@ focused_q2="${FOCUSED_Q2:-0}"
 focused_q3="${FOCUSED_Q3:-0}"
 focused_n1="${FOCUSED_N1:-0}"
 focused_p1="${FOCUSED_P1:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1))
+focused_d1="${FOCUSED_D1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
 fi
 kubectl apply -f "$root/bootstrap/namespaces.yaml" >/dev/null
 kubectl apply -f "$root/bootstrap/gitserver.yaml" >/dev/null
+
+if ((focused_count == 0 || focused_d1 == 1)); then
+	for ns in selfheal-d1-source selfheal-d1-store selfheal-d1-restore; do
+		kubectl create namespace "$ns" --dry-run=client -o yaml |
+			kubectl label --local -f - pod-security.kubernetes.io/enforce=restricted -o yaml |
+			kubectl apply -f - >/dev/null
+	done
+	if ! kubectl -n selfheal-d1-store get secret d1-minio-root >/dev/null 2>&1; then
+		kubectl -n selfheal-d1-store create secret generic d1-minio-root \
+			--from-literal=access-key=d1root \
+			--from-literal=secret-key="$(openssl rand -hex 24)" >/dev/null
+	fi
+	if ! kubectl -n selfheal-d1-store get secret d1-backup-store >/dev/null 2>&1; then
+		backup_secret="$(openssl rand -hex 24)"
+		for ns in selfheal-d1-store selfheal-d1-source selfheal-d1-restore; do
+			kubectl -n "$ns" create secret generic d1-backup-store \
+				--from-literal=access-key=d1backup \
+				--from-literal=secret-key="$backup_secret" >/dev/null
+		done
+	fi
+	if ! kubectl -n selfheal-d1-source get secret d1-postgres >/dev/null 2>&1; then
+		postgres_password="$(openssl rand -hex 24)"
+		for ns in selfheal-d1-source selfheal-d1-restore; do
+			kubectl -n "$ns" create secret generic d1-postgres \
+				--from-literal=password="$postgres_password" >/dev/null
+		done
+	fi
+fi
 
 if [[ "$focused_p1" == "1" ]]; then
 	key_dir="${P1_KEY_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/k8s-self-healing-platform/p1}"
@@ -76,6 +105,9 @@ elif [[ "$focused_n1" == "1" ]]; then
 elif [[ "$focused_p1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/p1.yaml" >/dev/null
 	echo "bootstrap: done (focused P1 app -> p1/baseline)"
+elif [[ "$focused_d1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/d1.yaml" >/dev/null
+	echo "bootstrap: done (focused D1 app -> d1/baseline)"
 else
 	kubectl apply -f "$root/bootstrap/root-app.yaml" >/dev/null
 	echo "bootstrap: done (Argo CD root app -> apps/baseline)"

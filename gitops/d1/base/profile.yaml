@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d1-profile
+  namespace: selfheal-d1-source
+data:
+  capability: backup-restore-deletion-resistance

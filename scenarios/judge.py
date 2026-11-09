@@ -64,6 +64,11 @@ THRESHOLDS = {
         # missing from hardened is an error rather than a protected pass.
         "P1": {"admission_s": 20, "ready_s": 120, "recovery_s": 60,
                "min_pass_decisions": 2, "min_reject_decisions": 5},
+        # D1 (kind only, Phase 3). Fixed in ADR-0014 before live proof.
+        # Missing backup, restore, integrity, invalid-restore, or retention
+        # telemetry is an error rather than a protected pass.
+        "D1": {"backup_s": 120, "restore_s": 120, "rto_s": 180,
+               "rpo_rows": 1, "rows": 100, "retention_days": 1},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -140,6 +145,9 @@ HYPOTHESES = {
     "P1": "A digest-pinned artifact signed by the trusted local key is admitted and runs at the signed digest, "
           "while unsigned, invalid-signature, untrusted-signer, tag-only, and verifier-outage requests are "
           "denied with attributable telemetry and the verifier recovers within 60 seconds.",
+    "D1": "A completed PostgreSQL backup restores exactly 100 deterministic rows into a fresh target within "
+          "180 seconds, loses only the one intentional post-backup row, rejects a truncated archive atomically, "
+          "and remains readable after identity and WORM deletion attempts.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -636,6 +644,108 @@ def judge_p1(o: dict, t: dict):
     return True, why, True, healed
 
 
+def judge_d1(o: dict, t: dict):
+    source = o.get("source") or {}
+    source_ok = (source.get("available") is True and source.get("rows") == t["rows"]
+                 and source.get("min_seq") == 1 and source.get("max_seq") == t["rows"]
+                 and source.get("contiguous") is True and source.get("exact") is True
+                 and bool(source.get("digest")))
+    if not source_ok:
+        return False, f"deterministic source data telemetry was missing or invalid ({source})", False, False
+
+    loss = o.get("loss") or {}
+    if o.get("backup") is None:
+        impact = (o.get("cronjob_present") is False
+                  and loss.get("original_data_absent") is True
+                  and o.get("restore_available") is False)
+        why = "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available"
+        return True, why, impact, False
+
+    backup = o.get("backup") or {}
+    restore = o.get("restore") or {}
+    restored = o.get("restored") or {}
+    invalid = o.get("invalid_restore") or {}
+    resistance = o.get("deletion_resistance") or {}
+    sentinel = o.get("post_backup_sentinel") or {}
+    required = {
+        "backup.job_name": backup.get("job_name"),
+        "backup.job_uid": backup.get("job_uid"),
+        "backup.completed": backup.get("completed"),
+        "backup.completion_s": backup.get("completion_s"),
+        "backup.backup_id": backup.get("backup_id"),
+        "backup.archive_key": backup.get("archive_key"),
+        "backup.archive_sha256": backup.get("archive_sha256"),
+        "backup.manifest_sha256": backup.get("manifest_sha256"),
+        "backup.source_max_seq": backup.get("source_max_seq"),
+        "backup.created_at": backup.get("created_at"),
+        "backup.object_version": backup.get("object_version"),
+        "backup.object_size": backup.get("object_size"),
+        "backup.retention_mode": backup.get("retention_mode"),
+        "backup.retention_days": backup.get("retention_days"),
+        "restore.job_name": restore.get("job_name"),
+        "restore.job_uid": restore.get("job_uid"),
+        "restore.completed": restore.get("completed"),
+        "restore.completion_s": restore.get("completion_s"),
+        "restore.target_namespace": restore.get("target_namespace"),
+        "restore.target_database": restore.get("target_database"),
+        "restore.archive_sha256": restore.get("archive_sha256"),
+        "restored.digest": restored.get("digest"),
+        "rpo_rows": o.get("rpo_rows"),
+        "rpo_seconds": o.get("rpo_seconds"),
+        "rto_s": o.get("rto_s"),
+        "invalid.job_uid": invalid.get("job_uid"),
+        "invalid.failed": invalid.get("failed"),
+        "invalid.application_tables": invalid.get("application_tables"),
+        "delete.writer": resistance.get("writer_delete_denied"),
+        "delete.admin": resistance.get("admin_version_delete_denied"),
+        "delete.archive_readable": resistance.get("archive_readable_after"),
+        "delete.manifest_readable": resistance.get("manifest_readable_after"),
+    }
+    missing = [name for name, value in required.items() if value is None or value == ""]
+    if missing:
+        return False, f"D1 required telemetry missing: {', '.join(missing)}", False, False
+
+    archive_sha = str(backup.get("archive_sha256"))
+    manifest_sha = str(backup.get("manifest_sha256"))
+    checksums_well_formed = (len(archive_sha) == 64 and len(manifest_sha) == 64)
+    restored_ok = (restored.get("available") is True and restored.get("rows") == t["rows"]
+                   and restored.get("min_seq") == 1 and restored.get("max_seq") == t["rows"]
+                   and restored.get("contiguous") is True and restored.get("exact") is True
+                   and restored.get("digest") == source.get("digest"))
+    negative_ok = invalid.get("failed") is True and invalid.get("application_tables") == 0
+    deletion_ok = (resistance.get("writer_delete_denied") is True
+                   and resistance.get("admin_version_delete_denied") is True
+                   and resistance.get("archive_readable_after") is True
+                   and resistance.get("manifest_readable_after") is True)
+    healed = (
+        backup.get("completed") is True
+        and le(backup.get("completion_s"), t["backup_s"])
+        and backup.get("source_max_seq") == t["rows"]
+        and backup.get("retention_mode") == "COMPLIANCE"
+        and backup.get("retention_days") == t["retention_days"]
+        and checksums_well_formed
+        and sentinel.get("seq") == t["rows"] + 1
+        and sentinel.get("acknowledged") is True
+        and loss.get("original_data_absent") is True
+        and restore.get("completed") is True
+        and le(restore.get("completion_s"), t["restore_s"])
+        and restore.get("target_namespace") == "selfheal-d1-restore"
+        and restore.get("target_database") == "d1"
+        and restore.get("archive_sha256") == archive_sha
+        and restored_ok
+        and o.get("rpo_rows") == t["rpo_rows"]
+        and le(o.get("rto_s"), t["rto_s"])
+        and negative_ok
+        and deletion_ok
+    )
+    why = (f"backup {backup.get('backup_id')} version {backup.get('object_version')} completed in "
+           f"{fmt_s(backup.get('completion_s'))}; restored {restored.get('rows')} exact rows into "
+           f"{restore.get('target_namespace')}/{restore.get('target_database')} in "
+           f"{fmt_s(o.get('rto_s'))}; RPO {o.get('rpo_rows')} row and {fmt_s(o.get('rpo_seconds'))}; "
+           f"truncated restore failed atomically {negative_ok}; writer and WORM deletion denied {deletion_ok}")
+    return True, why, True, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -843,7 +953,7 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
-          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1}
+          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

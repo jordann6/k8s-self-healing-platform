@@ -16,10 +16,13 @@ configs:
     # the controller and a watch per kind on the API server.
     resource.inclusions: |
       - apiGroups: [""]
-        kinds: [Service, Pod, ConfigMap]
+        kinds: [Service, Pod, ConfigMap, PersistentVolumeClaim]
         clusters: ["*"]
       - apiGroups: [apps]
-        kinds: [Deployment, ReplicaSet]
+        kinds: [Deployment, ReplicaSet, StatefulSet]
+        clusters: ["*"]
+      - apiGroups: [batch]
+        kinds: [Job, CronJob]
         clusters: ["*"]
       - apiGroups: [autoscaling]
         kinds: [HorizontalPodAutoscaler]
