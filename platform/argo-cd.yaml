@@ -47,6 +47,11 @@ configs:
       - apiGroups: [keda.sh]
         kinds: [ScaledObject, TriggerAuthentication]
         clusters: ["*"]
+      # Row Q3 uses recommendation-only VPA. The focused platform installs
+      # only the recommender, with no updater or admission controller.
+      - apiGroups: [autoscaling.k8s.io]
+        kinds: [VerticalPodAutoscaler]
+        clusters: ["*"]
 controller:
   resources:
     requests: {cpu: 100m, memory: 192Mi}

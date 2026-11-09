@@ -47,6 +47,14 @@ THRESHOLDS = {
                "capacity_recover_s": 60, "scale_down_s": 90,
                "p95_ms": 300, "error_rate": 0.01, "fallback_replicas": 3,
                "max_replicas": 4, "min_replicas": 1, "min_request_samples": 20},
+        # Row Q3 (kind only, Phase 3). Fixed before the first live run in
+        # ADR-0011. The VPA is recommendation-only, so any workload mutation
+        # is a miss and missing resource telemetry is an error.
+        "Q3": {"recommend_s": 240, "min_samples": 6,
+               "cpu_pressure_m": 100, "memory_pressure_mib": 64,
+               "cpu_ratio_min": 0.70, "cpu_ratio_max": 2.00,
+               "memory_ratio_min": 0.90, "memory_ratio_max": 2.00,
+               "restarts": 0},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -114,6 +122,9 @@ HYPOTHESES = {
           "three replicas within 30s while meeting the request SLO. Restored telemetry recovers within 45s, "
           "the maximum-replica and CPU scheduling ceilings are explicitly observed, restored capacity recovers "
           "within 60s, and withdrawn demand scales back to one within 90s.",
+    "Q3": "Under sustained CPU and memory pressure, the hardened VPA publishes a bounded recommendation within "
+          "240s that is related to measured use, while Off mode leaves requests, the running pod, and restart "
+          "count unchanged. The baseline has the same pressure and telemetry but no sizing recommendation.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -417,6 +428,72 @@ def judge_q2(o: dict, t: dict):
     return True, why, impact, healed
 
 
+def judge_q3(o: dict, t: dict):
+    if o.get("metrics_available") is not True:
+        return False, "the resource Metrics API never reported the Q3 target", False, False
+    usage = o.get("usage") or {}
+    if (usage.get("samples") or 0) < t["min_samples"]:
+        return False, f"resource telemetry was too thin ({usage.get('samples')} samples)", False, False
+    if usage.get("cpu_p90_m") is None or usage.get("memory_p90_mib") is None:
+        return False, "CPU or memory usage telemetry was missing", False, False
+    if o.get("hpa_present") is True:
+        return False, "an HPA targeted q3-target, so the recommendation cannot be isolated", False, False
+
+    initial = o.get("initial_state") or {}
+    final = o.get("final_state") or {}
+    if initial.get("pod_count") != 1 or final.get("pod_count") != 1:
+        return False, "the Q3 workload did not remain a single observable pod", False, False
+    requests = initial.get("requests") or {}
+    if requests.get("cpu_m") is None or requests.get("memory_mib") is None:
+        return False, "the initial CPU or memory request was missing", False, False
+
+    cpu_p90 = usage["cpu_p90_m"]
+    memory_p90 = usage["memory_p90_mib"]
+    pressure = cpu_p90 >= t["cpu_pressure_m"] and memory_p90 >= t["memory_pressure_mib"]
+    stable = (o.get("requests_unchanged") is True and o.get("pod_uid_unchanged") is True
+              and o.get("restart_delta") == t["restarts"])
+
+    recommendation = o.get("recommendation")
+    if not o.get("vpa_present"):
+        if recommendation:
+            return False, "a VPA recommendation appeared without the Q3 VPA object", False, False
+        why = (f"{usage.get('samples')} samples, CPU p90 {cpu_p90}m, memory p90 {memory_p90}MiB; "
+               f"no VPA recommendation; requests {requests.get('cpu')}/{requests.get('memory')}")
+        return True, why, pressure, False
+
+    if o.get("update_mode") != "Off":
+        return False, f"VPA updateMode was {o.get('update_mode')!r}, expected 'Off'", False, False
+    if not recommendation:
+        return False, "the VPA status contained no target-container recommendation", False, False
+    if o.get("recommendation_s") is None:
+        return False, "the recommendation publication time was not measured", False, False
+
+    for key in ("lowerBound", "target", "upperBound"):
+        values = recommendation.get(key) or {}
+        if not values.get("cpu_m") or not values.get("memory_mib"):
+            return False, f"the VPA {key} CPU or memory value was missing", False, False
+    lower = recommendation["lowerBound"]
+    target = recommendation["target"]
+    upper = recommendation["upperBound"]
+    bounded = (lower["cpu_m"] <= target["cpu_m"] <= upper["cpu_m"]
+               and lower["memory_mib"] <= target["memory_mib"] <= upper["memory_mib"])
+    cpu_ratio = target["cpu_m"] / cpu_p90 if cpu_p90 else None
+    memory_ratio = target["memory_mib"] / memory_p90 if memory_p90 else None
+    related = (cpu_ratio is not None and t["cpu_ratio_min"] <= cpu_ratio <= t["cpu_ratio_max"]
+               and memory_ratio is not None
+               and t["memory_ratio_min"] <= memory_ratio <= t["memory_ratio_max"])
+    above_requests = (target["cpu_m"] > requests["cpu_m"]
+                      and target["memory_mib"] > requests["memory_mib"])
+    healed = (pressure and le(o.get("recommendation_s"), t["recommend_s"])
+              and bounded and related and above_requests and stable)
+    why = (f"{usage.get('samples')} samples, CPU p90 {cpu_p90}m, memory p90 {memory_p90}MiB; "
+           f"recommendation {target.get('cpu')}/{target.get('memory')} at {fmt_s(o.get('recommendation_s'))}, "
+           f"ratios {cpu_ratio:.2f}/{memory_ratio:.2f}; bounded {bounded}, requests unchanged "
+           f"{o.get('requests_unchanged')}, pod unchanged {o.get('pod_uid_unchanged')}, "
+           f"restart delta {o.get('restart_delta')}")
+    return True, why, pressure, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -623,7 +700,8 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
-          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2}
+          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
+          "Q3": judge_q3}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

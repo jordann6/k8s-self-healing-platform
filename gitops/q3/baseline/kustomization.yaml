@@ -1,0 +1,9 @@
+# Baseline has measured pressure but no sizing recommendation.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+images:
+  - name: selfheal-q3
+    newTag: v1

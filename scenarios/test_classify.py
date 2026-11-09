@@ -237,6 +237,22 @@ class Q2FocusedPreflight(unittest.TestCase):
         self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
 
 
+class Q3FocusedPreflight(unittest.TestCase):
+    def test_q3_only_uses_metrics_and_recommender_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q3"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("kube-system", "deploy", "metrics-server"), resources)
+        self.assertIn(("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+
+
 def q2(**kw):
     conditions = {
         "scaledobject_conditions": {"Ready": {"status": "False", "reason": "ScalerError"}},
@@ -316,6 +332,63 @@ class Q2ScalingFailure(unittest.TestCase):
 
     def test_never_scales_down_is_a_miss(self):
         self.assertEqual(verdict("Q2", "hardened", q2(scale_down_s=None), "impact")["status"], "miss")
+
+
+def q3(**kw):
+    state = {"pod_count": 1, "pod": "q3-target-x", "uid": "uid-1", "restart_count": 0,
+             "ready": True, "requests": {"cpu": "50m", "memory": "32Mi",
+                                            "cpu_m": 50, "memory_mib": 32}}
+    recommendation = {
+        "container": "target",
+        "lowerBound": {"cpu": "100m", "memory": "80Mi", "cpu_m": 100, "memory_mib": 80},
+        "target": {"cpu": "190m", "memory": "100Mi", "cpu_m": 190, "memory_mib": 100},
+        "uncappedTarget": {"cpu": "190m", "memory": "100Mi", "cpu_m": 190, "memory_mib": 100},
+        "upperBound": {"cpu": "400m", "memory": "200Mi", "cpu_m": 400, "memory_mib": 200},
+    }
+    o = {"metrics_available": True, "vpa_present": True, "update_mode": "Off",
+         "hpa_present": False, "initial_state": state, "final_state": dict(state),
+         "usage": {"samples": 8, "cpu_p90_m": 200, "memory_p90_mib": 96,
+                   "cpu_max_m": 210, "memory_max_mib": 97},
+         "recommendation": recommendation, "recommendation_s": 90,
+         "requests_unchanged": True, "pod_uid_unchanged": True, "restart_delta": 0}
+    o.update(kw)
+    return o
+
+
+class Q3VerticalSizing(unittest.TestCase):
+    def test_baseline_pressure_without_recommendation_is_impact(self):
+        obs = q3(vpa_present=False, update_mode=None, recommendation=None, recommendation_s=None)
+        self.assertEqual(verdict("Q3", "baseline", obs, None)["status"], "impact")
+
+    def test_hardened_bounded_recommendation_heals_without_mutation(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(), "impact")["status"], "healed")
+
+    def test_missing_metrics_is_an_error(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(metrics_available=False), "impact")["status"], "error")
+
+    def test_thin_metrics_is_an_error(self):
+        obs = q3()
+        obs["usage"] = {**obs["usage"], "samples": 5}
+        self.assertEqual(verdict("Q3", "hardened", obs, "impact")["status"], "error")
+
+    def test_missing_recommendation_is_an_error(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(recommendation=None), "impact")["status"], "error")
+
+    def test_hpa_confounds_the_result(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(hpa_present=True), "impact")["status"], "error")
+
+    def test_workload_mutation_is_a_miss(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(pod_uid_unchanged=False), "impact")["status"], "miss")
+        self.assertEqual(verdict("Q3", "hardened", q3(restart_delta=1), "impact")["status"], "miss")
+
+    def test_unrelated_recommendation_is_a_miss(self):
+        obs = q3()
+        obs["recommendation"]["target"] = {"cpu": "500m", "memory": "220Mi",
+                                               "cpu_m": 500, "memory_mib": 220}
+        self.assertEqual(verdict("Q3", "hardened", obs, "impact")["status"], "miss")
+
+    def test_slow_recommendation_is_a_miss(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(recommendation_s=241), "impact")["status"], "miss")
 
 
 class AbortLine(unittest.TestCase):
@@ -533,7 +606,7 @@ class EksThresholds(unittest.TestCase):
         self.assertTrue(set(THRESHOLDS["eks"]) <= set(JUDGES))
 
     def test_q_rows_are_kind_only(self):
-        for row in ("Q1", "Q2"):
+        for row in ("Q1", "Q2", "Q3"):
             self.assertIn(row, THRESHOLDS["kind"])
             self.assertNotIn(row, THRESHOLDS["eks"])
             self.assertNotIn(row, THRESHOLDS["aks"])

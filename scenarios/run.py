@@ -47,6 +47,7 @@ from judge import THRESHOLDS, hypothesis, overall, verdict  # noqa: E402
 import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
 import q2_row  # noqa: E402
+import q3_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -56,9 +57,9 @@ TARGET = "kind"
 CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks"}
 NS = "selfheal"
 ROWS_BY_TARGET = {
-    # Q1 and Q2 are separate focused workloads, independent of the web Rollout
+    # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
     # the original rows exercise.
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2"],
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
@@ -88,6 +89,7 @@ ACTIONS = {
     "R1": "Falco -> Falcosidekick -> Talon labels the pod; quarantine CiliumNetworkPolicy isolates it",
     "Q1": "KEDA scales the worker from zero on queue depth and back to zero; manual-ack redelivery keeps a killed worker from losing work",
     **q2_row.ACTIONS,
+    **q3_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -1230,13 +1232,14 @@ def row_q1(lab: Lab, profile: str, d: Path) -> dict:
 
 RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3,
            "R1": row_r1, "Q1": row_q1,
-           "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d)}
+           "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d),
+           "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
-            "Q2": "metric_failure_detected_s"}
+            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
-             "Q2": "metric_recovered_s"}
+             "Q2": "metric_recovered_s", "Q3": "recommendation_s"}
 
 
 def runner(row: str):
@@ -1269,12 +1272,16 @@ FULL_PRECONDITIONS = [
     ("falco", "deploy", "falco-falcosidekick"), ("falco", "deploy", "falco-talon"),
     ("gitops", "deploy", "gitserver"),
 ]
-FOCUSED_PRECONDITIONS = [
+FOCUSED_SHARED_PRECONDITIONS = [
     ("kube-system", "daemonset", "cilium"), ("kube-system", "deploy", "cilium-operator"),
-    ("keda", "deploy", "keda-operator"), ("keda", "deploy", "keda-operator-metrics-apiserver"),
-    ("keda", "deploy", "keda-admission-webhooks"),
     ("argocd", "statefulset", "argocd-application-controller"), ("gitops", "deploy", "gitserver"),
 ]
+FOCUSED_KEDA_PRECONDITIONS = [
+    ("keda", "deploy", "keda-operator"), ("keda", "deploy", "keda-operator-metrics-apiserver"),
+    ("keda", "deploy", "keda-admission-webhooks"),
+]
+FOCUSED_Q3_PRECONDITIONS = [("kube-system", "deploy", "metrics-server"),
+                            ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender")]
 
 
 def q1_only(rows: list[str]) -> bool:
@@ -1285,17 +1292,26 @@ def q2_only(rows: list[str]) -> bool:
     return TARGET == "kind" and rows == ["Q2"]
 
 
+def q3_only(rows: list[str]) -> bool:
+    return TARGET == "kind" and rows == ["Q3"]
+
+
 def focused_kind_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
     if q2_only(rows):
         return "Q2"
+    if q3_only(rows):
+        return "Q3"
     return None
 
 
 def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
-    if focused_kind_row(rows):
-        return FOCUSED_PRECONDITIONS
+    focused = focused_kind_row(rows)
+    if focused in ("Q1", "Q2"):
+        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_KEDA_PRECONDITIONS
+    if focused == "Q3":
+        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_Q3_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1322,7 +1338,8 @@ def preconditions(rows: list[str]) -> dict:
         wait_for(lambda: app_state(app).get("health") == "Healthy"
                  and app_state(app).get("sync") == "Synced", 180, step=5,
                  what=f"{focused} app Synced and Healthy")
-        names = ("rabbitmq", "qworker") if focused == "Q1" else ("q2-signal", "q2-target")
+        names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
+                 "Q3": ("q3-target",)}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1382,11 +1399,33 @@ def apply_q2_profile(profile: str) -> None:
              what="Q2 app Synced and Healthy")
 
 
+def apply_q3_profile(profile: str) -> None:
+    """Switch only the recommendation-only Q3 application."""
+    log(f"profile -> {profile} (Q3 only)")
+    k("-n", "argocd", "patch", "application", "selfheal-q3", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": f"q3/{profile}"}}}), check=True)
+    refresh("selfheal-q3")
+    wait_for(lambda: app_state("selfheal-q3")["path"] == f"q3/{profile}", 120, step=3,
+             what="Q3 app path")
+    wait_for(lambda: app_state("selfheal-q3")["sync"] == "Synced"
+             and app_state("selfheal-q3")["health"] == "Healthy", 180, step=3,
+             what="Q3 app Synced and Healthy")
+    if profile == "hardened":
+        wait_for(lambda: kj("-n", NS, "get", "verticalpodautoscaler", "q3-target")
+                 .get("spec", {}).get("updatePolicy", {}).get("updateMode") == "Off",
+                 120, step=3, what="Q3 recommendation-only VPA")
+    else:
+        wait_for(lambda: not kj("-n", NS, "get", "verticalpodautoscaler", "q3-target").get("metadata"),
+                 120, step=3, what="Q3 baseline without a VPA")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
     elif row == "Q2":
         apply_q2_profile(profile)
+    elif row == "Q3":
+        apply_q3_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1413,7 +1452,9 @@ def versions() -> dict:
                   ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader"),
                   ("keda", "deploy", "keda-operator"), (NS, "deploy", "rabbitmq"),
                   (NS, "deploy", "qworker"), (NS, "deploy", "q2-signal"),
-                  (NS, "deploy", "q2-target")]
+                  (NS, "deploy", "q2-target"),
+                  ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"),
+                  (NS, "deploy", "q3-target")]
     if TARGET == "eks":
         components.append(("kube-system", "deploy", "karpenter"))
     for ns, kind, name in components:
@@ -1472,6 +1513,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ1 uses RabbitMQ queue telemetry and distinct completion IDs. The measured observations are in `report.json`.")
     elif doc["target"] == "kind" and doc["rows"] == ["Q2"]:
         L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, node CPU capacity, and timestamped request samples.")
+    elif doc["target"] == "kind" and doc["rows"] == ["Q3"]:
+        L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
                  "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
