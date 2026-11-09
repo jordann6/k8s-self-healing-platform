@@ -51,6 +51,7 @@ import q3_row  # noqa: E402
 import n1_row  # noqa: E402
 import p1_row  # noqa: E402
 import d1_row  # noqa: E402
+import o1_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -62,7 +63,7 @@ NS = "selfheal"
 ROWS_BY_TARGET = {
     # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
     # the original rows exercise.
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1"],
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
@@ -96,6 +97,7 @@ ACTIONS = {
     **n1_row.ACTIONS,
     **p1_row.ACTIONS,
     **d1_row.ACTIONS,
+    **o1_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -1242,15 +1244,16 @@ RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1,
            "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d),
            "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d),
            "P1": lambda lab, profile, d: p1_row.run(sys.modules[__name__], lab, profile, d),
-           "D1": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d)}
+           "D1": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d),
+           "O1": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
             "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-            "P1": "trusted_admission_s", "D1": "backup_s"}
+            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
              "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-             "P1": "recovery_s", "D1": "rto_s"}
+             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s"}
 
 
 def runner(row: str):
@@ -1307,6 +1310,7 @@ FOCUSED_D1_PRECONDITIONS = [
     ("selfheal-d1-store", "statefulset", "d1-minio"),
     ("selfheal-d1-source", "statefulset", "d1-source"),
 ]
+FOCUSED_O1_PRECONDITIONS = FOCUSED_SHARED_PRECONDITIONS
 
 
 def q1_only(rows: list[str]) -> bool:
@@ -1333,6 +1337,10 @@ def d1_only(rows: list[str]) -> bool:
     return TARGET == "kind" and rows == ["D1"]
 
 
+def o1_only(rows: list[str]) -> bool:
+    return TARGET == "kind" and rows == ["O1"]
+
+
 def focused_kind_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
@@ -1346,6 +1354,8 @@ def focused_kind_row(rows: list[str]) -> str | None:
         return "P1"
     if d1_only(rows):
         return "D1"
+    if o1_only(rows):
+        return "O1"
     return None
 
 
@@ -1361,6 +1371,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         return FOCUSED_P1_PRECONDITIONS
     if focused == "D1":
         return FOCUSED_D1_PRECONDITIONS
+    if focused == "O1":
+        return FOCUSED_O1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1389,7 +1401,7 @@ def preconditions(rows: list[str]) -> dict:
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
                  "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
-                 "P1": (), "D1": ()}[focused]
+                 "P1": (), "D1": (), "O1": ()}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1540,6 +1552,54 @@ def apply_d1_profile(profile: str) -> None:
                  120, step=2, what="D1 baseline without backup CronJob")
 
 
+def apply_o1_profile(profile: str) -> None:
+    """Switch O1 and reset its runtime evidence and release state."""
+    log(f"profile -> {profile} (O1 only)")
+    k("-n", "argocd", "patch", "application", "selfheal-o1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": f"o1/{profile}"}}}), check=True)
+    refresh("selfheal-o1")
+    wait_for(lambda: app_state("selfheal-o1")["path"] == f"o1/{profile}", 120, step=3,
+             what="O1 app path")
+    wait_for(lambda: app_state("selfheal-o1")["sync"] == "Synced"
+             and app_state("selfheal-o1")["health"] == "Healthy", 180, step=3,
+             what="O1 app Synced and Healthy")
+    for kind, name in (("pod", "o1-target"), ("configmap", "o1-evidence"),
+                       ("lease.coordination.k8s.io", "o1-release")):
+        wait_for(lambda kind=kind, name=name: bool(kj("-n", o1_row.NS, "get", kind, name).get("metadata")),
+                 120, step=2, what=f"O1 {kind}/{name}")
+    k("-n", o1_row.NS, "patch", "configmap", "o1-evidence", "--type", "merge",
+      "-p", json.dumps({"data": None}), check=True)
+    k("-n", o1_row.NS, "patch", "lease.coordination.k8s.io", "o1-release", "--type", "merge",
+      "-p", json.dumps({"metadata": {"annotations": {"o1.security/release": "false"}},
+                         "spec": {"holderIdentity": "awaiting-operator"}}), check=True)
+    k("-n", o1_row.NS, "patch", "networkpolicy", "quarantine-ingress", "--type", "merge",
+      "-p", json.dumps({"spec": {"ingress": []}}), check=True)
+    k("-n", o1_row.NS, "patch", "pod", "o1-target", "--type", "merge",
+      "-p", json.dumps({"metadata": {"annotations": {"o1.security/incident": "false"}}}), check=True)
+    wait_for(lambda: o1_row._quarantined(sys.modules[__name__]), 30, step=1,
+             what="O1 quarantine reset")
+    wait_for(lambda: not (kj("-n", o1_row.NS, "get", "configmap", "o1-evidence").get("data") or {}),
+             30, step=1, what="O1 evidence reset")
+    wait_for(lambda: kj("-n", o1_row.NS, "get", "lease.coordination.k8s.io", "o1-release")
+             .get("metadata", {}).get("annotations", {}).get("o1.security/release") == "false",
+             30, step=1, what="O1 release reset")
+    wait_for(lambda: k("-n", o1_row.NS, "wait", "--for=condition=Ready", "pod/o1-target",
+                       "--timeout=5s", timeout=10).returncode == 0,
+             60, step=2, what="O1 target Ready")
+    if profile == "hardened":
+        for name in ("o1-controller", "o1-alert-receiver"):
+            wait_for(lambda name=name: k("-n", o1_row.NS, "rollout", "status", f"deploy/{name}",
+                                         "--timeout=10s", timeout=15).returncode == 0,
+                     120, step=2, what=f"O1 {name}")
+        # The Pod label changes its Cilium security identity. Do not begin the
+        # experiment until datapath enforcement has converged on quarantine.
+        wait_for(lambda: not o1_row._probe_target(sys.modules[__name__]), 60, step=2,
+                 what="O1 quarantine datapath enforcement")
+    else:
+        wait_for(lambda: not kj("-n", o1_row.NS, "get", "resourcequota", "o1-budget").get("metadata"),
+                 120, step=2, what="O1 baseline without ResourceQuota")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
@@ -1553,6 +1613,8 @@ def apply_focused_profile(row: str, profile: str) -> None:
         apply_p1_profile(profile)
     elif row == "D1":
         apply_d1_profile(profile)
+    elif row == "O1":
+        apply_o1_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1582,7 +1644,9 @@ def versions() -> dict:
                   (NS, "deploy", "q2-target"),
                   ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"),
                   (NS, "deploy", "q3-target"), (NS, "deploy", "n1-server"),
-                  (NS, "deploy", "n1-client"), (NS, "deploy", "n1-denied")]
+                  (NS, "deploy", "n1-client"), (NS, "deploy", "n1-denied"),
+                  (o1_row.NS, "deploy", "o1-controller"),
+                  (o1_row.NS, "deploy", "o1-alert-receiver")]
     if TARGET == "eks":
         components.append(("kube-system", "deploy", "karpenter"))
     for ns, kind, name in components:
@@ -1649,6 +1713,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
     elif doc["target"] == "kind" and doc["rows"] == ["D1"]:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
+    elif doc["target"] == "kind" and doc["rows"] == ["O1"]:
+        L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
                  "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"

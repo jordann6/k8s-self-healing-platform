@@ -69,6 +69,11 @@ THRESHOLDS = {
         # telemetry is an error rather than a protected pass.
         "D1": {"backup_s": 120, "restore_s": 120, "rto_s": 180,
                "rpo_rows": 1, "rows": 100, "retention_days": 1},
+        # O1 (kind only, Phase 3). Fixed in ADR-0015 before live proof.
+        # Missing boundary, RBAC, replacement, alert, evidence, release, or
+        # connectivity telemetry is an error rather than a protected pass.
+        "O1": {"controller_recover_s": 60, "evidence_s": 30,
+               "alert_s": 30, "release_s": 30},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -148,6 +153,9 @@ HYPOTHESES = {
     "D1": "A completed PostgreSQL backup restores exactly 100 deterministic rows into a fresh target within "
           "180 seconds, loses only the one intentional post-backup row, rejects a truncated archive atomically, "
           "and remains readable after identity and WORM deletion attempts.",
+    "O1": "The hardened namespace enforces a resource budget and default limits, confines the operator to a "
+          "named release request, replaces a failed controller within 60 seconds, captures evidence and delivers "
+          "a matching alert within 30 seconds, then releases quarantine only after evidence while restoring access.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -746,6 +754,92 @@ def judge_d1(o: dict, t: dict):
     return True, why, True, healed
 
 
+def judge_o1(o: dict, t: dict):
+    """Judge O1 without converting absent control telemetry into a pass."""
+    rbac = o.get("rbac") or {}
+    if "controller_recovered_s" not in o:
+        impact = (
+            o.get("quota_present") is False
+            and o.get("limit_range_present") is False
+            and o.get("oversized_admitted") is True
+            and rbac.get("get_secret") is True
+            and rbac.get("delete_target") is True
+            and rbac.get("patch_quarantine") is True
+            and o.get("direct_release_allowed") is True
+            and not o.get("evidence_before_release")
+            and o.get("controller_present") is False
+            and o.get("receiver_present") is False
+        )
+        why = ("no namespace budget or default limits; the broad operator could read the synthetic Secret, "
+               "delete or patch the target, and directly release quarantine without evidence, a controller, "
+               "or an alert receiver")
+        return True, why, impact, False
+
+    evidence = o.get("evidence") or {}
+    alert = o.get("alert") or {}
+    required_keys = [
+        "quota_present", "limit_range_present", "oversized_admitted",
+        "direct_release_allowed", "release_request_accepted", "gated_before_evidence",
+        "controller_old_uid", "controller_new_uid", "controller_recovered_s",
+        "quarantine_blocked_before", "evidence_s", "alert_s", "release_s",
+        "release_after_evidence", "connectivity_after_release",
+    ]
+    missing = [name for name in required_keys if name not in o or o.get(name) is None]
+    for name in ("get_secret", "delete_target", "patch_quarantine", "patch_release"):
+        if name not in rbac:
+            missing.append(f"rbac.{name}")
+    for name in ("target_uid", "target_resource_version", "target_image", "captured_at"):
+        if not evidence.get(name):
+            missing.append(f"evidence.{name}")
+    for name in ("kind", "target_uid", "evidence_resource_version"):
+        if not alert.get(name):
+            missing.append(f"alert.{name}")
+    defaults = o.get("default_resources") or {}
+    if not defaults.get("requests") or not defaults.get("limits"):
+        missing.append("default_resources")
+    if missing:
+        return False, f"O1 required telemetry missing: {', '.join(missing)}", False, False
+
+    defaults_ok = (
+        defaults.get("requests") == {"cpu": "50m", "memory": "32Mi"}
+        and defaults.get("limits") == {"cpu": "200m", "memory": "128Mi"}
+    )
+    rbac_ok = (
+        rbac.get("get_secret") is False
+        and rbac.get("delete_target") is False
+        and rbac.get("patch_quarantine") is False
+        and rbac.get("patch_release") is True
+    )
+    sequence_ok = (
+        o.get("gated_before_evidence") is True
+        and o.get("release_after_evidence") is True
+        and alert.get("kind") == "quarantine"
+        and alert.get("target_uid") == evidence.get("target_uid")
+    )
+    healed = (
+        o.get("quota_present") is True
+        and o.get("limit_range_present") is True
+        and defaults_ok
+        and o.get("oversized_admitted") is False
+        and rbac_ok
+        and o.get("direct_release_allowed") is False
+        and o.get("release_request_accepted") is True
+        and o.get("controller_old_uid") != o.get("controller_new_uid")
+        and le(o.get("controller_recovered_s"), t["controller_recover_s"])
+        and o.get("quarantine_blocked_before") is True
+        and le(o.get("evidence_s"), t["evidence_s"])
+        and le(o.get("alert_s"), t["alert_s"])
+        and le(o.get("release_s"), t["release_s"])
+        and sequence_ok
+        and o.get("connectivity_after_release") is True
+    )
+    why = (f"quota and defaults enforced {defaults_ok}; operator least privilege {rbac_ok}; controller replaced "
+           f"in {fmt_s(o.get('controller_recovered_s'))}; evidence {fmt_s(o.get('evidence_s'))}, alert "
+           f"{fmt_s(o.get('alert_s'))}, release {fmt_s(o.get('release_s'))}; evidence-gated sequence "
+           f"{sequence_ok}; connectivity restored {o.get('connectivity_after_release')}")
+    return True, why, True, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -953,7 +1047,8 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
-          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1}
+          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1,
+          "O1": judge_o1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

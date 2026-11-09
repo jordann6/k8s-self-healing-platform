@@ -8,6 +8,7 @@
 #   make n1-up     multi-node kind + only the components required by N1
 #   make p1-up     kind + local registry + Kyverno signed-image admission
 #   make d1-up     kind + PostgreSQL + retained local object backup
+#   make o1-up     kind + operational readiness boundary and controller
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
 #
@@ -86,6 +87,9 @@ p1-up: p1-kind-up p1-platform p1-bootstrap ## Focused P1 signed-image admission 
 .PHONY: d1-up
 d1-up: d1-kind-up d1-platform d1-bootstrap ## Focused D1 backup, restore, and deletion-resistance proof
 
+.PHONY: o1-up
+o1-up: o1-kind-up o1-platform o1-bootstrap ## Focused O1 operational-readiness proof
+
 .PHONY: kind-up
 kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the lab images
 	mkdir -p .kube
@@ -157,6 +161,16 @@ d1-kind-up: ## Create the kind cluster, install Cilium, and load only D1 images
 	cilium/readiness-gate.sh
 	$(MAKE) d1-images
 
+.PHONY: o1-kind-up
+o1-kind-up: ## Create the kind cluster, install Cilium, and load only O1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) o1-images
+
 .PHONY: images
 images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-app:v1 --build-arg RELEASE=v1 app
@@ -165,11 +179,12 @@ images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-qworker:v1 app/qworker
 	docker build -q -t selfheal-d1-tool:v1 app/d1
 	docker build -q -t selfheal-d1-minio:v1 -f app/d1/minio.Dockerfile app/d1
+	docker build -q -t selfheal-o1:v1 app/o1
 	docker pull -q $(K6_IMAGE) >/dev/null
 	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
 	docker pull -q postgres:$(POSTGRES_VERSION) >/dev/null
 	kind load docker-image selfheal-app:v1 selfheal-app:v2 selfheal-gitserver:dev selfheal-qworker:v1 \
-		selfheal-d1-tool:v1 selfheal-d1-minio:v1 $(K6_IMAGE) $(RABBITMQ_IMAGE) \
+		selfheal-d1-tool:v1 selfheal-d1-minio:v1 selfheal-o1:v1 $(K6_IMAGE) $(RABBITMQ_IMAGE) \
 		postgres:$(POSTGRES_VERSION) --name $(KIND_CLUSTER)
 
 .PHONY: q1-images
@@ -212,6 +227,12 @@ d1-images: ## Build the D1 tool and load PostgreSQL, MinIO, and Git server image
 	docker pull -q postgres:$(POSTGRES_VERSION) >/dev/null
 	kind load docker-image selfheal-gitserver:dev selfheal-d1-tool:v1 selfheal-d1-minio:v1 \
 		postgres:$(POSTGRES_VERSION) --name $(KIND_CLUSTER)
+
+.PHONY: o1-images
+o1-images: ## Build and load the O1 target, controller, receiver, and Git server images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-o1:v1 app/o1
+	kind load docker-image selfheal-gitserver:dev selfheal-o1:v1 --name $(KIND_CLUSTER)
 
 .PHONY: repos
 repos:
@@ -298,6 +319,11 @@ d1-platform: repos ## Install only Argo CD for focused D1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
+.PHONY: o1-platform
+o1-platform: repos ## Install only Argo CD after Cilium for focused O1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: bootstrap
 bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD root app
 	scripts/bootstrap.sh
@@ -325,6 +351,10 @@ p1-bootstrap: ## Inject P1's public trust root, seed Git, and apply the baseline
 .PHONY: d1-bootstrap
 d1-bootstrap: ## Generate runtime credentials, seed Git, and apply the D1 baseline app
 	FOCUSED_D1=1 scripts/bootstrap.sh
+
+.PHONY: o1-bootstrap
+o1-bootstrap: ## Create the O1 namespace, seed Git, and apply the O1 baseline app
+	FOCUSED_O1=1 scripts/bootstrap.sh
 
 .PHONY: down
 down: ## Delete the kind cluster
@@ -362,7 +392,7 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
@@ -371,6 +401,7 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd app/n1 && python3 -m unittest -v test_app
 	cd app/p1 && python3 -m unittest -v test_app
 	cd app/d1 && python3 -m unittest -v test_scripts
+	cd app/o1 && python3 -m unittest -v test_app
 	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry
 
 .PHONY: check
@@ -394,10 +425,13 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind, E
 	kubectl kustomize gitops/d1/baseline >/dev/null
 	kubectl kustomize gitops/d1/hardened >/dev/null
 	scripts/render-d1-profiles.sh
+	kubectl kustomize gitops/o1/baseline >/dev/null
+	kubectl kustomize gitops/o1/hardened >/dev/null
+	scripts/render-o1-profiles.sh
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

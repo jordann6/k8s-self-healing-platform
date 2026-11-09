@@ -30,3 +30,13 @@ metadata:
   labels:
     pod-security.kubernetes.io/enforce: restricted
     selfheal.lab/p1: "true"
+---
+# O1 is an isolated operational boundary. Its profile supplies the quota,
+# limits, roles, controller, receiver, and evidence-gated release resources.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-o1
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    selfheal.lab/o1: "true"

@@ -16,7 +16,7 @@ configs:
     # the controller and a watch per kind on the API server.
     resource.inclusions: |
       - apiGroups: [""]
-        kinds: [Service, Pod, ConfigMap, PersistentVolumeClaim]
+        kinds: [Service, Pod, ConfigMap, PersistentVolumeClaim, ServiceAccount, ResourceQuota, LimitRange]
         clusters: ["*"]
       - apiGroups: [apps]
         kinds: [Deployment, ReplicaSet, StatefulSet]
@@ -29,6 +29,13 @@ configs:
         clusters: ["*"]
       - apiGroups: [policy]
         kinds: [PodDisruptionBudget]
+        clusters: ["*"]
+      # O1 manages a namespaced readiness boundary.
+      - apiGroups: [rbac.authorization.k8s.io]
+        kinds: [Role, RoleBinding]
+        clusters: ["*"]
+      - apiGroups: [networking.k8s.io]
+        kinds: [NetworkPolicy]
         clusters: ["*"]
       - apiGroups: [argoproj.io]
         kinds: [Application, Rollout, AnalysisTemplate, AnalysisRun]

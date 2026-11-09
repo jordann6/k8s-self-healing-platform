@@ -1,0 +1,146 @@
+{
+  "run_id": "kind-20261109-o1-run7",
+  "target": "kind",
+  "started": "2026-11-09T21:19:14.522Z",
+  "rows": [
+    "O1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "o1_synced": true
+  },
+  "versions": {
+    "repo_commit": "e73d20133488a04949501106339800ed3efe45a0-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "O1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no namespace budget or default limits; the broad operator could read the synthetic Secret, delete or patch the target, and directly release quarantine without evidence, a controller, or an alert receiver",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "quota and defaults enforced True; operator least privilege True; controller replaced in 1s; evidence 0s, alert 1s, release 1s; evidence-gated sequence True; connectivity restored True",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "O1": {
+      "baseline": {
+        "t0": 1794259156.4035358,
+        "quota_present": false,
+        "limit_range_present": false,
+        "default_resources": {},
+        "oversized_admitted": true,
+        "oversized_reason": "{\n    \"apiVersion\": \"v1\",\n    \"kind\": \"Pod\",\n    \"metadata\": {\n        \"creationTimestamp\": \"2026-11-09T21:19:16Z\",\n        \"generation\": 1,\n        \"name\": \"o1-oversized-baseline\",\n        \"namespace\": \"selfheal-o1\",\n        \"uid\": \"a56dd5b5-7a81-4414-a97f-2cd137063b5a\"\n    },\n    \"spec\": {\n        \"containers\": [\n            {\n                \"image\": \"selfheal-o1:v1\",\n                \"imagePullPolicy\": \"IfNotPresent\",\n                \"name\": \"probe\",\n                \"resources\": {\n           ",
+        "rbac": {
+          "get_secret": true,
+          "delete_target": true,
+          "patch_quarantine": true,
+          "patch_release": true
+        },
+        "direct_release_allowed": true,
+        "evidence_before_release": {},
+        "quarantined_after_direct_attempt": false,
+        "controller_present": false,
+        "receiver_present": false,
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794259167.919434,
+        "quota_present": true,
+        "limit_range_present": true,
+        "default_resources": {
+          "limits": {
+            "cpu": "200m",
+            "memory": "128Mi"
+          },
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi"
+          }
+        },
+        "oversized_admitted": false,
+        "oversized_reason": "Error from server (Forbidden): error when creating \"STDIN\": pods \"o1-oversized-hardened\" is forbidden: exceeded quota: o1-budget, requested: limits.cpu=9,requests.cpu=9, used: limits.cpu=400m,requests.cpu=100m, limited: limits.cpu=4,requests.cpu=2",
+        "rbac": {
+          "get_secret": false,
+          "delete_target": false,
+          "patch_quarantine": false,
+          "patch_release": true
+        },
+        "direct_release_allowed": false,
+        "evidence_before_release": {},
+        "release_request_accepted": true,
+        "release_request_at": 1794259168.4481149,
+        "gated_before_evidence": true,
+        "controller_old_uid": "0c85a237-2a3a-4e6e-abdd-e132c17f68ad",
+        "controller_new_uid": "278bf2fb-830e-45fc-9af0-6ec1808d9843",
+        "controller_recovered_s": 1.19,
+        "quarantine_blocked_before": true,
+        "incident_at": 1794259177.9014552,
+        "evidence": {
+          "captured_at": "2026-11-09T21:19:38Z",
+          "target_image": "selfheal-o1:v1",
+          "target_resource_version": "6094",
+          "target_uid": "947fb21e-b30f-40c0-8361-36cf5e951214"
+        },
+        "evidence_s": 0.099,
+        "alert": {
+          "captured_at": "2026-11-09T21:19:38Z",
+          "evidence_resource_version": "6096",
+          "kind": "quarantine",
+          "target_uid": "947fb21e-b30f-40c0-8361-36cf5e951214"
+        },
+        "alert_s": 1.199,
+        "released_at": 1794259179.242281,
+        "release_s": 1.242,
+        "release_after_evidence": true,
+        "connectivity_after_release": true,
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-09T21:19:41.015Z",
+  "pass": true
+}

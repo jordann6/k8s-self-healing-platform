@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bootstrap.sh: everything outside GitOps, after the platform charts are up.
-# Idempotent. FOCUSED_Q1=1 through FOCUSED_D1=1 creates only that
+# Idempotent. FOCUSED_Q1=1 through FOCUSED_O1=1 creates only that
 # capability's dependencies. The default path creates the complete lab.
 set -euo pipefail
 
@@ -11,13 +11,21 @@ focused_q3="${FOCUSED_Q3:-0}"
 focused_n1="${FOCUSED_N1:-0}"
 focused_p1="${FOCUSED_P1:-0}"
 focused_d1="${FOCUSED_D1:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1))
+focused_o1="${FOCUSED_O1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1 + focused_o1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
 fi
 kubectl apply -f "$root/bootstrap/namespaces.yaml" >/dev/null
 kubectl apply -f "$root/bootstrap/gitserver.yaml" >/dev/null
+
+if ((focused_count == 0 || focused_o1 == 1)); then
+	kubectl create namespace selfheal-o1 --dry-run=client -o yaml |
+		kubectl label --local -f - pod-security.kubernetes.io/enforce=restricted -o yaml |
+		kubectl apply -f - >/dev/null
+	kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
+fi
 
 if ((focused_count == 0 || focused_d1 == 1)); then
 	for ns in selfheal-d1-source selfheal-d1-store selfheal-d1-restore; do
@@ -108,6 +116,9 @@ elif [[ "$focused_p1" == "1" ]]; then
 elif [[ "$focused_d1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/d1.yaml" >/dev/null
 	echo "bootstrap: done (focused D1 app -> d1/baseline)"
+elif [[ "$focused_o1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/o1.yaml" >/dev/null
+	echo "bootstrap: done (focused O1 app -> o1/baseline)"
 else
 	kubectl apply -f "$root/bootstrap/root-app.yaml" >/dev/null
 	echo "bootstrap: done (Argo CD root app -> apps/baseline)"
