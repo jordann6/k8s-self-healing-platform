@@ -59,6 +59,11 @@ THRESHOLDS = {
         "N1": {"min_requests": 20, "max_failures": 0, "p95_ms": 300,
                "min_denied": 5, "denied_successes": 0, "min_policy_drops": 1,
                "min_packets": 5, "interfaces": 1, "min_peers": 1},
+        # P1 (kind only, Phase 3). Fixed in ADR-0013 before live proof.
+        # Policy, signature-state, reason, metric, report, or digest evidence
+        # missing from hardened is an error rather than a protected pass.
+        "P1": {"admission_s": 20, "ready_s": 120, "recovery_s": 60,
+               "min_pass_decisions": 2, "min_reject_decisions": 5},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -132,6 +137,9 @@ HYPOTHESES = {
     "N1": "For Cilium-managed pods on different workers, hardened WireGuard replaces visible VXLAN underlay "
           "traffic with an established encrypted peer path while legitimate requests remain healthy and an "
           "unauthorized cross-node request remains attributable to policy enforcement.",
+    "P1": "A digest-pinned artifact signed by the trusted local key is admitted and runs at the signed digest, "
+          "while unsigned, invalid-signature, untrusted-signer, tag-only, and verifier-outage requests are "
+          "denied with attributable telemetry and the verifier recovers within 60 seconds.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -569,6 +577,65 @@ def judge_n1(o: dict, t: dict):
     return True, why, True, healed
 
 
+def judge_p1(o: dict, t: dict):
+    digest = str(o.get("digest") or "")
+    if not digest.startswith("sha256:") or len(digest) != 71:
+        return False, f"expected artifact digest was missing or malformed ({digest!r})", False, False
+    preparation = o.get("preparation") or {}
+    required_preparation = (
+        "one_digest", "trusted_valid", "unsigned_absent", "invalid_claim_rejected",
+        "untrusted_rejected_by_trust_root", "untrusted_valid_with_own_key",
+    )
+    missing = [name for name in required_preparation if preparation.get(name) is not True]
+    if missing:
+        return False, f"signature preparation evidence missing or false: {', '.join(missing)}", False, False
+    admissions = o.get("admissions") or {}
+
+    def admitted(case: str) -> bool:
+        item = admissions.get(case) or {}
+        return (item.get("returncode") == 0 and item.get("pod_created") is True
+                and le(item.get("elapsed_s"), t["admission_s"])
+                and le(item.get("ready_s"), t["ready_s"])
+                and str(item.get("image_id") or "").endswith("@" + digest))
+
+    def rejected(case: str) -> bool:
+        item = admissions.get(case) or {}
+        reason = str(item.get("reason") or "")
+        attributable = ("p1-trusted-signature" in reason or "P1 requires" in reason
+                        or "digest" in reason.lower() or "image signature" in reason.lower())
+        return (item.get("returncode") not in (None, 0) and item.get("pod_created") is False
+                and le(item.get("elapsed_s"), t["admission_s"])
+                and bool(reason) and attributable)
+
+    if o.get("policy_present") is not True:
+        cases = ("trusted", "unsigned", "invalid", "untrusted", "tag_only")
+        impact = all(admitted(case) for case in cases)
+        why = ("no P1 policy; admitted signed, unsigned, copied-invalid, untrusted-signer, and tag-only "
+               f"references at {digest}")
+        return True, why, impact, False
+
+    if o.get("policy_ready") is not True:
+        return False, "P1 policy readiness telemetry was missing", False, False
+    if o.get("metrics_available") is not True:
+        return False, "Kyverno admission metrics were missing", False, False
+    if o.get("policy_report_pass") is not True:
+        return False, "the trusted running Pod had no positive P1 PolicyReport", False, False
+    metrics = o.get("metric_delta") or {}
+    passed = metrics.get("pass", 0)
+    rejected_decisions = metrics.get("fail", 0) + metrics.get("error", 0)
+    if passed < t["min_pass_decisions"] or rejected_decisions < t["min_reject_decisions"]:
+        return False, (f"P1 decision telemetry was incomplete (pass {passed}, "
+                       f"fail or error {rejected_decisions})"), False, False
+    negatives = ("unsigned", "invalid", "untrusted", "tag_only", "verifier_outage")
+    healed = (admitted("trusted") and admitted("recovery")
+              and all(rejected(case) for case in negatives)
+              and le(admissions.get("recovery_s"), t["recovery_s"]))
+    why = (f"trusted and recovered images ran at {digest}; denied "
+           f"{', '.join(negatives)}; policy metrics pass {passed}, fail or error {rejected_decisions}; "
+           f"verifier recovery {admissions.get('recovery_s')}s")
+    return True, why, True, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -776,7 +843,7 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
-          "Q3": judge_q3, "N1": judge_n1}
+          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

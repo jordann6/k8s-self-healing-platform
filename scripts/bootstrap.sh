@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bootstrap.sh: everything outside GitOps, after the platform charts are up.
-# Idempotent. FOCUSED_Q1=1, FOCUSED_Q2=1, FOCUSED_Q3=1, or FOCUSED_N1=1 creates only that
+# Idempotent. FOCUSED_Q1=1 through FOCUSED_P1=1 creates only that
 # capability's dependencies. The default path creates the complete lab.
 set -euo pipefail
 
@@ -9,13 +9,25 @@ focused_q1="${FOCUSED_Q1:-0}"
 focused_q2="${FOCUSED_Q2:-0}"
 focused_q3="${FOCUSED_Q3:-0}"
 focused_n1="${FOCUSED_N1:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1))
+focused_p1="${FOCUSED_P1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
 fi
 kubectl apply -f "$root/bootstrap/namespaces.yaml" >/dev/null
 kubectl apply -f "$root/bootstrap/gitserver.yaml" >/dev/null
+
+if [[ "$focused_p1" == "1" ]]; then
+	key_dir="${P1_KEY_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/k8s-self-healing-platform/p1}"
+	[[ -s "$key_dir/trusted.pub" ]] || {
+		echo "bootstrap: P1 trusted public key is missing outside the repository" >&2
+		exit 1
+	}
+	kubectl -n kyverno create configmap p1-cosign-trust-root \
+		--from-file=cosign.pub="$key_dir/trusted.pub" --dry-run=client -o yaml |
+		kubectl apply -f - >/dev/null
+fi
 
 if ((focused_count == 0)); then
 	kubectl apply -f "$root/bootstrap/secret-backend.yaml" >/dev/null
@@ -61,6 +73,9 @@ elif [[ "$focused_q3" == "1" ]]; then
 elif [[ "$focused_n1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/n1.yaml" >/dev/null
 	echo "bootstrap: done (focused N1 app -> n1/baseline)"
+elif [[ "$focused_p1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/p1.yaml" >/dev/null
+	echo "bootstrap: done (focused P1 app -> p1/baseline)"
 else
 	kubectl apply -f "$root/bootstrap/root-app.yaml" >/dev/null
 	echo "bootstrap: done (Argo CD root app -> apps/baseline)"

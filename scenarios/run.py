@@ -49,6 +49,7 @@ import eks_rows  # noqa: E402
 import q2_row  # noqa: E402
 import q3_row  # noqa: E402
 import n1_row  # noqa: E402
+import p1_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -60,7 +61,7 @@ NS = "selfheal"
 ROWS_BY_TARGET = {
     # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
     # the original rows exercise.
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1"],
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
@@ -92,6 +93,7 @@ ACTIONS = {
     **q2_row.ACTIONS,
     **q3_row.ACTIONS,
     **n1_row.ACTIONS,
+    **p1_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -1236,13 +1238,16 @@ RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1,
            "R1": row_r1, "Q1": row_q1,
            "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d),
            "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d),
-           "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d)}
+           "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d),
+           "P1": lambda lab, profile, d: p1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
-            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s"}
+            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s",
+            "P1": "trusted_admission_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
-             "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s"}
+             "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s",
+             "P1": "recovery_s"}
 
 
 def runner(row: str):
@@ -1286,6 +1291,13 @@ FOCUSED_KEDA_PRECONDITIONS = [
 FOCUSED_Q3_PRECONDITIONS = [("kube-system", "deploy", "metrics-server"),
                             ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender")]
 FOCUSED_N1_PRECONDITIONS = [("kube-system", "deploy", "hubble-relay")]
+FOCUSED_P1_PRECONDITIONS = [
+    ("kyverno", "deploy", "kyverno-admission-controller"),
+    ("kyverno", "deploy", "kyverno-background-controller"),
+    ("kyverno", "deploy", "kyverno-reports-controller"),
+    ("argocd", "statefulset", "argocd-application-controller"),
+    ("gitops", "deploy", "gitserver"),
+]
 
 
 def q1_only(rows: list[str]) -> bool:
@@ -1304,6 +1316,10 @@ def n1_only(rows: list[str]) -> bool:
     return TARGET == "kind" and rows == ["N1"]
 
 
+def p1_only(rows: list[str]) -> bool:
+    return TARGET == "kind" and rows == ["P1"]
+
+
 def focused_kind_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
@@ -1313,6 +1329,8 @@ def focused_kind_row(rows: list[str]) -> str | None:
         return "Q3"
     if n1_only(rows):
         return "N1"
+    if p1_only(rows):
+        return "P1"
     return None
 
 
@@ -1324,6 +1342,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_Q3_PRECONDITIONS
     if focused == "N1":
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_N1_PRECONDITIONS
+    if focused == "P1":
+        return FOCUSED_P1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1351,7 +1371,8 @@ def preconditions(rows: list[str]) -> dict:
                  and app_state(app).get("sync") == "Synced", 180, step=5,
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
-                 "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied")}[focused]
+                 "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
+                 "P1": ()}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1456,6 +1477,24 @@ def apply_n1_profile(profile: str) -> None:
              what="N1 app Synced and Healthy")
 
 
+def apply_p1_profile(profile: str) -> None:
+    """Switch the isolated P1 application and wait for policy readiness."""
+    log(f"profile -> {profile} (P1 only)")
+    k("-n", "argocd", "patch", "application", "selfheal-p1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": f"p1/{profile}"}}}), check=True)
+    refresh("selfheal-p1")
+    wait_for(lambda: app_state("selfheal-p1")["path"] == f"p1/{profile}", 120, step=3,
+             what="P1 app path")
+    wait_for(lambda: app_state("selfheal-p1")["sync"] == "Synced", 180, step=3,
+             what="P1 app Synced")
+    if profile == "hardened":
+        wait_for(lambda: p1_row.policy_ready(sys.modules[__name__]), 120, step=2,
+                 what="P1 ImageValidatingPolicy Ready")
+    else:
+        wait_for(lambda: not kj("get", "imagevalidatingpolicy", p1_row.POLICY).get("metadata"),
+                 120, step=2, what="P1 baseline without an image policy")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
@@ -1465,6 +1504,8 @@ def apply_focused_profile(row: str, profile: str) -> None:
         apply_q3_profile(profile)
     elif row == "N1":
         apply_n1_profile(profile)
+    elif row == "P1":
+        apply_p1_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1557,6 +1598,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
     elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
         L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
+    elif doc["target"] == "kind" and doc["rows"] == ["P1"]:
+        L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
                  "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"

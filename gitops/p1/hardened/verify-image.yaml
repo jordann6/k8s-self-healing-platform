@@ -1,0 +1,54 @@
+apiVersion: policies.kyverno.io/v1beta1
+kind: ImageValidatingPolicy
+metadata:
+  name: p1-trusted-signature
+  annotations:
+    policies.kyverno.io/title: P1 trusted image signature
+    policies.kyverno.io/category: Software Supply Chain Security
+spec:
+  failurePolicy: Fail
+  validationActions:
+    - Deny
+  webhookConfiguration:
+    timeoutSeconds: 15
+  evaluation:
+    background:
+      enabled: true
+  matchConstraints:
+    namespaceSelector:
+      matchLabels:
+        selfheal.lab/p1: "true"
+    resourceRules:
+      - apiGroups:
+          - ""
+        apiVersions:
+          - v1
+        operations:
+          - CREATE
+          - UPDATE
+        resources:
+          - pods
+  matchImageReferences:
+    - glob: "selfheal-p1-registry:5000/p1/*"
+  validationConfigurations:
+    mutateDigest: false
+    required: true
+    verifyDigest: true
+  variables:
+    - name: trustRoot
+      expression: >-
+        resource.Get("v1", "configmaps", "kyverno", "p1-cosign-trust-root")
+  attestors:
+    - name: localLabKey
+      cosign:
+        key:
+          expression: variables.trustRoot.data["cosign.pub"]
+          hashAlgorithm: sha256
+        ctlog:
+          insecureIgnoreTlog: true
+          insecureIgnoreSCT: true
+  validations:
+    - expression: >-
+        images.containers.map(image,
+          verifyImageSignatures(image, [attestors.localLabKey])).all(count, count > 0)
+      message: P1 requires a valid signature from the trusted local lab key

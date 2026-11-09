@@ -16,7 +16,7 @@ configs:
     # the controller and a watch per kind on the API server.
     resource.inclusions: |
       - apiGroups: [""]
-        kinds: [Service, Pod]
+        kinds: [Service, Pod, ConfigMap]
         clusters: ["*"]
       - apiGroups: [apps]
         kinds: [Deployment, ReplicaSet]
@@ -51,6 +51,11 @@ configs:
       # only the recommender, with no updater or admission controller.
       - apiGroups: [autoscaling.k8s.io]
         kinds: [VerticalPodAutoscaler]
+        clusters: ["*"]
+      # Row P1 uses the CEL based image policy API. Legacy ClusterPolicy is
+      # deprecated in Kyverno 1.19 and is deliberately not used.
+      - apiGroups: [policies.kyverno.io]
+        kinds: [ImageValidatingPolicy]
         clusters: ["*"]
 controller:
   resources:

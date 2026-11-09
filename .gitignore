@@ -19,6 +19,8 @@ infracost.json
 
 # lab kubeconfig (make up writes it)
 .kube/
+# P1 runtime image references and digest. Signing keys live outside the repo.
+.p1/
 # python
 __pycache__/
 *.pyc

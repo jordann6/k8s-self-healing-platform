@@ -1,0 +1,31 @@
+# Focused P1 values. The registry is deliberately local and HTTP-only, so the
+# insecure-registry switch is a lab exception. Verification caching is disabled
+# so the verifier-outage test cannot pass on a prior successful decision.
+admissionController:
+  replicas: 1
+  container:
+    extraArgs:
+      allowInsecureRegistry: "true"
+      imageVerifyCacheEnabled: "false"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 192Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+backgroundController:
+  replicas: 1
+cleanupController:
+  enabled: false
+reportsController:
+  replicas: 1
+  extraArgs:
+    allowInsecureRegistry: "true"
+    imageVerifyCacheEnabled: "false"
+features:
+  backgroundScan:
+    enabled: true
+    backgroundScanInterval: 10s
+  reporting:
+    imageVerify: true

@@ -464,6 +464,73 @@ class N1WireGuard(unittest.TestCase):
         self.assertEqual(verdict("N1", "hardened", n1(policy_drops=0), "impact")["status"], "miss")
 
 
+def p1_admitted(digest):
+    return {"returncode": 0, "pod_created": True, "elapsed_s": 1.0, "ready_s": 4.0,
+            "image_id": f"docker-pullable://selfheal-p1-registry:5000/p1/artifact@{digest}"}
+
+
+def p1_rejected(reason="p1-trusted-signature image signature verification failed"):
+    return {"returncode": 1, "pod_created": False, "elapsed_s": 1.0, "ready_s": None,
+            "image_id": None, "reason": reason}
+
+
+def p1(policy_present=True, **kw):
+    digest = "sha256:" + "a" * 64
+    admissions = {"trusted": p1_admitted(digest), "recovery": p1_admitted(digest),
+                  "recovery_s": 5.0}
+    admissions.update({case: p1_rejected() for case in
+                       ("unsigned", "invalid", "untrusted", "tag_only", "verifier_outage")})
+    o = {
+        "digest": digest,
+        "preparation": {name: True for name in (
+            "one_digest", "trusted_valid", "unsigned_absent", "invalid_claim_rejected",
+            "untrusted_rejected_by_trust_root", "untrusted_valid_with_own_key")},
+        "policy_present": policy_present,
+        "policy_ready": policy_present,
+        "metrics_available": True,
+        "policy_report_pass": True,
+        "metric_delta": {"pass": 2, "fail": 5},
+        "admissions": admissions,
+    }
+    o.update(kw)
+    return o
+
+
+class P1SignedImageAdmission(unittest.TestCase):
+    def test_unprotected_baseline_is_impact(self):
+        obs = p1(policy_present=False)
+        obs["admissions"] = {case: p1_admitted(obs["digest"]) for case in
+                             ("trusted", "unsigned", "invalid", "untrusted", "tag_only")}
+        self.assertEqual(verdict("P1", "baseline", obs, None)["status"], "impact")
+
+    def test_complete_hardened_proof_heals(self):
+        self.assertEqual(verdict("P1", "hardened", p1(), "impact")["status"], "healed")
+
+    def test_missing_metrics_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(metrics_available=False), "impact")["status"], "error")
+
+    def test_missing_policy_report_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(policy_report_pass=False), "impact")["status"], "error")
+
+    def test_malformed_digest_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(digest="sha256:bad"), "impact")["status"], "error")
+
+    def test_false_signature_preflight_is_error(self):
+        obs = p1()
+        obs["preparation"] = {**obs["preparation"], "invalid_claim_rejected": False}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "error")
+
+    def test_admitted_unsigned_image_is_a_miss(self):
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "unsigned": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_wrong_runtime_digest_is_a_miss(self):
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "trusted": p1_admitted("sha256:" + "b" * 64)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "miss")
+
+
 class AbortLine(unittest.TestCase):
     AB = {"n": 40, "errors": 30, "error_rate": 0.75, "at_s": 14, "kind": "http"}
 
