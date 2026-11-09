@@ -5,6 +5,7 @@
 #   make q1-up     kind + only the controllers and workloads required by Q1
 #   make q2-up     kind + only the controllers and workloads required by Q2
 #   make q3-up     kind + only the controllers and workloads required by Q3
+#   make n1-up     multi-node kind + only the components required by N1
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
 #
@@ -72,6 +73,9 @@ q2-up: q2-kind-up q2-platform q2-bootstrap ## Focused Q2 cluster without unrelat
 .PHONY: q3-up
 q3-up: q3-kind-up q3-platform q3-bootstrap ## Focused Q3 cluster without unrelated platform controllers
 
+.PHONY: n1-up
+n1-up: n1-kind-up n1-platform n1-bootstrap ## Focused multi-node N1 WireGuard proof
+
 .PHONY: kind-up
 kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the lab images
 	mkdir -p .kube
@@ -112,6 +116,18 @@ q3-kind-up: ## Create the kind cluster, install Cilium, and load only Q3 images
 	cilium/readiness-gate.sh
 	$(MAKE) q3-images
 
+.PHONY: n1-kind-up
+n1-kind-up: ## Create N1's two-worker kind cluster and baseline Cilium datapath
+	mkdir -p .kube
+	kind create cluster --config kind/n1-cluster.yaml --kubeconfig $(KUBECONFIG)
+	kubectl apply -f kind/n1-capture-namespace.yaml
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system \
+		-f cilium/values.yaml -f cilium/n1-baseline.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) n1-images
+
 .PHONY: images
 images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-app:v1 --build-arg RELEASE=v1 app
@@ -140,6 +156,13 @@ q3-images: ## Build and load only the Git server and Q3 workload image
 	docker build -q -t selfheal-gitserver:dev app/gitserver
 	docker build -q -t selfheal-q3:v1 app/q3
 	kind load docker-image selfheal-gitserver:dev selfheal-q3:v1 --name $(KIND_CLUSTER)
+
+.PHONY: n1-images
+n1-images: ## Build and load only the Git server and N1 workload images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-n1:v1 app/n1
+	docker build -q -t selfheal-n1-capture:v1 app/n1-capture
+	kind load docker-image selfheal-gitserver:dev selfheal-n1:v1 selfheal-n1-capture:v1 --name $(KIND_CLUSTER)
 
 .PHONY: repos
 repos:
@@ -208,6 +231,11 @@ q3-platform: repos ## Install Metrics Server, VPA recommender, and Argo CD for f
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
+.PHONY: n1-platform
+n1-platform: repos ## Install only Argo CD after Cilium for focused N1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: bootstrap
 bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD root app
 	scripts/bootstrap.sh
@@ -223,6 +251,10 @@ q2-bootstrap: ## Namespaces, Git seed, and the Q2 Argo CD app
 .PHONY: q3-bootstrap
 q3-bootstrap: ## Namespaces, Git seed, and the Q3 Argo CD app
 	FOCUSED_Q3=1 scripts/bootstrap.sh
+
+.PHONY: n1-bootstrap
+n1-bootstrap: ## Namespaces, Git seed, and the N1 Argo CD app
+	FOCUSED_N1=1 scripts/bootstrap.sh
 
 .PHONY: down
 down: ## Delete the kind cluster
@@ -259,12 +291,13 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
 	cd app/q2 && python3 -m unittest -v test_app
 	cd app/q3 && python3 -m unittest -v test_app
+	cd app/n1 && python3 -m unittest -v test_app
 	cd scripts && python3 -m unittest -v test_redact_evidence
 
 .PHONY: check
@@ -279,10 +312,13 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind, E
 	kubectl kustomize gitops/q3/baseline >/dev/null
 	kubectl kustomize gitops/q3/hardened >/dev/null
 	scripts/render-q3-profiles.sh
+	kubectl kustomize gitops/n1/baseline >/dev/null
+	kubectl kustomize gitops/n1/hardened >/dev/null
+	scripts/render-n1-profiles.sh
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

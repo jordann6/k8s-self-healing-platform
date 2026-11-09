@@ -1,0 +1,16 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: n1-server-ingress
+  namespace: selfheal
+spec:
+  endpointSelector:
+    matchLabels:
+      app: n1-server
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app: n1-client
+      toPorts:
+        - ports:
+            - {port: "8084", protocol: TCP}

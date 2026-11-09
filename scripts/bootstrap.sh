@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # bootstrap.sh: everything outside GitOps, after the platform charts are up.
-# Idempotent. FOCUSED_Q1=1, FOCUSED_Q2=1, or FOCUSED_Q3=1 creates only that
+# Idempotent. FOCUSED_Q1=1, FOCUSED_Q2=1, FOCUSED_Q3=1, or FOCUSED_N1=1 creates only that
 # capability's dependencies. The default path creates the complete lab.
 set -euo pipefail
 
@@ -8,7 +8,8 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 focused_q1="${FOCUSED_Q1:-0}"
 focused_q2="${FOCUSED_Q2:-0}"
 focused_q3="${FOCUSED_Q3:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3))
+focused_n1="${FOCUSED_N1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
@@ -57,6 +58,9 @@ elif [[ "$focused_q2" == "1" ]]; then
 elif [[ "$focused_q3" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/q3.yaml" >/dev/null
 	echo "bootstrap: done (focused Q3 app -> q3/baseline)"
+elif [[ "$focused_n1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/n1.yaml" >/dev/null
+	echo "bootstrap: done (focused N1 app -> n1/baseline)"
 else
 	kubectl apply -f "$root/bootstrap/root-app.yaml" >/dev/null
 	echo "bootstrap: done (Argo CD root app -> apps/baseline)"

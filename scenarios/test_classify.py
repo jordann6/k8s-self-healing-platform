@@ -253,6 +253,21 @@ class Q3FocusedPreflight(unittest.TestCase):
         self.assertNotIn(("falco", "daemonset", "falco"), resources)
 
 
+class N1FocusedPreflight(unittest.TestCase):
+    def test_n1_only_uses_cilium_hubble_and_gitops(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["N1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("kube-system", "deploy", "hubble-relay"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("kube-system", "deploy", "metrics-server"), resources)
+
+
 def q2(**kw):
     conditions = {
         "scaledobject_conditions": {"Ready": {"status": "False", "reason": "ScalerError"}},
@@ -389,6 +404,64 @@ class Q3VerticalSizing(unittest.TestCase):
 
     def test_slow_recommendation_is_a_miss(self):
         self.assertEqual(verdict("Q3", "hardened", q3(recommendation_s=241), "impact")["status"], "miss")
+
+
+def n1(**kw):
+    o = {
+        "placement": {"cross_node": True},
+        "capture": {"bytes": 5000, "vxlan_packets": 0, "wireguard_packets": 20,
+                    "marker_visible": False,
+                    "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}},
+        "denied": {"samples": 5, "successes": 0, "failures": 5, "p95_ms": None},
+        "hubble_available": True,
+        "policy_drops": 5,
+        "wireguard_config": "true",
+        "wireguard": {"client_interfaces": 1, "server_interfaces": 1,
+                      "client_peer_count": 2, "server_peer_count": 2,
+                      "peer_keys_match": True, "client_routes_server": True,
+                      "server_routes_client": True, "client_handshake": True,
+                      "server_handshake": True},
+    }
+    o.update(kw)
+    return o
+
+
+class N1WireGuard(unittest.TestCase):
+    def test_visible_baseline_is_impact(self):
+        obs = n1(wireguard_config="false", wireguard={},
+                 capture={"bytes": 5000, "vxlan_packets": 20, "wireguard_packets": 0,
+                          "marker_visible": True,
+                          "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}})
+        self.assertEqual(verdict("N1", "baseline", obs, None)["status"], "impact")
+
+    def test_encrypted_cross_node_path_heals(self):
+        self.assertEqual(verdict("N1", "hardened", n1(), "impact")["status"], "healed")
+
+    def test_missing_capture_is_error(self):
+        obs = n1(capture={})
+        self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "error")
+
+    def test_missing_hubble_is_error(self):
+        self.assertEqual(verdict("N1", "hardened", n1(hubble_available=False), "impact")["status"], "error")
+
+    def test_missing_config_telemetry_is_error(self):
+        self.assertEqual(verdict("N1", "hardened", n1(wireguard_config=None), "impact")["status"], "error")
+
+    def test_plaintext_marker_in_hardened_capture_is_miss(self):
+        obs = n1()
+        obs["capture"] = {**obs["capture"], "marker_visible": True}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_missing_peer_route_or_handshake_is_miss(self):
+        for field in ("peer_keys_match", "client_routes_server", "server_routes_client",
+                      "client_handshake", "server_handshake"):
+            obs = n1()
+            obs["wireguard"] = {**obs["wireguard"], field: False}
+            with self.subTest(field=field):
+                self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_denial_without_policy_drop_is_miss(self):
+        self.assertEqual(verdict("N1", "hardened", n1(policy_drops=0), "impact")["status"], "miss")
 
 
 class AbortLine(unittest.TestCase):
@@ -610,6 +683,11 @@ class EksThresholds(unittest.TestCase):
             self.assertIn(row, THRESHOLDS["kind"])
             self.assertNotIn(row, THRESHOLDS["eks"])
             self.assertNotIn(row, THRESHOLDS["aks"])
+
+    def test_n1_is_kind_only_in_phase_three(self):
+        self.assertIn("N1", THRESHOLDS["kind"])
+        self.assertNotIn("N1", THRESHOLDS["eks"])
+        self.assertNotIn("N1", THRESHOLDS["aks"])
 
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])

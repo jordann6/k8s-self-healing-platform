@@ -55,6 +55,10 @@ THRESHOLDS = {
                "cpu_ratio_min": 0.70, "cpu_ratio_max": 2.00,
                "memory_ratio_min": 0.90, "memory_ratio_max": 2.00,
                "restarts": 0},
+        # N1 (kind only, Phase 3). Fixed in ADR-0012 before live proof.
+        "N1": {"min_requests": 20, "max_failures": 0, "p95_ms": 300,
+               "min_denied": 5, "denied_successes": 0, "min_policy_drops": 1,
+               "min_packets": 5, "interfaces": 1, "min_peers": 1},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -125,6 +129,9 @@ HYPOTHESES = {
     "Q3": "Under sustained CPU and memory pressure, the hardened VPA publishes a bounded recommendation within "
           "240s that is related to measured use, while Off mode leaves requests, the running pod, and restart "
           "count unchanged. The baseline has the same pressure and telemetry but no sizing recommendation.",
+    "N1": "For Cilium-managed pods on different workers, hardened WireGuard replaces visible VXLAN underlay "
+          "traffic with an established encrypted peer path while legitimate requests remain healthy and an "
+          "unauthorized cross-node request remains attributable to policy enforcement.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -494,6 +501,74 @@ def judge_q3(o: dict, t: dict):
     return True, why, pressure, healed
 
 
+def judge_n1(o: dict, t: dict):
+    placement = o.get("placement") or {}
+    if placement.get("cross_node") is not True:
+        return False, "the client and server were not on different nodes", False, False
+    capture = o.get("capture") or {}
+    if not capture.get("bytes"):
+        return False, "worker underlay capture was missing", False, False
+    requests = capture.get("probe") or {}
+    if (requests.get("samples") or 0) < t["min_requests"] or requests.get("p95_ms") is None:
+        return False, f"legitimate request telemetry was too thin: {requests}", False, False
+    denied = o.get("denied") or {}
+    if (denied.get("samples") or 0) < t["min_denied"]:
+        return False, f"denied-request telemetry was too thin: {denied}", False, False
+    if o.get("hubble_available") is not True:
+        return False, "Hubble policy telemetry was unavailable", False, False
+    if o.get("policy_drops") is None:
+        return False, "Hubble policy-drop count was missing", False, False
+
+    service_ok = (requests.get("failures") == t["max_failures"]
+                  and requests.get("p95_ms") <= t["p95_ms"])
+    policy_ok = (denied.get("successes") == t["denied_successes"]
+                 and o.get("policy_drops", 0) >= t["min_policy_drops"])
+    config = str(o.get("wireguard_config") or "").lower()
+    if config not in ("true", "false"):
+        return False, f"Cilium WireGuard configuration telemetry was missing ({config!r})", False, False
+
+    if config != "true":
+        baseline_capture = (capture.get("vxlan_packets", 0) >= t["min_packets"]
+                            and capture.get("wireguard_packets") == 0
+                            and capture.get("marker_visible") is True)
+        impact = baseline_capture and service_ok and policy_ok
+        why = (f"VXLAN {capture.get('vxlan_packets')} attributed packets "
+               f"({capture.get('vxlan_packets_total', capture.get('vxlan_packets'))} total), WireGuard "
+               f"{capture.get('wireguard_packets')}, marker visible {capture.get('marker_visible')}; "
+               f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+               f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+               f"policy drops {o.get('policy_drops')}")
+        return True, why, impact, False
+
+    wireguard = o.get("wireguard")
+    if not wireguard:
+        return False, "Cilium WireGuard status was missing", False, False
+    peer_evidence = (wireguard.get("client_interfaces") == t["interfaces"]
+                     and wireguard.get("server_interfaces") == t["interfaces"]
+                     and wireguard.get("client_peer_count", 0) >= t["min_peers"]
+                     and wireguard.get("server_peer_count", 0) >= t["min_peers"]
+                     and wireguard.get("peer_keys_match") is True
+                     and wireguard.get("client_routes_server") is True
+                     and wireguard.get("server_routes_client") is True
+                     and wireguard.get("client_handshake") is True
+                     and wireguard.get("server_handshake") is True)
+    encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
+                         and capture.get("vxlan_packets") == 0
+                         and capture.get("marker_visible") is False)
+    healed = service_ok and policy_ok and peer_evidence and encrypted_capture
+    why = (f"WireGuard {capture.get('wireguard_packets')} packets, VXLAN "
+           f"{capture.get('vxlan_packets')} attributed "
+           f"({capture.get('vxlan_packets_total', capture.get('vxlan_packets'))} total), "
+           f"marker visible {capture.get('marker_visible')}; "
+           f"peers match {wireguard.get('peer_keys_match')}, routes "
+           f"{wireguard.get('client_routes_server')}/{wireguard.get('server_routes_client')}, "
+           f"handshakes {wireguard.get('client_handshake')}/{wireguard.get('server_handshake')}; "
+           f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+           f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+           f"policy drops {o.get('policy_drops')}")
+    return True, why, True, healed
+
+
 def judge_a4(o: dict, t: dict):
     if not enough(o.get("samples"), o.get("expected", 0)):
         return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
@@ -701,7 +776,7 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
-          "Q3": judge_q3}
+          "Q3": judge_q3, "N1": judge_n1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

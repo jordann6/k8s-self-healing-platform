@@ -48,6 +48,7 @@ import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
 import q2_row  # noqa: E402
 import q3_row  # noqa: E402
+import n1_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -59,7 +60,7 @@ NS = "selfheal"
 ROWS_BY_TARGET = {
     # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
     # the original rows exercise.
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3"],
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1"],
     # R2 last: it quarantines a node, which the runner then replaces.
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
@@ -90,6 +91,7 @@ ACTIONS = {
     "Q1": "KEDA scales the worker from zero on queue depth and back to zero; manual-ack redelivery keeps a killed worker from losing work",
     **q2_row.ACTIONS,
     **q3_row.ACTIONS,
+    **n1_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -1233,13 +1235,14 @@ def row_q1(lab: Lab, profile: str, d: Path) -> dict:
 RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3,
            "R1": row_r1, "Q1": row_q1,
            "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d),
-           "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d)}
+           "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d),
+           "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
-            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s"}
+            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
-             "Q2": "metric_recovered_s", "Q3": "recommendation_s"}
+             "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s"}
 
 
 def runner(row: str):
@@ -1282,6 +1285,7 @@ FOCUSED_KEDA_PRECONDITIONS = [
 ]
 FOCUSED_Q3_PRECONDITIONS = [("kube-system", "deploy", "metrics-server"),
                             ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender")]
+FOCUSED_N1_PRECONDITIONS = [("kube-system", "deploy", "hubble-relay")]
 
 
 def q1_only(rows: list[str]) -> bool:
@@ -1296,6 +1300,10 @@ def q3_only(rows: list[str]) -> bool:
     return TARGET == "kind" and rows == ["Q3"]
 
 
+def n1_only(rows: list[str]) -> bool:
+    return TARGET == "kind" and rows == ["N1"]
+
+
 def focused_kind_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
@@ -1303,6 +1311,8 @@ def focused_kind_row(rows: list[str]) -> str | None:
         return "Q2"
     if q3_only(rows):
         return "Q3"
+    if n1_only(rows):
+        return "N1"
     return None
 
 
@@ -1312,6 +1322,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_KEDA_PRECONDITIONS
     if focused == "Q3":
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_Q3_PRECONDITIONS
+    if focused == "N1":
+        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_N1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1339,7 +1351,7 @@ def preconditions(rows: list[str]) -> dict:
                  and app_state(app).get("sync") == "Synced", 180, step=5,
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
-                 "Q3": ("q3-target",)}[focused]
+                 "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied")}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1419,6 +1431,31 @@ def apply_q3_profile(profile: str) -> None:
                  120, step=3, what="Q3 baseline without a VPA")
 
 
+def apply_n1_profile(profile: str) -> None:
+    """Switch the N1 Git path and the cluster-level Cilium encryption control."""
+    log(f"profile -> {profile} (N1 only)")
+    values = ROOT / "cilium" / f"n1-{profile}.yaml"
+    result = sh(["helm", "upgrade", "cilium", "cilium/cilium", "--version", "1.20.4",
+                 "-n", "kube-system", "-f", str(ROOT / "cilium" / "values.yaml"),
+                 "-f", str(values), "--wait", "--timeout", "10m"], timeout=660)
+    if result.returncode != 0:
+        raise RuntimeError(f"N1 Cilium profile failed: {(result.stderr or result.stdout).strip()[-500:]}")
+    # The Cilium chart updates cilium-config without changing the DaemonSet pod
+    # template. Restart the agents so the selected encryption control is loaded.
+    k("-n", "kube-system", "rollout", "restart", "daemonset/cilium", check=True)
+    wait_for(lambda: k("-n", "kube-system", "rollout", "status", "daemonset/cilium",
+                       "--timeout=20s", timeout=25).returncode == 0,
+             300, step=5, what=f"Cilium {profile} rollout")
+    k("-n", "argocd", "patch", "application", "selfheal-n1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": f"n1/{profile}"}}}), check=True)
+    refresh("selfheal-n1")
+    wait_for(lambda: app_state("selfheal-n1")["path"] == f"n1/{profile}", 120, step=3,
+             what="N1 app path")
+    wait_for(lambda: app_state("selfheal-n1")["sync"] == "Synced"
+             and app_state("selfheal-n1")["health"] == "Healthy", 180, step=3,
+             what="N1 app Synced and Healthy")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
@@ -1426,6 +1463,8 @@ def apply_focused_profile(row: str, profile: str) -> None:
         apply_q2_profile(profile)
     elif row == "Q3":
         apply_q3_profile(profile)
+    elif row == "N1":
+        apply_n1_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1454,7 +1493,8 @@ def versions() -> dict:
                   (NS, "deploy", "qworker"), (NS, "deploy", "q2-signal"),
                   (NS, "deploy", "q2-target"),
                   ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"),
-                  (NS, "deploy", "q3-target")]
+                  (NS, "deploy", "q3-target"), (NS, "deploy", "n1-server"),
+                  (NS, "deploy", "n1-client"), (NS, "deploy", "n1-denied")]
     if TARGET == "eks":
         components.append(("kube-system", "deploy", "karpenter"))
     for ns, kind, name in components:
@@ -1515,6 +1555,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, node CPU capacity, and timestamped request samples.")
     elif doc["target"] == "kind" and doc["rows"] == ["Q3"]:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
+    elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
+        L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
                  "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
@@ -1571,7 +1613,7 @@ def main() -> int:
            "results": {}, "observations": {}}
     focused = focused_kind_row(rows)
     lab_context = contextlib.nullcontext(None) if focused else Lab()
-    hubble_context = contextlib.nullcontext() if focused else HubbleRelay()
+    hubble_context = HubbleRelay() if focused == "N1" else (contextlib.nullcontext() if focused else HubbleRelay())
     with lab_context as lab, hubble_context:
         for profile in ("baseline", "hardened"):
             if focused:
