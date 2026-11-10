@@ -149,10 +149,13 @@ HYPOTHESES = {
     "Q1": "A backlog of 240 messages scales the worker from zero, drains within 120s with no lost work "
           "even when a busy worker is killed mid-message, and the worker returns to zero, while the fixed "
           "baseline never scales to zero.",
-    "Q2": "When the scaling metric fails, the failure is visible within 30s and the hardened fallback reaches "
-          "three replicas within 30s while meeting the request SLO. Restored telemetry recovers within 45s, "
-          "the maximum-replica and CPU scheduling ceilings are explicitly observed, restored capacity recovers "
-          "within 60s, and withdrawn demand scales back to one within 90s.",
+    # Q2 is a template: hypothesis() fills it from the target's thresholds, so a
+    # cloud run prints the cloud clocks rather than kind's.
+    "Q2": "When the scaling metric fails, the failure is visible within {detect_s}s and the hardened fallback "
+          "reaches three replicas within {fallback_s}s while meeting the request SLO. Restored telemetry recovers "
+          "within {metric_recover_s}s, the maximum-replica and CPU scheduling ceilings are explicitly observed, "
+          "restored capacity recovers within {capacity_recover_s}s, and withdrawn demand scales back to one "
+          "within {scale_down_s}s.",
     "Q3": "Under sustained CPU and memory pressure, the hardened VPA publishes a bounded recommendation within "
           "240s that is related to measured use, while Off mode leaves requests, the running pod, and restart "
           "count unchanged. The baseline has the same pressure and telemetry but no sizing recommendation.",
@@ -196,8 +199,15 @@ HYPOTHESES_BY_TARGET = {
 }
 
 
+# Rows whose hypothesis text is filled from THRESHOLDS[target][row].
+TEMPLATED = {"Q2"}
+
+
 def hypothesis(row: str, target: str = "kind") -> str:
-    return HYPOTHESES_BY_TARGET.get(target, {}).get(row) or HYPOTHESES[row]
+    text = HYPOTHESES_BY_TARGET.get(target, {}).get(row) or HYPOTHESES[row]
+    if row in TEMPLATED:
+        text = text.format(**THRESHOLDS.get(target, THRESHOLDS["kind"]).get(row, THRESHOLDS["kind"][row]))
+    return text
 
 
 def enough(samples: int | None, expected: float) -> bool:

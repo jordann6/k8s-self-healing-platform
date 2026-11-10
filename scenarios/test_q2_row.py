@@ -1,7 +1,7 @@
 """Pure Q2 evidence helpers and failure detection."""
 import unittest
 
-from q2_row import (autoscaler_error, cpu_m, free_cpu_by_node, node_inventory, nodes_unchanged,
+from q2_row import (autoscaler_error, cpu_m, free_cpu_by_node, nodes_unchanged,
                     parse_keda_version, q2_nodes, replicas_fit, request_stats, scheduled_cpu_m, stable_one)
 
 

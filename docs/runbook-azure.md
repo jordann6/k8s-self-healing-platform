@@ -128,6 +128,27 @@ Free), the automation, the Logic App, the policy, the workspace with its
 `MA_` group, and purges the vault. `aks-verify-gone` must print only "gone";
 it compares Defender's footprint with the preflight's before-picture.
 
+`aks-predestroy` also cancels any rolling upgrade still running on a node
+scale set. Azure can start a VM Agent Rolling Upgrade on the system scale set
+by itself during a session, and while it runs the scale set delete returns
+`OperationNotAllowed`. On 2026-11-10 that stalled at 1 of 3 instances and the
+destroy failed twice with `ResourceGroupDeletionBlocked` on the load balancer,
+the agent-pool NSG, the public IP and the system scale set. Only the scale set
+was really blocked, the other three failed because it still held them, and
+the error itself names none of this. The cause was only in the Activity Log
+(`az monitor activity-log list -g rg-selfheal-lab-nodes --status Failed`).
+If a destroy fails this way anyway, cancel it by hand and re-plan:
+
+```bash
+az vmss list -g rg-selfheal-lab-nodes --query "[].name" -o tsv
+az vmss rolling-upgrade get-latest -g rg-selfheal-lab-nodes -n <scale set> --query runningStatus.code
+az vmss rolling-upgrade cancel -g rg-selfheal-lab-nodes -n <scale set>
+make aks-destroy-plan
+terraform -chdir=$PWD/infra/azure apply $PWD/infra/azure/destroy.tfplan
+```
+
+After the cancel the cluster deleted in 3m33s.
+
 If the destroy stops on "the resource group contains resources": list them
 (`az resource list -g rg-selfheal-lab -o table`); anything there that
 Terraform did not create is the thing to understand before deleting it.

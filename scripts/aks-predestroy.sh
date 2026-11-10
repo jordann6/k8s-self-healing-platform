@@ -20,6 +20,12 @@
 #     refuses to delete a group that still holds resources it did not create
 #     (prevent_deletion_if_contains_resources), which is the fail-closed
 #     behaviour we want for anything else
+#   - any platform rolling upgrade still running on a node scale set. Azure
+#     can start a VM Agent Rolling Upgrade on its own mid-session; while it
+#     runs the scale set delete returns OperationNotAllowed, and the 11/10
+#     destroy failed twice with ResourceGroupDeletionBlocked on the load
+#     balancer, NSG and public IP the scale set still held. The real cause was
+#     only in the Activity Log
 #
 # Not done, unlike EKS: Cilium stays installed. On AKS it runs in overlay
 # mode and owns no Azure resources (no ENIs to release), and removing it
@@ -33,6 +39,8 @@ tf="$root/infra/azure"
 runner="$(terraform -chdir="$tf" output -json runner 2>/dev/null || echo '{}')"
 rg="$(jq -r '.resource_group // empty' <<<"$runner")"
 rg="${rg:-rg-selfheal-lab}"
+node_rg="$(jq -r '.node_resource_group // empty' <<<"$runner")"
+node_rg="${node_rg:-rg-selfheal-lab-nodes}"
 
 if kubectl version --request-timeout=10s >/dev/null 2>&1; then
 	echo "aks-predestroy: stopping Argo CD sync"
@@ -113,6 +121,29 @@ for id in $(az snapshot list -g "$rg" --query "[?starts_with(name, 'snap-r2-')].
 done
 left="$(az snapshot list --query "[?starts_with(name, 'snap-r2-')].name" -o tsv 2>/dev/null || true)"
 [[ -z "$left" ]] || { echo "aks-predestroy: FAIL, snapshots remain: $left" >&2; exit 1; }
+
+echo "aks-predestroy: rolling upgrades on the scale sets in $node_rg"
+running=""
+for vmss in $(az vmss list -g "$node_rg" --query "[].name" -o tsv 2>/dev/null); do
+	code="$(az vmss rolling-upgrade get-latest -g "$node_rg" -n "$vmss" \
+		--query "runningStatus.code" -o tsv 2>/dev/null || true)"
+	if [[ "$code" == "RollingForward" ]]; then
+		echo "  cancelling the rolling upgrade on $vmss"
+		az vmss rolling-upgrade cancel -g "$node_rg" -n "$vmss" >/dev/null
+		running+="$vmss "
+	fi
+done
+for vmss in $running; do
+	code=""
+	for _ in $(seq 1 24); do
+		code="$(az vmss rolling-upgrade get-latest -g "$node_rg" -n "$vmss" \
+			--query "runningStatus.code" -o tsv 2>/dev/null || true)"
+		[[ "$code" != "RollingForward" ]] && break
+		sleep 5
+	done
+	[[ "$code" != "RollingForward" ]] || { echo "aks-predestroy: FAIL, rolling upgrade still running on $vmss" >&2; exit 1; }
+	echo "  $vmss: $code"
+done
 
 echo "aks-predestroy: done (next: make aks-destroy-plan)"
 echo "Copy any evidence you still need first: the evidence account goes with the destroy."

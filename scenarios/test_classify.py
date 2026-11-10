@@ -1158,6 +1158,19 @@ class AksThresholds(unittest.TestCase):
         self.assertIn("300s of the alert", hypothesis("R2", "aks"))
         self.assertIn("300s", hypothesis("A4", "eks"))
 
+    def test_q2_hypothesis_reads_the_target_thresholds(self):
+        from judge import hypothesis
+        kind = hypothesis("Q2", "kind")
+        self.assertIn("fallback reaches three replicas within 30s", kind)
+        self.assertIn("recovers within 60s", kind)
+        self.assertIn("back to one within 90s", kind)
+        for target in ("eks", "aks"):
+            text = hypothesis("Q2", target)
+            self.assertNotIn("{", text)
+            self.assertIn("fallback reaches three replicas within 60s", text)
+            self.assertIn("recovers within 90s", text)
+            self.assertIn("back to one within 120s", text)
+
 
 if __name__ == "__main__":
     unittest.main()
