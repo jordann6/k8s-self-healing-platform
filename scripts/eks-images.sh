@@ -7,7 +7,7 @@
 #   app:<sha>-v1   the good release        app:<sha>-v2   the bad release (row A2)
 #   gitserver:<sha>                         dbprobe:<sha>
 #   qworker:<sha>                           q2:<sha>
-#   o1:<sha>
+#   o1:<sha>                                q3:<sha>
 # A tag that already exists is not rebuilt.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -50,6 +50,7 @@ push dbprobe "$sha" "$root/app/dbprobe"
 push qworker "$sha" "$root/app/qworker"
 push q2 "$sha" "$root/app/q2"
 push o1 "$sha" "$root/app/o1"
+push q3 "$sha" "$root/app/q3"
 
 gen="$root/gitops/targets/eks/generated"
 mkdir -p "$gen"
@@ -73,6 +74,9 @@ images:
     newTag: $sha
   - name: selfheal-o1
     newName: $(repo o1)
+    newTag: $sha
+  - name: selfheal-q3
+    newName: $(repo q3)
     newTag: $sha
 EOF
 printf '%s\n' "$sha" >"$gen/IMAGE_SHA"

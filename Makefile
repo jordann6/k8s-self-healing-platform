@@ -51,7 +51,7 @@ SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
 KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
 KEDA_VERSION            := 2.21.0    # kind and EKS; AKS uses its managed add-on
-VPA_VERSION             := 0.16.0    # app 1.8.1, kind row Q3 only
+VPA_VERSION             := 0.16.0    # app 1.8.1, recommender only, row Q3 on kind, EKS and AKS (ADR-0020)
 RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
 KYVERNO_VERSION         := 3.9.2     # app v1.19.2, kind row P1 only
 POSTGRES_VERSION        := 17.11-alpine3.24
@@ -451,7 +451,7 @@ CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(s
 	ROLLOUTS_VERSION=$(strip $(ROLLOUTS_VERSION)) RELOADER_VERSION=$(strip $(RELOADER_VERSION)) \
 	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION)) \
-	KEDA_VERSION=$(strip $(KEDA_VERSION))
+	KEDA_VERSION=$(strip $(KEDA_VERSION)) VPA_VERSION=$(strip $(VPA_VERSION))
 EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
 
 .PHONY: eks-check

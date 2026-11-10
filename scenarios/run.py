@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -1367,7 +1367,7 @@ def q2_only(rows: list[str]) -> bool:
 
 
 def q3_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["Q3"]
+    return rows == ["Q3"]
 
 
 def n1_only(rows: list[str]) -> bool:
@@ -1536,10 +1536,11 @@ def apply_q2_profile(profile: str) -> None:
 def apply_q3_profile(profile: str) -> None:
     """Switch only the recommendation-only Q3 application."""
     log(f"profile -> {profile} (Q3 only)")
+    app_path = f"q3/{profile}" if TARGET == "kind" else f"targets/{TARGET}/q3/{profile}"
     k("-n", "argocd", "patch", "application", "selfheal-q3", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"q3/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-q3")
-    wait_for(lambda: app_state("selfheal-q3")["path"] == f"q3/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-q3")["path"] == app_path, 120, step=3,
              what="Q3 app path")
     wait_for(lambda: app_state("selfheal-q3")["sync"] == "Synced"
              and app_state("selfheal-q3")["health"] == "Healthy", 180, step=3,
@@ -1778,7 +1779,7 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ1 uses RabbitMQ queue telemetry and distinct completion IDs. The measured observations are in `report.json`.")
     elif doc["rows"] == ["Q2"]:
         L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, per-node CPU capacity, the node inventory around the Pending window, the KEDA version, and timestamped request samples.")
-    elif doc["target"] == "kind" and doc["rows"] == ["Q3"]:
+    elif doc["rows"] == ["Q3"]:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
     elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
         L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")

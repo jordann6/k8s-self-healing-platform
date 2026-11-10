@@ -55,7 +55,9 @@ THRESHOLDS = {
                "cpu_pressure_m": 100, "memory_pressure_mib": 64,
                "cpu_ratio_min": 0.70, "cpu_ratio_max": 2.00,
                "memory_ratio_min": 0.90, "memory_ratio_max": 2.00,
-               "restarts": 0},
+               "restarts": 0,
+               # Collection windows (ADR-0020): (min_samples + 1) x metrics resolution.
+               "sample_window_s": 240, "baseline_window_s": 120},
         # N1 (kind only, Phase 3). Fixed in ADR-0012 before live proof.
         "N1": {"min_requests": 20, "max_failures": 0, "p95_ms": 300,
                "min_denied": 5, "denied_successes": 0, "min_policy_drops": 1,
@@ -132,6 +134,13 @@ THRESHOLDS["aks"]["Q2"] = Q2_CLOUD
 # with a warm image cache, and nothing here is relaxed to obtain a pass.
 THRESHOLDS["eks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
 THRESHOLDS["aks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
+
+# Row Q3 on EKS and AKS (ADR-0020). Every ADR-0011 observation threshold is
+# unchanged. Only the collection windows differ on AKS, derived from the
+# documented 60s Metrics API refresh: (6 + 1) x 60 = 420s. EKS runs
+# metrics-server at 15s like kind. The 240s recommendation clock is separate.
+THRESHOLDS["eks"]["Q3"] = dict(THRESHOLDS["kind"]["Q3"])
+THRESHOLDS["aks"]["Q3"] = {**THRESHOLDS["kind"]["Q3"], "sample_window_s": 420, "baseline_window_s": 420}
 
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8

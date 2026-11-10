@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import datetime as dt
 import math
 import time
 from pathlib import Path
@@ -41,6 +42,39 @@ def percentile(values: list[float], fraction: float) -> float | None:
         return None
     ordered = sorted(values)
     return round(ordered[math.ceil(fraction * len(ordered)) - 1], 3)
+
+
+def sample_spacing_s(samples: list[dict]) -> float | None:
+    """Median seconds between distinct Metrics API timestamps (ADR-0020 live check L2)."""
+    stamps = []
+    for sample in samples:
+        raw = sample.get("metrics_timestamp")
+        if not raw:
+            continue
+        try:
+            stamps.append(dt.datetime.fromisoformat(str(raw).replace("Z", "+00:00")).timestamp())
+        except ValueError:
+            continue
+    gaps = sorted(b - a for a, b in zip(stamps, stamps[1:]) if b > a)
+    if not gaps:
+        return None
+    mid = len(gaps) // 2
+    return round(gaps[mid] if len(gaps) % 2 else (gaps[mid - 1] + gaps[mid]) / 2, 1)
+
+
+def collection_window(thresholds: dict, profile: str) -> int:
+    """How long to collect distinct samples (ADR-0020). Hardened never stops before the recommendation clock."""
+    if profile == "hardened":
+        return max(thresholds["recommend_s"], thresholds["sample_window_s"])
+    return thresholds["baseline_window_s"]
+
+
+def metrics_server_info(h) -> dict[str, Any]:
+    """Replica count and resolution flag of the metrics source, for the evidence (ADR-0020)."""
+    deploy = h.kj("-n", "kube-system", "get", "deploy", "metrics-server")
+    containers = deploy.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
+    args = [a for c in containers for a in (c.get("args") or []) if "metric-resolution" in a]
+    return {"replicas": deploy.get("spec", {}).get("replicas"), "resolution_args": args}
 
 
 def append_distinct(samples: list[dict], sample: dict) -> bool:
@@ -88,6 +122,7 @@ def pod_state(h) -> dict[str, Any]:
     return {
         "pod_count": 1,
         "pod": pod.get("metadata", {}).get("name"),
+        "node": pod.get("spec", {}).get("nodeName"),
         "uid": pod.get("metadata", {}).get("uid"),
         "restart_count": status.get("restartCount", 0),
         "ready": status.get("ready") is True,
@@ -153,7 +188,7 @@ def collect(h, profile: str, timeout: float, minimum: int) -> tuple[list[dict], 
 
 
 def run(h, _lab, profile: str, directory: Path) -> dict:
-    thresholds = h.THRESHOLDS["kind"]["Q3"]
+    thresholds = h.THRESHOLDS[h.TARGET]["Q3"]
     initial = pod_state(h)
     if initial.get("pod_count") != 1 or not initial.get("ready"):
         raise RuntimeError(f"Q3 target was not ready: {initial}")
@@ -163,9 +198,12 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
     vpa = h.kj("-n", h.NS, "get", "verticalpodautoscaler", "q3-target")
     vpa_present = bool(vpa.get("metadata"))
     update_mode = vpa.get("spec", {}).get("updatePolicy", {}).get("updateMode")
-    samples, recommendation, recommendation_at = collect(
-        h, profile, thresholds["recommend_s"] if profile == "hardened" else 120,
-        thresholds["min_samples"])
+    # The recommendation clock (recommend_s) is judged on its own. The collection
+    # window is derived from the metrics resolution (ADR-0020), so the hardened
+    # loop may run past recommend_s to gather samples without excusing a late
+    # recommendation.
+    window = collection_window(thresholds, profile)
+    samples, recommendation, recommendation_at = collect(h, profile, window, thresholds["min_samples"])
     final = pod_state(h)
     cpu_values = [sample["cpu_m"] for sample in samples]
     memory_values = [sample["memory_mib"] for sample in samples]
@@ -175,6 +213,7 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
         "cpu_max_m": max(cpu_values, default=None),
         "memory_p90_mib": percentile(memory_values, 0.90),
         "memory_max_mib": max(memory_values, default=None),
+        "sample_spacing_s": sample_spacing_s(samples),
     }
     (directory / f"q3-{profile}-timeline.json").write_text(json.dumps(samples, indent=2) + "\n")
     return {
@@ -186,6 +225,8 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
         "initial_state": initial,
         "final_state": final,
         "usage": summary,
+        "collection_window_s": window,
+        "metrics_server": metrics_server_info(h),
         "recommendation": recommendation,
         "recommendation_s": None if recommendation_at is None else round(recommendation_at - t0, 1),
         "requests_unchanged": initial.get("requests") == final.get("requests"),

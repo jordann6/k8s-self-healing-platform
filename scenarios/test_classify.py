@@ -895,10 +895,12 @@ class EksThresholds(unittest.TestCase):
         for target in ("kind", "eks", "aks"):
             self.assertEqual(THRESHOLDS[target]["Q1"], THRESHOLDS["kind"]["Q1"])
 
-    def test_q3_is_kind_only(self):
-        self.assertIn("Q3", THRESHOLDS["kind"])
-        self.assertNotIn("Q3", THRESHOLDS["eks"])
-        self.assertNotIn("Q3", THRESHOLDS["aks"])
+    def test_q3_cloud_thresholds_differ_only_where_adr_0020_says(self):
+        kind = THRESHOLDS["kind"]["Q3"]
+        self.assertEqual(THRESHOLDS["eks"]["Q3"], kind)
+        aks = THRESHOLDS["aks"]["Q3"]
+        self.assertEqual({k: v for k, v in aks.items() if kind[k] != v},
+                         {"sample_window_s": 420, "baseline_window_s": 420})
 
     def test_q2_cloud_thresholds_differ_only_where_adr_0017_says(self):
         kind = THRESHOLDS["kind"]["Q2"]
@@ -1140,7 +1142,7 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:

@@ -8,7 +8,7 @@
 #   selfheal/app:<sha>-v1   the good release   selfheal/app:<sha>-v2   the bad release (row A2)
 #   selfheal/gitserver:<sha>                   selfheal/r2worker:<sha> (row R2)
 #   selfheal/qworker:<sha> (row Q1)   selfheal/q2:<sha> (row Q2)
-#   selfheal/o1:<sha> (row O1)
+#   selfheal/o1:<sha> (row O1)   selfheal/q3:<sha> (row Q3)
 #
 # Runs BEFORE aks-platform on AKS (unlike EKS): the platform step applies the
 # R2 worker, which needs its image. A tag that already exists is not rebuilt.
@@ -50,6 +50,7 @@ push selfheal/r2worker "$sha" "$root/app/r2worker"
 push selfheal/qworker "$sha" "$root/app/qworker"
 push selfheal/q2 "$sha" "$root/app/q2"
 push selfheal/o1 "$sha" "$root/app/o1"
+push selfheal/q3 "$sha" "$root/app/q3"
 
 gen="$root/gitops/targets/aks/generated"
 mkdir -p "$gen"
@@ -71,6 +72,9 @@ images:
     newTag: $sha
   - name: selfheal-o1
     newName: $registry/selfheal/o1
+    newTag: $sha
+  - name: selfheal-q3
+    newName: $registry/selfheal/q3
     newTag: $sha
 patches:
   - target: {kind: SecretStore, name: backend}

@@ -15,7 +15,7 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 : "${MGMT_PROFILE:?set MGMT_PROFILE}" "${LAB_PROFILE:?set LAB_PROFILE}" "${KUBECONFIG:?run through make}"
-: "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${KPS_VERSION:?}"
+: "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${VPA_VERSION:?}" "${KPS_VERSION:?}"
 : "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}" "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}"
 : "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}" "${TALON_VERSION:?}" "${FALCO_VERSION:?}"
 : "${KEDA_VERSION:?}"
@@ -97,6 +97,9 @@ install() { # release chart version namespace [extra helm args...]
 }
 # shellcheck disable=SC2046
 install metrics-server metrics-server/metrics-server "$METRICS_SERVER_VERSION" kube-system $(values metrics-server)
+# Row Q3 (ADR-0020): the upstream chart, recommender only. Nothing here can change a workload.
+# shellcheck disable=SC2046
+install vpa autoscalers/vertical-pod-autoscaler "$VPA_VERSION" vpa $(values vpa)
 # EKS has no managed KEDA add-on. Q1 and Q2 use the pinned upstream chart,
 # matching AWS's documented EKS installation model.
 # shellcheck disable=SC2046

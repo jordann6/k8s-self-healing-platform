@@ -11,7 +11,8 @@
 #      Argo Rollouts: its chart only grants Rollout RBAC if that API exists),
 #      with the AKS overrides from platform/aks/. NOT metrics-server: AKS
 #      ships and manages its own, and a second one would fight it for the
-#      metrics.k8s.io APIService.
+#      metrics.k8s.io APIService. The VPA recommender (row Q3) is installed
+#      from the upstream chart, never the managed VPA add-on (ADR-0020).
 #   4. the R2 worker (cluster/aks/responder.yaml.tmpl)
 #   5. proof that Prometheus remote write is accepted (the role assignment
 #      "takes about 30 minutes", ADR-0007 row 3)
@@ -23,7 +24,7 @@ tf="$root/infra/azure"
 : "${KUBECONFIG:?run through make}"
 : "${CILIUM_VERSION:?}" "${KPS_VERSION:?}" "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}"
 : "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}" "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}"
-: "${TALON_VERSION:?}" "${FALCO_VERSION:?}"
+: "${TALON_VERSION:?}" "${FALCO_VERSION:?}" "${VPA_VERSION:?}"
 [[ "$KUBECONFIG" == "$root/.kube/aks" ]] || { echo "aks-platform: KUBECONFIG must be $root/.kube/aks" >&2; exit 1; }
 [[ "$root" != *" "* ]] || { echo "aks-platform: the repo path must not contain spaces" >&2; exit 1; }
 gen="$root/gitops/targets/aks/generated"
@@ -96,6 +97,11 @@ install() { # release chart version namespace [extra helm args...]
 }
 install kps prometheus-community/kube-prometheus-stack "$KPS_VERSION" monitoring \
 	-f "$root/platform/kube-prometheus-stack.yaml" -f "$kps_values"
+# Row Q3 (ADR-0020): the upstream chart, recommender only, against AKS's own
+# metrics-server. The managed VPA add-on stays off (it always installs the
+# updater and admission controller).
+# shellcheck disable=SC2046
+install vpa autoscalers/vertical-pod-autoscaler "$VPA_VERSION" vpa $(values vpa)
 # shellcheck disable=SC2046
 install cert-manager jetstack/cert-manager "$CERT_MANAGER_VERSION" cert-manager $(values cert-manager)
 # shellcheck disable=SC2046
