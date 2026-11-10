@@ -40,6 +40,11 @@ evidence/*
 !evidence/eks-20261109-212107/
 !evidence/aks-20261110-q1/
 !evidence/aks-20261110-q1-rerun/
+# Q1 and Q2 on EKS, 11/10. The first Q1 run crashed on the RabbitMQ peer_host
+# shape (kill attribution) and is kept beside its passing rerun. Redacted.
+!evidence/eks-20261110-123247/
+!evidence/eks-20261110-123955/
+!evidence/eks-20261110-124524/
 # AKS reference runs (subscription, tenant, GUIDs and operator IP redacted).
 # aks-run1 is the full run; -rows reruns S3, S4, R1, R2 after the A4 runner
 # fix; -s4 after the DINE template fix; -a3 with KEDA (ADR-0008).

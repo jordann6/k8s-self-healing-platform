@@ -1,0 +1,1445 @@
+{
+  "run_id": "eks-20261110-124524",
+  "target": "eks",
+  "started": "2026-11-10T18:45:48.740Z",
+  "rows": [
+    "Q2"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "keda/keda-operator": true,
+    "keda/keda-operator-metrics-apiserver": true,
+    "keda/keda-admission-webhooks": true,
+    "q2_nodes_labelled": [
+      "ip-10-30-12-120.ec2.internal",
+      "ip-10-30-27-234.ec2.internal",
+      "ip-10-30-9-196.ec2.internal"
+    ],
+    "selfheal/q2-signal": true,
+    "selfheal/q2-target": true,
+    "q2_synced": true
+  },
+  "versions": {
+    "repo_commit": "6c1b2375675fd22c9ef482199fb4b53ade7012af-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/qworker:841d4f9",
+    "q2-signal": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:841d4f9",
+    "q2-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:841d4f9",
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.34.12-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:841d4f9-v1",
+    "workload_ami": [
+      "ami-078ba44fb8cea0c34"
+    ]
+  },
+  "results": {
+    "Q2": {
+      "baseline": {
+        "status": "impact",
+        "reason": "metric error detected 14s, fallback never, metric recovered 20s; outage p95 219.7 ms, failures 0.5544041450777202; ceiling 4 of 4 (limited True); Pending 3 (0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod.); capacity recovered 13s, scale-down 25s",
+        "thresholds": {
+          "detect_s": 30,
+          "fallback_s": 60,
+          "metric_recover_s": 45,
+          "capacity_recover_s": 90,
+          "scale_down_s": 120,
+          "p95_ms": 300,
+          "error_rate": 0.01,
+          "fallback_replicas": 3,
+          "max_replicas": 4,
+          "min_replicas": 1,
+          "min_request_samples": 20,
+          "node_autoscaler": true
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "metric error detected 6s, fallback 30s, metric recovered 22s; outage p95 149.6 ms, failures 0.0016666666666666668; ceiling 4 of 4 (limited True); Pending 3 (0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod.); capacity recovered 14s, scale-down 23s",
+        "thresholds": {
+          "detect_s": 30,
+          "fallback_s": 60,
+          "metric_recover_s": 45,
+          "capacity_recover_s": 90,
+          "scale_down_s": 120,
+          "p95_ms": 300,
+          "error_rate": 0.01,
+          "fallback_replicas": 3,
+          "max_replicas": 4,
+          "min_replicas": 1,
+          "min_request_samples": 20,
+          "node_autoscaler": true
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "Q2": {
+      "baseline": {
+        "t0": 1794336464.7651992,
+        "metric_source_available_before": true,
+        "keda_image": "ghcr.io/kedacore/keda:2.21.0",
+        "keda_version": "2.21.0",
+        "q2_node_cpu_before": {
+          "ip-10-30-12-120.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 880,
+            "free_m": 1050
+          },
+          "ip-10-30-27-234.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 630,
+            "free_m": 1300
+          },
+          "ip-10-30-9-196.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 630,
+            "free_m": 1300
+          }
+        },
+        "metric_outage_observed": true,
+        "metric_failure_detected_s": 14.3,
+        "metric_error_state": {
+          "at": 1794336479.031381,
+          "desired_replicas": 1,
+          "actual_replicas": 1,
+          "ready_replicas": 1,
+          "available_replicas": 1,
+          "target_pod_count": 1,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 1,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "False",
+              "reason": "ScalerNotActive",
+              "message": "Scaling is not performed because triggers are not active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "True",
+              "reason": "HPAActive",
+              "message": "HPA is actively scaling",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "SucceededGetScale",
+              "message": "the HPA controller was able to get the target's current scale",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "False",
+              "reason": "FailedGetExternalMetric",
+              "message": "the HPA was unable to compute the replica count: unable to get external metric selfheal/s0-metric-api-demand/&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},}: unable to fetch metrics from external metrics API: rpc error: code = Unknown desc = error when getting metric values metric:s0-metric-api-demand encountered error",
+              "lastTransitionTime": "2026-11-10T18:47:55Z"
+            },
+            "ScalingLimited": {
+              "status": "True",
+              "reason": "TooFewReplicas",
+              "message": "the desired replica count is less than the minimum replica count",
+              "lastTransitionTime": "2026-11-10T18:47:10Z"
+            }
+          },
+          "hpa_current_replicas": 1,
+          "hpa_desired_replicas": 1,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "type": ""
+            }
+          ]
+        },
+        "fallback_condition_observed": false,
+        "fallback_replicas_s": null,
+        "metric_recovered_s": 19.6,
+        "metric_recovery_state": {
+          "at": 1794336524.1568582,
+          "desired_replicas": 1,
+          "actual_replicas": 1,
+          "ready_replicas": 1,
+          "available_replicas": 1,
+          "target_pod_count": 1,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 1,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "True",
+              "reason": "ScalerActive",
+              "message": "Scaling is performed because triggers are active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "False",
+              "reason": "FailedGetExternalMetric",
+              "message": "HPA is not actively scaling: the HPA was unable to compute the replica count: unable to get external metric selfheal/s0-metric-api-demand/&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},}: unable to fetch metrics from external metrics API: rpc error: code = Unknown desc = error when getting metric values metric:s0-metric-api-demand encountered error",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "ReadyForNewScale",
+              "message": "recommended size matches current size",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "True",
+              "reason": "ValidMetricFound",
+              "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+              "lastTransitionTime": "2026-11-10T18:48:40Z"
+            },
+            "ScalingLimited": {
+              "status": "False",
+              "reason": "DesiredWithinRange",
+              "message": "the desired count is within the acceptable range",
+              "lastTransitionTime": "2026-11-10T18:48:40Z"
+            }
+          },
+          "hpa_current_replicas": 1,
+          "hpa_desired_replicas": 1,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "external": {
+                "current": {
+                  "value": "1"
+                },
+                "metric": {
+                  "name": "s0-metric-api-demand",
+                  "selector": {
+                    "matchLabels": {
+                      "scaledobject.keda.sh/name": "q2-target"
+                    }
+                  }
+                }
+              },
+              "type": "External"
+            }
+          ]
+        },
+        "positive_scale_s": 25.6,
+        "outage_requests": {
+          "samples": 772,
+          "failures": 428,
+          "failure_rate": 0.5544041450777202,
+          "p95_ms": 219.7,
+          "since": 1794336479.0316658,
+          "until": 1794336504.7651992
+        },
+        "metric_recovery_requests": {
+          "samples": 2249,
+          "failures": 1180,
+          "failure_rate": 0.5246776345042241,
+          "p95_ms": 219.6,
+          "since": 1794336524.332503,
+          "until": 1794336599.44207
+        },
+        "ceiling": {
+          "demand": 12,
+          "observed_s": 113.8,
+          "state": {
+            "at": 1794336618.57571,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 4,
+            "available_replicas": 4,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 4,
+            "pending": [],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "SucceededRescale",
+                "message": "the HPA controller was able to update the target scale to 4",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:48:40Z"
+              },
+              "ScalingLimited": {
+                "status": "True",
+                "reason": "TooManyReplicas",
+                "message": "the desired replica count is more than the maximum replica count",
+                "lastTransitionTime": "2026-11-10T18:50:10Z"
+              }
+            },
+            "hpa_current_replicas": 1,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "12"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "requests": {
+            "samples": 1377,
+            "failures": 38,
+            "failure_rate": 0.027596223674655047,
+            "p95_ms": 195.0,
+            "since": 1794336626.339542,
+            "until": 1794336653.991131
+          }
+        },
+        "capacity": {
+          "holders": [
+            {
+              "node": "ip-10-30-12-120.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 880,
+              "free_m": 1050,
+              "holder": "q2-capacity-holder-0",
+              "holder_request_cpu_m": 950,
+              "free_after_holder_m": 100
+            },
+            {
+              "node": "ip-10-30-27-234.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 630,
+              "free_m": 1300,
+              "holder": "q2-capacity-holder-1",
+              "holder_request_cpu_m": 1200,
+              "free_after_holder_m": 100
+            },
+            {
+              "node": "ip-10-30-9-196.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 630,
+              "free_m": 1300,
+              "holder": "q2-capacity-holder-2",
+              "holder_request_cpu_m": 1200,
+              "free_after_holder_m": 100
+            }
+          ],
+          "workload_request_cpu_m": 250,
+          "node": "ip-10-30-12-120.ec2.internal",
+          "node_allocatable_cpu_m": 1930,
+          "scheduled_requests_before_holder_m": 880,
+          "holder_request_cpu_m": 950,
+          "free_after_holder_m": 100,
+          "demand": 4,
+          "pending_observed_s": 13.6,
+          "pending_state": {
+            "at": 1794336727.5814831,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 1,
+            "available_replicas": 1,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 1,
+            "pending": [
+              {
+                "pod": "q2-target-54cfc85948-fbfwb",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              },
+              {
+                "pod": "q2-target-54cfc85948-vdq79",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              },
+              {
+                "pod": "q2-target-54cfc85948-vwgw9",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              }
+            ],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "SucceededRescale",
+                "message": "the HPA controller was able to update the target scale to 4",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:48:40Z"
+              },
+              "ScalingLimited": {
+                "status": "False",
+                "reason": "DesiredWithinRange",
+                "message": "the desired count is within the acceptable range",
+                "lastTransitionTime": "2026-11-10T18:51:55Z"
+              }
+            },
+            "hpa_current_replicas": 1,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "4"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "recovered_s": 13.2,
+          "recovered_state": {
+            "at": 1794336799.429993,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 4,
+            "available_replicas": 4,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 4,
+            "pending": [],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "SucceededRescale",
+                "message": "the HPA controller was able to update the target scale to 4",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:48:40Z"
+              },
+              "ScalingLimited": {
+                "status": "False",
+                "reason": "DesiredWithinRange",
+                "message": "the desired count is within the acceptable range",
+                "lastTransitionTime": "2026-11-10T18:53:11Z"
+              }
+            },
+            "hpa_current_replicas": 1,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "4"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "constrained_requests": {
+            "samples": 2169,
+            "failures": 1059,
+            "failure_rate": 0.48824343015214383,
+            "p95_ms": 219.4,
+            "since": 1794336713.955775,
+            "until": 1794336786.2553332
+          },
+          "recovery_requests": {
+            "samples": 5157,
+            "failures": 3,
+            "failure_rate": 0.0005817335660267597,
+            "p95_ms": 127.7,
+            "since": 1794336799.430445,
+            "until": 1794336971.440121
+          },
+          "node_stability": {
+            "before": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "during": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "after": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "unchanged": true
+          }
+        },
+        "scale_down_s": 25.2,
+        "end_state": {
+          "at": 1794337005.441165,
+          "desired_replicas": 1,
+          "actual_replicas": 1,
+          "ready_replicas": 1,
+          "available_replicas": 1,
+          "target_pod_count": 1,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 1,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "False",
+              "reason": "ScalerNotActive",
+              "message": "Scaling is not performed because triggers are not active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "True",
+              "reason": "HPAActive",
+              "message": "HPA is actively scaling",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "ReadyForNewScale",
+              "message": "recommended size matches current size",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "True",
+              "reason": "ValidMetricFound",
+              "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+              "lastTransitionTime": "2026-11-10T18:48:40Z"
+            },
+            "ScalingLimited": {
+              "status": "True",
+              "reason": "TooFewReplicas",
+              "message": "the desired replica count is less than the minimum replica count",
+              "lastTransitionTime": "2026-11-10T18:53:26Z"
+            }
+          },
+          "hpa_current_replicas": 1,
+          "hpa_desired_replicas": 1,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "external": {
+                "current": {
+                  "value": "0"
+                },
+                "metric": {
+                  "name": "s0-metric-api-demand",
+                  "selector": {
+                    "matchLabels": {
+                      "scaledobject.keda.sh/name": "q2-target"
+                    }
+                  }
+                }
+              },
+              "type": "External"
+            }
+          ]
+        },
+        "conditions_present": true,
+        "timeline_samples": 30,
+        "window": "metric outage, restored signal, configured replica ceiling, CPU scheduling ceiling, restored capacity, demand withdrawn",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794337089.241007,
+        "metric_source_available_before": true,
+        "keda_image": "ghcr.io/kedacore/keda:2.21.0",
+        "keda_version": "2.21.0",
+        "q2_node_cpu_before": {
+          "ip-10-30-12-120.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 630,
+            "free_m": 1300
+          },
+          "ip-10-30-27-234.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 730,
+            "free_m": 1200
+          },
+          "ip-10-30-9-196.ec2.internal": {
+            "allocatable_m": 1930,
+            "requested_m": 880,
+            "free_m": 1050
+          }
+        },
+        "metric_outage_observed": true,
+        "metric_failure_detected_s": 6.3,
+        "metric_error_state": {
+          "at": 1794337095.519485,
+          "desired_replicas": 1,
+          "actual_replicas": 1,
+          "ready_replicas": 1,
+          "available_replicas": 1,
+          "target_pod_count": 1,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 1,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "False",
+              "reason": "ScalerNotActive",
+              "message": "Scaling is not performed because triggers are not active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "True",
+              "reason": "HPAActive",
+              "message": "HPA is actively scaling",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "SucceededGetScale",
+              "message": "the HPA controller was able to get the target's current scale",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "False",
+              "reason": "FailedGetExternalMetric",
+              "message": "the HPA was unable to compute the replica count: unable to get external metric selfheal/s0-metric-api-demand/&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},}: unable to fetch metrics from external metrics API: rpc error: code = Unknown desc = error when getting metric values metric:s0-metric-api-demand encountered error",
+              "lastTransitionTime": "2026-11-10T18:58:12Z"
+            },
+            "ScalingLimited": {
+              "status": "True",
+              "reason": "TooFewReplicas",
+              "message": "the desired replica count is less than the minimum replica count",
+              "lastTransitionTime": "2026-11-10T18:57:42Z"
+            }
+          },
+          "hpa_current_replicas": 1,
+          "hpa_desired_replicas": 1,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "type": ""
+            }
+          ]
+        },
+        "fallback_condition_observed": true,
+        "fallback_replicas_s": 29.5,
+        "metric_recovered_s": 21.9,
+        "metric_recovery_state": {
+          "at": 1794337160.485535,
+          "desired_replicas": 3,
+          "actual_replicas": 3,
+          "ready_replicas": 3,
+          "available_replicas": 3,
+          "target_pod_count": 3,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 3,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "True",
+              "reason": "ScalerActive",
+              "message": "Scaling is performed because triggers are active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "True",
+              "reason": "HPAActive",
+              "message": "HPA is actively scaling",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "ReadyForNewScale",
+              "message": "recommended size matches current size",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "True",
+              "reason": "ValidMetricFound",
+              "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+              "lastTransitionTime": "2026-11-10T18:58:27Z"
+            },
+            "ScalingLimited": {
+              "status": "False",
+              "reason": "DesiredWithinRange",
+              "message": "the desired count is within the acceptable range",
+              "lastTransitionTime": "2026-11-10T18:58:27Z"
+            }
+          },
+          "hpa_current_replicas": 3,
+          "hpa_desired_replicas": 3,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "external": {
+                "current": {
+                  "value": "1"
+                },
+                "metric": {
+                  "name": "s0-metric-api-demand",
+                  "selector": {
+                    "matchLabels": {
+                      "scaledobject.keda.sh/name": "q2-target"
+                    }
+                  }
+                }
+              },
+              "type": "External"
+            }
+          ]
+        },
+        "positive_scale_s": 24.7,
+        "outage_requests": {
+          "samples": 600,
+          "failures": 1,
+          "failure_rate": 0.0016666666666666668,
+          "p95_ms": 149.6,
+          "since": 1794337118.776008,
+          "until": 1794337138.776008
+        },
+        "metric_recovery_requests": {
+          "samples": 1897,
+          "failures": 12,
+          "failure_rate": 0.0063257775434897206,
+          "p95_ms": 156.7,
+          "since": 1794337160.684621,
+          "until": 1794337223.956941
+        },
+        "ceiling": {
+          "demand": 12,
+          "observed_s": 112.4,
+          "state": {
+            "at": 1794337251.142737,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 4,
+            "available_replicas": 4,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 4,
+            "pending": [],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "SucceededRescale",
+                "message": "the HPA controller was able to update the target scale to 4",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:58:27Z"
+              },
+              "ScalingLimited": {
+                "status": "True",
+                "reason": "TooManyReplicas",
+                "message": "the desired replica count is more than the maximum replica count",
+                "lastTransitionTime": "2026-11-10T19:00:43Z"
+              }
+            },
+            "hpa_current_replicas": 3,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "12"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "requests": {
+            "samples": 1372,
+            "failures": 51,
+            "failure_rate": 0.03717201166180758,
+            "p95_ms": 197.6,
+            "since": 1794337259.278091,
+            "until": 1794337286.92693
+          }
+        },
+        "capacity": {
+          "holders": [
+            {
+              "node": "ip-10-30-12-120.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 530,
+              "free_m": 1400,
+              "holder": "q2-capacity-holder-0",
+              "holder_request_cpu_m": 1300,
+              "free_after_holder_m": 100
+            },
+            {
+              "node": "ip-10-30-27-234.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 730,
+              "free_m": 1200,
+              "holder": "q2-capacity-holder-1",
+              "holder_request_cpu_m": 1100,
+              "free_after_holder_m": 100
+            },
+            {
+              "node": "ip-10-30-9-196.ec2.internal",
+              "allocatable_m": 1930,
+              "requested_m": 880,
+              "free_m": 1050,
+              "holder": "q2-capacity-holder-2",
+              "holder_request_cpu_m": 950,
+              "free_after_holder_m": 100
+            }
+          ],
+          "workload_request_cpu_m": 250,
+          "node": "ip-10-30-12-120.ec2.internal",
+          "node_allocatable_cpu_m": 1930,
+          "scheduled_requests_before_holder_m": 530,
+          "holder_request_cpu_m": 1300,
+          "free_after_holder_m": 100,
+          "demand": 4,
+          "pending_observed_s": 13.8,
+          "pending_state": {
+            "at": 1794337355.945164,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 1,
+            "available_replicas": 1,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 1,
+            "pending": [
+              {
+                "pod": "q2-target-54cfc85948-27bkr",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              },
+              {
+                "pod": "q2-target-54cfc85948-v4c5v",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              },
+              {
+                "pod": "q2-target-54cfc85948-whkqd",
+                "reason": "Unschedulable",
+                "message": "0/5 nodes are available: 2 node(s) didn't match Pod's node affinity/selector, 3 Insufficient cpu. no new claims to deallocate, preemption: 0/5 nodes are available: 2 Preemption is not helpful for scheduling, 3 No preemption victims found for incoming pod."
+              }
+            ],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "SucceededRescale",
+                "message": "the HPA controller was able to update the target scale to 4",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:58:27Z"
+              },
+              "ScalingLimited": {
+                "status": "False",
+                "reason": "DesiredWithinRange",
+                "message": "the desired count is within the acceptable range",
+                "lastTransitionTime": "2026-11-10T19:02:28Z"
+              }
+            },
+            "hpa_current_replicas": 1,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "4"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "recovered_s": 13.9,
+          "recovered_state": {
+            "at": 1794337427.9307468,
+            "desired_replicas": 4,
+            "actual_replicas": 4,
+            "ready_replicas": 4,
+            "available_replicas": 4,
+            "target_pod_count": 4,
+            "terminating_replicas": 0,
+            "service_ready_addresses": 4,
+            "pending": [],
+            "scaledobject_conditions": {
+              "Ready": {
+                "status": "True",
+                "reason": "ScaledObjectReady",
+                "message": "ScaledObject is defined correctly and is ready for scaling",
+                "lastTransitionTime": null
+              },
+              "Active": {
+                "status": "True",
+                "reason": "ScalerActive",
+                "message": "Scaling is performed because triggers are active",
+                "lastTransitionTime": null
+              },
+              "Fallback": {
+                "status": "False",
+                "reason": "NoFallbackFound",
+                "message": "No fallbacks are active on this scaled object",
+                "lastTransitionTime": null
+              },
+              "Paused": {
+                "status": "False",
+                "reason": null,
+                "message": null,
+                "lastTransitionTime": null
+              },
+              "HPAActive": {
+                "status": "True",
+                "reason": "HPAActive",
+                "message": "HPA is actively scaling",
+                "lastTransitionTime": null
+              }
+            },
+            "hpa_conditions": {
+              "AbleToScale": {
+                "status": "True",
+                "reason": "ReadyForNewScale",
+                "message": "recommended size matches current size",
+                "lastTransitionTime": "2026-11-10T18:32:06Z"
+              },
+              "ScalingActive": {
+                "status": "True",
+                "reason": "ValidMetricFound",
+                "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+                "lastTransitionTime": "2026-11-10T18:58:27Z"
+              },
+              "ScalingLimited": {
+                "status": "True",
+                "reason": "TooManyReplicas",
+                "message": "the desired replica count is more than the maximum replica count",
+                "lastTransitionTime": "2026-11-10T19:03:43Z"
+              }
+            },
+            "hpa_current_replicas": 4,
+            "hpa_desired_replicas": 4,
+            "max_replicas": 4,
+            "current_metrics": [
+              {
+                "external": {
+                  "current": {
+                    "value": "4"
+                  },
+                  "metric": {
+                    "name": "s0-metric-api-demand",
+                    "selector": {
+                      "matchLabels": {
+                        "scaledobject.keda.sh/name": "q2-target"
+                      }
+                    }
+                  }
+                },
+                "type": "External"
+              }
+            ]
+          },
+          "constrained_requests": {
+            "samples": 2159,
+            "failures": 1052,
+            "failure_rate": 0.4872626215840667,
+            "p95_ms": 220.0,
+            "since": 1794337342.104836,
+            "until": 1794337414.056243
+          },
+          "recovery_requests": {
+            "samples": 5152,
+            "failures": 2,
+            "failure_rate": 0.00038819875776397513,
+            "p95_ms": 125.7,
+            "since": 1794337427.9310348,
+            "until": 1794337599.750765
+          },
+          "node_stability": {
+            "before": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "during": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "after": {
+              "nodes": [
+                "ip-10-30-12-120.ec2.internal",
+                "ip-10-30-14-44.ec2.internal",
+                "ip-10-30-27-234.ec2.internal",
+                "ip-10-30-30-242.ec2.internal",
+                "ip-10-30-9-196.ec2.internal"
+              ],
+              "nodeclaims": [
+                "workload-55kb9",
+                "workload-7fctm",
+                "workload-trb9q"
+              ]
+            },
+            "unchanged": true
+          }
+        },
+        "scale_down_s": 22.7,
+        "end_state": {
+          "at": 1794337638.786426,
+          "desired_replicas": 1,
+          "actual_replicas": 1,
+          "ready_replicas": 1,
+          "available_replicas": 1,
+          "target_pod_count": 1,
+          "terminating_replicas": 0,
+          "service_ready_addresses": 1,
+          "pending": [],
+          "scaledobject_conditions": {
+            "Ready": {
+              "status": "True",
+              "reason": "ScaledObjectReady",
+              "message": "ScaledObject is defined correctly and is ready for scaling",
+              "lastTransitionTime": null
+            },
+            "Active": {
+              "status": "False",
+              "reason": "ScalerNotActive",
+              "message": "Scaling is not performed because triggers are not active",
+              "lastTransitionTime": null
+            },
+            "Fallback": {
+              "status": "False",
+              "reason": "NoFallbackFound",
+              "message": "No fallbacks are active on this scaled object",
+              "lastTransitionTime": null
+            },
+            "Paused": {
+              "status": "False",
+              "reason": null,
+              "message": null,
+              "lastTransitionTime": null
+            },
+            "HPAActive": {
+              "status": "True",
+              "reason": "HPAActive",
+              "message": "HPA is actively scaling",
+              "lastTransitionTime": null
+            }
+          },
+          "hpa_conditions": {
+            "AbleToScale": {
+              "status": "True",
+              "reason": "ReadyForNewScale",
+              "message": "recommended size matches current size",
+              "lastTransitionTime": "2026-11-10T18:32:06Z"
+            },
+            "ScalingActive": {
+              "status": "True",
+              "reason": "ValidMetricFound",
+              "message": "the HPA was able to successfully calculate a replica count from external metric s0-metric-api-demand(&LabelSelector{MatchLabels:map[string]string{scaledobject.keda.sh/name: q2-target,},MatchExpressions:[]LabelSelectorRequirement{},})",
+              "lastTransitionTime": "2026-11-10T18:58:27Z"
+            },
+            "ScalingLimited": {
+              "status": "True",
+              "reason": "TooFewReplicas",
+              "message": "the desired replica count is less than the minimum replica count",
+              "lastTransitionTime": "2026-11-10T19:03:43Z"
+            }
+          },
+          "hpa_current_replicas": 1,
+          "hpa_desired_replicas": 1,
+          "max_replicas": 4,
+          "current_metrics": [
+            {
+              "external": {
+                "current": {
+                  "value": "0"
+                },
+                "metric": {
+                  "name": "s0-metric-api-demand",
+                  "selector": {
+                    "matchLabels": {
+                      "scaledobject.keda.sh/name": "q2-target"
+                    }
+                  }
+                }
+              },
+              "type": "External"
+            }
+          ]
+        },
+        "conditions_present": true,
+        "timeline_samples": 31,
+        "window": "metric outage, restored signal, configured replica ceiling, CPU scheduling ceiling, restored capacity, demand withdrawn",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-10T19:07:18.982Z",
+  "pass": true
+}
