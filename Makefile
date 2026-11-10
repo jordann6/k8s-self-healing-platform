@@ -50,7 +50,7 @@ TALON_VERSION           := 0.5.0    # app 0.3.0 (alpha, pinned; actionner kubern
 SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
 KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
-KEDA_VERSION            := 2.21.0    # kind rows Q1/Q2; AKS uses the managed add-on, EKS has none yet
+KEDA_VERSION            := 2.21.0    # kind and EKS; AKS uses its managed add-on
 VPA_VERSION             := 0.16.0    # app 1.8.1, kind row Q3 only
 RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
 KYVERNO_VERSION         := 3.9.2     # app v1.19.2, kind row P1 only
@@ -402,7 +402,7 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd app/p1 && python3 -m unittest -v test_app
 	cd app/d1 && python3 -m unittest -v test_scripts
 	cd app/o1 && python3 -m unittest -v test_app
-	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry
+	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry test_argocd_inclusions
 
 .PHONY: check
 check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
@@ -450,7 +450,8 @@ CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(s
 	CERT_MANAGER_VERSION=$(strip $(CERT_MANAGER_VERSION)) ESO_VERSION=$(strip $(ESO_VERSION)) \
 	ROLLOUTS_VERSION=$(strip $(ROLLOUTS_VERSION)) RELOADER_VERSION=$(strip $(RELOADER_VERSION)) \
 	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
-	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION))
+	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION)) \
+	KEDA_VERSION=$(strip $(KEDA_VERSION))
 EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
 
 .PHONY: eks-check

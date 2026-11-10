@@ -210,6 +210,27 @@ class Q1FocusedPreflight(unittest.TestCase):
         self.assertNotIn(("falco", "daemonset", "falco"), resources)
         self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
 
+    def test_eks_q1_uses_upstream_keda_namespace(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "eks"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("kube-system", "deploy", "keda-operator"), resources)
+
+    def test_aks_q1_uses_managed_keda_namespace(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "aks"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "deploy", "keda-operator"), resources)
+        self.assertIn(("kube-system", "deploy", "keda-admission-webhooks"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+
     def test_mixed_kind_run_keeps_full_preflight(self):
         old = run.TARGET
         try:
@@ -740,13 +761,18 @@ class EksThresholds(unittest.TestCase):
         self.assertEqual(set(HYPOTHESES), set(JUDGES))
 
     def test_every_eks_threshold_row_has_a_judge(self):
-        # eks runs the cloud superset; Q1 and Q2 are kind-only in Phase 3, so JUDGES is a
+        # EKS runs the cloud superset. Later Phase 4 rows still remain kind only,
+        # so JUDGES is a
         # superset of the eks rows, not equal to it.
         from judge import JUDGES
         self.assertTrue(set(THRESHOLDS["eks"]) <= set(JUDGES))
 
-    def test_q_rows_are_kind_only(self):
-        for row in ("Q1", "Q2", "Q3"):
+    def test_q1_has_cloud_parity_without_relaxed_thresholds(self):
+        for target in ("kind", "eks", "aks"):
+            self.assertEqual(THRESHOLDS[target]["Q1"], THRESHOLDS["kind"]["Q1"])
+
+    def test_later_q_rows_are_kind_only(self):
+        for row in ("Q2", "Q3"):
             self.assertIn(row, THRESHOLDS["kind"])
             self.assertNotIn(row, THRESHOLDS["eks"])
             self.assertNotIn(row, THRESHOLDS["aks"])
@@ -980,14 +1006,14 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:
             self.assertTrue(hypothesis(r, "aks"))
 
     def test_shared_rows_keep_their_numbers(self):
-        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"):
+        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1"):
             self.assertEqual(THRESHOLDS["aks"][r], THRESHOLDS["kind"][r], r)
 
     def test_aks_hypotheses_name_the_aks_numbers(self):

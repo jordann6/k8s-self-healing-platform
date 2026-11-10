@@ -6,6 +6,7 @@
 # Tags are immutable in ECR, so a report names the exact build it measured:
 #   app:<sha>-v1   the good release        app:<sha>-v2   the bad release (row A2)
 #   gitserver:<sha>                         dbprobe:<sha>
+#   qworker:<sha>
 # A tag that already exists is not rebuilt.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -45,6 +46,7 @@ push app "$sha-v1" --build-arg RELEASE=v1 "$root/app"
 push app "$sha-v2" --build-arg RELEASE=v2 "$root/app"
 push gitserver "$sha" "$root/app/gitserver"
 push dbprobe "$sha" "$root/app/dbprobe"
+push qworker "$sha" "$root/app/qworker"
 
 gen="$root/gitops/targets/eks/generated"
 mkdir -p "$gen"
@@ -60,7 +62,11 @@ images:
   - name: selfheal-dbprobe
     newName: $(repo dbprobe)
     newTag: $sha
+  - name: selfheal-qworker
+    newName: $(repo qworker)
+    newTag: $sha
 EOF
 printf '%s\n' "$sha" >"$gen/IMAGE_SHA"
 printf '%s:%s\n' "$(repo gitserver)" "$sha" >"$gen/GITSERVER_IMAGE"
+printf '%s:%s\n' "$(repo qworker)" "$sha" >"$gen/QWORKER_IMAGE"
 echo "eks-images: wrote $gen (selfheal-app -> $sha-v1)"

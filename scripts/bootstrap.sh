@@ -89,12 +89,8 @@ fi
 # Row Q1's RabbitMQ broker credentials are generated and never committed. The
 # fixed baseline workers declare the durable queues before the runner switches
 # to the hardened profile, where KEDA can then scale the worker from zero.
-if ((focused_count == 0 || focused_q1 == 1)) && ! kubectl -n selfheal get secret rabbitmq >/dev/null 2>&1; then
-	pass="$(openssl rand -hex 16)"
-	kubectl -n selfheal create secret generic rabbitmq \
-		--from-literal=username=lab \
-		--from-literal=password="$pass" \
-		--from-literal=host="amqp://lab:${pass}@rabbitmq.selfheal.svc.cluster.local:5672/" >/dev/null
+if ((focused_count == 0 || focused_q1 == 1)); then
+	"$root/scripts/q1-credentials.sh"
 fi
 
 "$root/scripts/seed-git.sh"

@@ -18,6 +18,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 : "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${KPS_VERSION:?}"
 : "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}" "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}"
 : "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}" "${TALON_VERSION:?}" "${FALCO_VERSION:?}"
+: "${KEDA_VERSION:?}"
 
 out() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -raw "$1"; }
 outj() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -json "$1"; }
@@ -96,6 +97,10 @@ install() { # release chart version namespace [extra helm args...]
 }
 # shellcheck disable=SC2046
 install metrics-server metrics-server/metrics-server "$METRICS_SERVER_VERSION" kube-system $(values metrics-server)
+# EKS has no managed KEDA add-on. Q1 and Q2 use the pinned upstream chart,
+# matching AWS's documented EKS installation model.
+# shellcheck disable=SC2046
+install keda kedacore/keda "$KEDA_VERSION" keda $(values keda)
 install kps prometheus-community/kube-prometheus-stack "$KPS_VERSION" monitoring \
 	-f "$root/platform/kube-prometheus-stack.yaml" -f "$kps_values"
 # shellcheck disable=SC2046

@@ -16,6 +16,7 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 images:
   - {name: selfheal-app, newName: registry.invalid/selfheal/app, newTag: placeholder-v1}
+  - {name: selfheal-qworker, newName: registry.invalid/selfheal/qworker, newTag: placeholder}
 patches:
   - target: {kind: SecretStore, name: backend}
     patch: |-
@@ -28,6 +29,12 @@ out="$(mktemp -d)"
 trap '[[ $placeholder -eq 1 ]] && rm -rf "$gen"; rm -rf "$out"' EXIT
 for p in baseline hardened; do
 	kubectl kustomize "$root/gitops/targets/aks/$p" >"$out/$p.yaml"
+	kubectl kustomize "$root/gitops/targets/aks/q1/$p" >"$out/q1-$p.yaml"
+	image="$(awk '/image: / {print $2}' "$out/q1-$p.yaml" | grep '/qworker:' | head -1)"
+	[[ "$image" == */qworker:* ]] || {
+		echo "render-aks-profiles: $p Q1 worker was not rewritten to ACR: ${image:-missing}" >&2
+		exit 1
+	}
 done
 
 python3 - "$out" <<'PY'

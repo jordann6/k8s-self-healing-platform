@@ -36,7 +36,8 @@ THRESHOLDS = {
         "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
         "S3": {"revert_s": 60},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
-        # Row Q1 (kind only, Phase 3). drain_s: a 240-message backlog is drained
+        # Row Q1. Phase 3 fixed the kind contract and Phase 4 carries the same
+        # values to EKS and AKS. drain_s: a 240-message backlog is drained
         # (work queue empty, nothing unacknowledged). zero_s: the worker is back
         # to zero replicas after the drain. The cloud ports are Phase 4.
         "Q1": {"drain_s": 120, "zero_s": 120},
@@ -93,6 +94,7 @@ THRESHOLDS = {
         "S4": {"revert_s": 600},
         "S5": {"failed": 0, "replaced_s": 1200, "max_disrupted": 1},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "Q1": {"drain_s": 120, "zero_s": 120},
         "R2": {"isolate_s": 600, "evidence_s": 900, "error_rate": 0.01},
     },
     # Set before the first AKS run (ADR-0003, "AKS thresholds"). Shared rows
@@ -111,6 +113,7 @@ THRESHOLDS = {
         "S3": {"revert_s": 60},
         "S4": {"revert_s": 1200},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "Q1": {"drain_s": 120, "zero_s": 120},
         "R2": {"alert_s": 3600, "isolate_s": 300, "evidence_s": 600, "error_rate": 0.01},
     },
 }

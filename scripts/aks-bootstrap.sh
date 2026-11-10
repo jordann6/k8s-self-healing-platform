@@ -28,6 +28,7 @@ secret=partner-api-key
 echo "aks-bootstrap: namespaces, CA, Git server"
 kubectl kustomize "$root/bootstrap" | sed "s|image: selfheal-gitserver:dev|image: $(cat "$gen/GITSERVER_IMAGE")|" |
 	kubectl apply -f - >/dev/null
+"$root/scripts/q1-credentials.sh"
 # The kind backend namespace and its reader are not used on AKS (Key Vault is
 # the backend) but are harmless; the SecretStore no longer references them.
 kubectl apply -f "$root/bootstrap/ca.yaml" >/dev/null
