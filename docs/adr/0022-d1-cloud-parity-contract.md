@@ -129,11 +129,13 @@ threshold below comes from a run.
    - Administrator attempt. The runner, with the operator identity, deletes the
      retained version directly (`s3api delete-object --version-id`, or
      `az storage blob delete --version-id`). It must be refused by retention, not
-     by a missing permission, so the runner first records that the operator holds the
-     delete permission (AWS: `iam simulate-principal-policy` for
-     `s3:DeleteObjectVersion` on the object, Azure: the operator's
-     `Storage Blob Data Owner` assignment on the store). If that record is missing
-     the row is an error, since a refusal could then be a permission gap.
+     by a missing permission, so the runner first proves the operator may delete.
+     Both stores authorize before they look at the object, so it deletes a key that
+     was never written: S3 answers 204 (and adds a delete marker, which is not subject
+     to the lock), Blob answers BlobNotFound, and either outcome shows authorization
+     passed while AccessDenied or AuthorizationPermissionMismatch shows it did not.
+     This avoids mapping an assumed-role ARN for a policy simulation. If the proof is
+     missing the row is an error, since a refusal could then be a permission gap.
    - Observed reasons are recorded verbatim. The recognised markers per cloud are
      live checks L9 and L10, and an unrecognised refusal is an error, not a pass.
 9. Recovery clock honesty. `rto_s` still runs from source deletion start to verified
