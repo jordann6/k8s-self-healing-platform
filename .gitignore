@@ -45,6 +45,11 @@ evidence/*
 !evidence/eks-20261110-123247/
 !evidence/eks-20261110-123955/
 !evidence/eks-20261110-124524/
+# Q2 on AKS 1.36, 11/10. The first run errored on detection (KEDA 2.19 hides
+# the error from the HPA under fallback, ADR-0017) and is kept beside its
+# passing rerun. Redacted.
+!evidence/aks-20261110-151150/
+!evidence/aks-20261110-152901/
 # AKS reference runs (subscription, tenant, GUIDs and operator IP redacted).
 # aks-run1 is the full run; -rows reruns S3, S4, R1, R2 after the A4 runner
 # fix; -s4 after the DINE template fix; -a3 with KEDA (ADR-0008).
