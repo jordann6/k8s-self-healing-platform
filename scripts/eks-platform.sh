@@ -100,6 +100,9 @@ install metrics-server metrics-server/metrics-server "$METRICS_SERVER_VERSION" k
 # Row Q3 (ADR-0020): the upstream chart, recommender only. Nothing here can change a workload.
 # shellcheck disable=SC2046
 install vpa autoscalers/vertical-pod-autoscaler "$VPA_VERSION" vpa $(values vpa)
+# Row D1 (ADR-0022): the gp3 class the EBS CSI add-on serves. The class is harmless without the
+# driver, the add-on itself exists only when the EKS root was planned with d1_store_bucket.
+kubectl apply -f "$root/platform/eks/storageclass-gp3.yaml" >/dev/null
 # Row P1 (ADR-0021): Kyverno with IRSA for its admission and reports controllers,
 # the documented path for the `amazon` registry credential provider. The role
 # ARN is a Terraform output, so the values are written to a temp file, never Git.
