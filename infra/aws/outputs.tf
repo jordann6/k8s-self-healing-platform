@@ -18,6 +18,11 @@ output "ecr_repositories" {
   value       = { for k, r in aws_ecr_repository.lab : k => r.repository_url }
 }
 
+output "kyverno_registry_role_arn" {
+  description = "IRSA role for the Kyverno admission and reports controllers (row P1, ADR-0021)."
+  value       = aws_iam_role.kyverno_registry.arn
+}
+
 output "amp_remote_write_url" {
   description = "Amazon Managed Prometheus remote write endpoint."
   value       = "${aws_prometheus_workspace.this.prometheus_endpoint}api/v1/remote_write"

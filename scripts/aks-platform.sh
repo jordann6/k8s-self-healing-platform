@@ -24,7 +24,7 @@ tf="$root/infra/azure"
 : "${KUBECONFIG:?run through make}"
 : "${CILIUM_VERSION:?}" "${KPS_VERSION:?}" "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}"
 : "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}" "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}"
-: "${TALON_VERSION:?}" "${FALCO_VERSION:?}" "${VPA_VERSION:?}"
+: "${TALON_VERSION:?}" "${FALCO_VERSION:?}" "${VPA_VERSION:?}" "${KYVERNO_VERSION:?}"
 [[ "$KUBECONFIG" == "$root/.kube/aks" ]] || { echo "aks-platform: KUBECONFIG must be $root/.kube/aks" >&2; exit 1; }
 [[ "$root" != *" "* ]] || { echo "aks-platform: the repo path must not contain spaces" >&2; exit 1; }
 gen="$root/gitops/targets/aks/generated"
@@ -102,6 +102,34 @@ install kps prometheus-community/kube-prometheus-stack "$KPS_VERSION" monitoring
 # updater and admission controller).
 # shellcheck disable=SC2046
 install vpa autoscalers/vertical-pod-autoscaler "$VPA_VERSION" vpa $(values vpa)
+# Row P1 (ADR-0021): Kyverno with one workload identity per verifying controller
+# (admission and reports), each holding AcrPull. The client ids are Terraform
+# outputs, so the values go to a temp file, never Git.
+kyverno_values="$(mktemp)"
+trap 'rm -f "$kps_values" "$kyverno_values"' EXIT
+cat >"$kyverno_values" <<EOV
+admissionController:
+  podLabels:
+    azure.workload.identity/use: "true"
+  rbac:
+    serviceAccount:
+      annotations:
+        azure.workload.identity/client-id: $(jq -r .kyverno_admission <<<"$ids")
+        azure.workload.identity/tenant-id: $(r tenant_id)
+reportsController:
+  podLabels:
+    azure.workload.identity/use: "true"
+  rbac:
+    serviceAccount:
+      annotations:
+        azure.workload.identity/client-id: $(jq -r .kyverno_reports <<<"$ids")
+        azure.workload.identity/tenant-id: $(r tenant_id)
+EOV
+if grep -qE ': (null|)$' "$kyverno_values"; then
+	echo "aks-platform: a Kyverno identity value was not filled" >&2
+	exit 1
+fi
+install kyverno kyverno/kyverno "$KYVERNO_VERSION" kyverno -f "$root/platform/kyverno-cloud.yaml" -f "$kyverno_values"
 # shellcheck disable=SC2046
 install cert-manager jetstack/cert-manager "$CERT_MANAGER_VERSION" cert-manager $(values cert-manager)
 # shellcheck disable=SC2046

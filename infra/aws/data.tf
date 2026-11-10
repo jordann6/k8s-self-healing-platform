@@ -34,7 +34,8 @@ resource "aws_kms_alias" "data" {
 # Immutable tags: `make eks-images` pushes the git short SHA, so a report names
 # the exact image it measured. linux/amd64 builds, as the nodes are x86.
 resource "aws_ecr_repository" "lab" {
-  for_each = toset(["app", "gitserver", "dbprobe", "qworker", "q2", "o1", "q3"])
+  for_each = toset(["app", "gitserver", "dbprobe", "qworker", "q2", "o1", "q3",
+  "p1-trusted", "p1-unsigned", "p1-invalid", "p1-untrusted", "p1-recovery"])
 
   name                 = "${local.name}/${each.key}"
   image_tag_mutability = "IMMUTABLE"

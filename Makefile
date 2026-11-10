@@ -53,7 +53,7 @@ KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
 KEDA_VERSION            := 2.21.0    # kind and EKS; AKS uses its managed add-on
 VPA_VERSION             := 0.16.0    # app 1.8.1, recommender only, row Q3 on kind, EKS and AKS (ADR-0020)
 RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
-KYVERNO_VERSION         := 3.9.2     # app v1.19.2, kind row P1 only
+KYVERNO_VERSION         := 3.9.2     # app v1.19.2, row P1 on kind, EKS and AKS (ADR-0021)
 POSTGRES_VERSION        := 17.11-alpine3.24
 
 HELM := helm
@@ -451,7 +451,8 @@ CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(s
 	ROLLOUTS_VERSION=$(strip $(ROLLOUTS_VERSION)) RELOADER_VERSION=$(strip $(RELOADER_VERSION)) \
 	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION)) \
-	KEDA_VERSION=$(strip $(KEDA_VERSION)) VPA_VERSION=$(strip $(VPA_VERSION))
+	KEDA_VERSION=$(strip $(KEDA_VERSION)) VPA_VERSION=$(strip $(VPA_VERSION)) \
+	KYVERNO_VERSION=$(strip $(KYVERNO_VERSION))
 EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
 
 .PHONY: eks-check
@@ -488,6 +489,10 @@ eks-plan: eks-preflight ## Write infra/aws/tfplan (API scoped to your IPv4 /32) 
 .PHONY: eks-platform
 eks-platform: ## Kubeconfig, Cilium ENI, Karpenter, platform charts, responder RBAC (after the apply)
 	$(EKS_ENV) $(CHART_VERSIONS) scripts/eks-platform.sh
+
+.PHONY: eks-p1-images
+eks-p1-images: ## Row P1: build one artifact, copy it to five ECR repos, sign and preflight (after the apply)
+	$(EKS_ENV) P1_TARGET=eks scripts/p1-images.sh
 
 .PHONY: eks-images
 eks-images: ## Build linux/amd64 images, push the git SHA tags to ECR, write the generated overlay
@@ -573,6 +578,10 @@ aks-images: ## Build linux/amd64 images, push the git SHA tags to ACR, write the
 .PHONY: aks-platform
 aks-platform: repos ## Kubeconfig (kubelogin), Cilium BYOCNI, platform charts (no metrics-server), R2 worker, remote write proof
 	$(AKS_ENV) $(CHART_VERSIONS) scripts/aks-platform.sh
+
+.PHONY: aks-p1-images
+aks-p1-images: ## Row P1: build one artifact, copy it to five ACR repos, sign and preflight (after the apply)
+	P1_TARGET=aks scripts/p1-images.sh
 
 .PHONY: aks-worker
 aks-worker: ## Reapply only the R2 worker and its egress policy, then prove it polls its queue (L15, L16)

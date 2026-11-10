@@ -676,6 +676,46 @@ class P1SignedImageAdmission(unittest.TestCase):
         self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "miss")
 
 
+class P1CloudOutage(unittest.TestCase):
+    """ADR-0021: the cloud outage is an egress policy, attributed through Hubble drops."""
+
+    @staticmethod
+    def cloud(drops, **kw):
+        return p1(outage={"mode": "cilium-egress-allow-list", "policy_drops": drops}, **kw)
+
+    def test_thresholds_equal_kind_except_the_attribution_floor(self):
+        kind = THRESHOLDS["kind"]["P1"]
+        self.assertEqual(kind["min_outage_drops"], 0)
+        for target in ("eks", "aks"):
+            cloud = THRESHOLDS[target]["P1"]
+            self.assertEqual({k: v for k, v in cloud.items() if kind[k] != v}, {"min_outage_drops": 1})
+
+    def test_denied_outage_with_drops_heals_on_both_clouds(self):
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", self.cloud(3), "impact", target)["status"], "healed")
+
+    def test_missing_drop_telemetry_is_error(self):
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", p1(), "impact", target)["status"], "error")
+            self.assertEqual(verdict("P1", "hardened", p1(outage={"mode": "x"}), "impact", target)["status"], "error")
+
+    def test_outage_without_drops_is_error_even_if_denied(self):
+        self.assertEqual(verdict("P1", "hardened", self.cloud(0), "impact", "eks")["status"], "error")
+
+    def test_outage_without_drops_is_error_not_a_miss_when_admitted(self):
+        obs = self.cloud(0)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "eks")["status"], "error")
+
+    def test_admitted_outage_with_drops_is_a_miss(self):
+        obs = self.cloud(4)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "aks")["status"], "miss")
+
+    def test_kind_outage_needs_no_hubble(self):
+        self.assertEqual(verdict("P1", "hardened", p1(), "impact", "kind")["status"], "healed")
+
+
 class AbortLine(unittest.TestCase):
     AB = {"n": 40, "errors": 30, "error_rate": 0.75, "at_s": 14, "kind": "http"}
 
@@ -1142,7 +1182,7 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:

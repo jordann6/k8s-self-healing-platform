@@ -1,7 +1,7 @@
 # ADR 0021: P1 cloud parity contract
 
-Status: PROPOSED 2026-11-10. Accepted before the first P1 cloud experiment.
-Nothing is built or applied yet.
+Status: ACCEPTED 2026-11-10 by Jordan, before the first P1 cloud experiment.
+Source is built (unit tests and gates green); nothing is applied to any cloud yet.
 
 ## Context
 
@@ -114,8 +114,9 @@ before any code. No threshold below comes from a run.
    manifest to a temporary tag in the invalid repository, then write the
    tampered manifest to the `.sig` tag, which is new there. The signature-state
    preflight (`signatures.json`) is unchanged and fails the run before any
-   cluster call if a state is not what P1 needs. Fixture files move to
-   `.p1/<target>/` so the clouds and kind never overwrite each other.
+   cluster call if a state is not what P1 needs. Kind keeps its fixture files in
+   `.p1/` and each cloud writes `.p1/<target>/`, so the three never overwrite each
+   other.
 7. Outage is a CiliumNetworkPolicy on the Kyverno admission controller that
    allows egress to the API server entity and to cluster DNS only. Applying it is
    the outage and deleting it is the restoration, so the recovery clock keeps

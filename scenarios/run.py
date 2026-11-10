@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -965,7 +965,7 @@ def falco_event(pod_name: str, since: float) -> dict | None:
     return None
 
 
-def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
+def hubble_policy_drops(pod_name: str, since: float, namespace: str | None = None) -> list[dict]:
     """Policy drops for the pod since `since`. A failed query raises (it is
     never "no drops"); an empty answer is retried briefly, because the relay
     collects flows from every node."""
@@ -973,7 +973,7 @@ def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
     for attempt in range(3):
         if HubbleRelay.current:
             HubbleRelay.current.ensure()
-        p = sh(["hubble", "observe", "--pod", f"{NS}/{pod_name}", "--verdict", "DROPPED", "--since",
+        p = sh(["hubble", "observe", "--pod", f"{namespace or NS}/{pod_name}", "--verdict", "DROPPED", "--since",
                 dt.datetime.fromtimestamp(since - 2, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "-o", "json"],
                timeout=60)
         if p.returncode != 0:
@@ -1375,7 +1375,7 @@ def n1_only(rows: list[str]) -> bool:
 
 
 def p1_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["P1"]
+    return rows == ["P1"]
 
 
 def d1_only(rows: list[str]) -> bool:
@@ -1424,7 +1424,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
     if focused == "N1":
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_N1_PRECONDITIONS
     if focused == "P1":
-        return FOCUSED_P1_PRECONDITIONS
+        # ADR-0021: on the clouds the outage is attributed through Hubble drops.
+        return FOCUSED_P1_PRECONDITIONS + ([] if TARGET == "kind" else FOCUSED_N1_PRECONDITIONS)
     if focused == "D1":
         return FOCUSED_D1_PRECONDITIONS
     if focused == "O1":
@@ -1582,10 +1583,11 @@ def apply_n1_profile(profile: str) -> None:
 def apply_p1_profile(profile: str) -> None:
     """Switch the isolated P1 application and wait for policy readiness."""
     log(f"profile -> {profile} (P1 only)")
+    app_path = f"p1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/p1/{profile}"
     k("-n", "argocd", "patch", "application", "selfheal-p1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"p1/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-p1")
-    wait_for(lambda: app_state("selfheal-p1")["path"] == f"p1/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-p1")["path"] == app_path, 120, step=3,
              what="P1 app path")
     wait_for(lambda: app_state("selfheal-p1")["sync"] == "Synced", 180, step=3,
              what="P1 app Synced")
@@ -1783,7 +1785,7 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
     elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
         L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
-    elif doc["target"] == "kind" and doc["rows"] == ["P1"]:
+    elif doc["rows"] == ["P1"]:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
     elif doc["target"] == "kind" and doc["rows"] == ["D1"]:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
@@ -1850,7 +1852,7 @@ def main() -> int:
            "results": {}, "observations": {}}
     focused = focused_row(rows)
     lab_context = contextlib.nullcontext(None) if focused else Lab()
-    hubble_context = HubbleRelay() if focused == "N1" else (contextlib.nullcontext() if focused else HubbleRelay())
+    hubble_context = HubbleRelay() if focused == "N1" or (focused == "P1" and TARGET != "kind") else (contextlib.nullcontext() if focused else HubbleRelay())
     with lab_context as lab, hubble_context:
         for profile in ("baseline", "hardened"):
             if focused:

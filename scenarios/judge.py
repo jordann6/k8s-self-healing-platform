@@ -66,7 +66,8 @@ THRESHOLDS = {
         # Policy, signature-state, reason, metric, report, or digest evidence
         # missing from hardened is an error rather than a protected pass.
         "P1": {"admission_s": 20, "ready_s": 120, "recovery_s": 60,
-               "min_pass_decisions": 2, "min_reject_decisions": 5},
+               "min_pass_decisions": 2, "min_reject_decisions": 5,
+               "min_outage_drops": 0},
         # D1 (kind only, Phase 3). Fixed in ADR-0014 before live proof.
         # Missing backup, restore, integrity, invalid-restore, or retention
         # telemetry is an error rather than a protected pass.
@@ -141,6 +142,13 @@ THRESHOLDS["aks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
 # metrics-server at 15s like kind. The 240s recommendation clock is separate.
 THRESHOLDS["eks"]["Q3"] = dict(THRESHOLDS["kind"]["Q3"])
 THRESHOLDS["aks"]["Q3"] = {**THRESHOLDS["kind"]["Q3"], "sample_window_s": 420, "baseline_window_s": 420}
+
+# Row P1 on EKS and AKS (ADR-0021). Every ADR-0013 threshold is unchanged. The
+# one addition is the outage attribution: the egress policy that replaces the
+# stopped registry must produce at least one Hubble drop from the admission
+# controller, or the row is an error.
+THRESHOLDS["eks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
+THRESHOLDS["aks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
 
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
@@ -694,6 +702,18 @@ def judge_p1(o: dict, t: dict):
     if passed < t["min_pass_decisions"] or rejected_decisions < t["min_reject_decisions"]:
         return False, (f"P1 decision telemetry was incomplete (pass {passed}, "
                        f"fail or error {rejected_decisions})"), False, False
+    min_drops = t.get("min_outage_drops", 0)
+    if min_drops:
+        # ADR-0021: a cloud outage is a network policy, so the denial is only
+        # attributable if Hubble saw the admission controller's egress dropped.
+        # Without drops the policy was not enforced (a pooled connection, or a
+        # slow rollout), which is an error, never a miss and never a pass.
+        drops = (o.get("outage") or {}).get("policy_drops")
+        if drops is None:
+            return False, "the verifier outage had no Hubble drop telemetry", False, False
+        if drops < min_drops:
+            return False, (f"the verifier outage policy produced {drops} Hubble drops, expected at least "
+                           f"{min_drops}; the egress policy was not enforced"), False, False
     negatives = ("unsigned", "invalid", "untrusted", "tag_only", "verifier_outage")
     healed = (admitted("trusted") and admitted("recovery")
               and all(rejected(case) for case in negatives)

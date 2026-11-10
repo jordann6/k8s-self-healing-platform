@@ -48,6 +48,15 @@ kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-
 echo "eks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
 kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
 
+echo "eks-bootstrap: P1 trust root (public key only)"
+p1_keys="${P1_KEY_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/k8s-self-healing-platform/p1}"
+if [[ -s "$p1_keys/trusted.pub" ]]; then
+	kubectl -n kyverno create configmap p1-cosign-trust-root --from-file=cosign.pub="$p1_keys/trusted.pub" \
+		--dry-run=client -o yaml | kubectl apply -f - >/dev/null
+else
+	echo "  no P1 key yet: run make eks-p1-images, then rerun make eks-bootstrap before row P1"
+fi
+
 echo "eks-bootstrap: Git"
 kubectl -n gitops rollout status deploy/gitserver --timeout=180s >/dev/null
 "$root/scripts/seed-git.sh"
