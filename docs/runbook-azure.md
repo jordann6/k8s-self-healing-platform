@@ -119,8 +119,9 @@ terraform -chdir=$PWD/infra/azure apply $PWD/infra/azure/destroy.tfplan
 make aks-verify-gone
 ```
 
-`aks-predestroy` removes the lab app and its PDB (a node pool delete honours
-PDBs, so it would stall the destroy) and the evidence snapshots (the lab
+`aks-predestroy` empties the workload pool in-cluster (autoscalers, PDBs, pods;
+a node pool delete honours PDBs, and kubectl is Forbidden once the destroy
+removes the operator roles) and the evidence snapshots (the lab
 group refuses to be deleted with resources Terraform did not create). The
 destroy removes the cluster with its node group, the Containers plan (back to
 Free), the automation, the Logic App, the policy, the workspace with its
