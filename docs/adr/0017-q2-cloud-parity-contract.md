@@ -129,6 +129,35 @@ threshold here comes from a run, as in ADR-0003.
 - Q2 is a focused row on the clouds. A mixed cloud run that includes A4 or S5
   can replace labelled nodes, which the row-start relabel covers.
 
+## Changes after the first AKS run (2026-11-10)
+
+Run `aks-20261110-151150` on Kubernetes 1.36.5 with the add-on KEDA
+2.19.0-25. The baseline showed impact (error seen 5s, no fallback, about 52
+percent request failures, ceiling 4 of 4, 3 Pending on `Insufficient cpu`).
+The hardened profile errored before its fault was judged. The runner timed out
+after 30s waiting for an autoscaler error, even though the KEDA operator
+logged the 503 at 21:24:02Z and "Suppressing error, using fallback metrics"
+at 21:24:06Z.
+
+Cause. With fallback configured, KEDA 2.19 suppresses the scaler error from the
+first failed read. The HPA keeps `ScalingActive=True` and the ScaledObject
+stays `Ready=True`, so none of the runner's detection signals fired. On EKS,
+KEDA 2.21 let one failed read reach the HPA (`FailedGetExternalMetric`) before
+fallback took over, which the runner saw in 6s. Without fallback (the
+baseline) the error reaches the HPA on both versions.
+
+Change. The detection signal also accepts KEDA's own record of the failure,
+the ScaledObject `Fallback=True` condition or a trigger in `status.health` that
+is `Failing` or has `numberOfFailures` above zero. The snapshot now records
+`status.health`, and the row saves its timeline when a step raises, so an
+errored run still leaves evidence. No threshold changed. The 30s detection
+clock and every other number in Decision 4 are as written.
+
+Session facts from the same run. AKS took 43m9s to create the 1.36 cluster
+with no CNI (the provider limit is 90 minutes) and 3m5s for the workload pool.
+Nodes on 1.36 run Ubuntu 24.04.5 with containerd 2.3, and the Cilium readiness
+gate (L20) passed on both VM sizes.
+
 ## Cost and session boundary
 
 The source change adds one encrypted ECR repository and image storage. It adds

@@ -35,6 +35,27 @@ class ConditionEvidence(unittest.TestCase):
         self.assertFalse(autoscaler_error({"scaledobject_conditions": {"Ready": {"status": "True"}},
                                           "hpa_conditions": {"ScalingActive": {"status": "True"}}}))
 
+    def test_keda_219_suppressed_error_is_seen_through_trigger_health(self):
+        # AKS add-on KEDA 2.19 with fallback configured: the HPA and the ScaledObject
+        # conditions stay healthy from the first failed read; only status.health records it.
+        healthy = {"scaledobject_conditions": {"Ready": {"status": "True"},
+                                               "Fallback": {"status": "False", "reason": "NoFallbackFound"}},
+                   "hpa_conditions": {"ScalingActive": {"status": "True", "reason": "ValidMetricFound"}}}
+        self.assertFalse(autoscaler_error({**healthy, "scaledobject_health": {
+            "s0-metric-api-demand": {"numberOfFailures": 0, "status": "Happy"}}}))
+        self.assertTrue(autoscaler_error({**healthy, "scaledobject_health": {
+            "s0-metric-api-demand": {"numberOfFailures": 1, "status": "Failing"}}}))
+
+    def test_fallback_condition_is_an_error(self):
+        self.assertTrue(autoscaler_error({"scaledobject_conditions": {
+            "Ready": {"status": "True"}, "Fallback": {"status": "True", "reason": "FallbackExists"}},
+            "hpa_conditions": {"ScalingActive": {"status": "True"}}}))
+
+    def test_missing_health_is_not_an_error(self):
+        self.assertFalse(autoscaler_error({"scaledobject_conditions": {"Ready": {"status": "True"}},
+                                          "hpa_conditions": {"ScalingActive": {"status": "True"}},
+                                          "scaledobject_health": None}))
+
     def test_stable_one_rejects_terminating_replica(self):
         state = {"desired_replicas": 1, "actual_replicas": 1, "ready_replicas": 1,
                  "available_replicas": 1, "target_pod_count": 2, "terminating_replicas": 1,

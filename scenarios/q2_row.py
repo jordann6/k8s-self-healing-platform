@@ -54,12 +54,25 @@ def conditions(obj: dict) -> dict[str, dict[str, Any]]:
     } for c in obj.get("status", {}).get("conditions", [])}
 
 
+def trigger_failing(health: dict | None) -> bool:
+    """KEDA's per-trigger health (status.health) records a failing scaler even while fallback hides it."""
+    return any((entry or {}).get("status") == "Failing" or int((entry or {}).get("numberOfFailures") or 0) > 0
+               for entry in (health or {}).values())
+
+
 def autoscaler_error(snapshot: dict) -> bool:
     so = snapshot.get("scaledobject_conditions", {})
     hpa = snapshot.get("hpa_conditions", {})
     if so.get("Ready", {}).get("status") == "False":
         return True
     if hpa.get("ScalingActive", {}).get("status") == "False":
+        return True
+    # ADR-0017: the AKS add-on (KEDA 2.19) suppresses the scaler error from the first
+    # failed read once fallback is configured, so the HPA never reports it. KEDA's own
+    # record of the failure is the Fallback condition and the trigger health.
+    if so.get("Fallback", {}).get("status") == "True":
+        return True
+    if trigger_failing(snapshot.get("scaledobject_health")):
         return True
     text = json.dumps({"so": so, "hpa": hpa}).lower()
     return "failedget" in text or "error" in text
@@ -114,6 +127,7 @@ def snapshot(h) -> dict:
         "service_ready_addresses": service_ready_addresses,
         "pending": pending,
         "scaledobject_conditions": conditions(so),
+        "scaledobject_health": so.get("status", {}).get("health") or {},
         "hpa_conditions": conditions(hpa),
         "hpa_current_replicas": hpa.get("status", {}).get("currentReplicas"),
         "hpa_desired_replicas": hpa.get("status", {}).get("desiredReplicas"),
@@ -458,6 +472,13 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
                 "window": "metric outage, restored signal, configured replica ceiling, CPU scheduling ceiling, restored capacity, demand withdrawn",
             }
         finally:
+            # Keep the timeline when a step raises, so an errored run still leaves evidence.
+            timeline_file = directory / f"q2-{profile}-timeline.json"
+            if not timeline_file.exists():
+                try:
+                    timeline_file.write_text(json.dumps(timeline, indent=2))
+                except Exception:  # noqa: BLE001
+                    pass
             if holder_created:
                 h.k("-n", h.NS, "delete", "pod", "-l", HOLDER_LABEL, "--ignore-not-found", "--wait=false")
             try:
