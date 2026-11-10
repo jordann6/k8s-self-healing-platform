@@ -118,6 +118,15 @@ THRESHOLDS = {
     },
 }
 
+# Row Q2 on EKS and AKS (ADR-0017). Fixed before the first cloud run from the
+# documented 15s HPA sync (not configurable on either Standard control plane),
+# KEDA 5s poll, image pull and readiness. Only the three clocks that include a
+# longer HPA sync or an image pull on a fresh node differ from kind.
+Q2_CLOUD = {**THRESHOLDS["kind"]["Q2"], "fallback_s": 60, "capacity_recover_s": 90,
+            "scale_down_s": 120, "node_autoscaler": True}
+THRESHOLDS["eks"]["Q2"] = Q2_CLOUD
+THRESHOLDS["aks"]["Q2"] = Q2_CLOUD
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.
@@ -383,6 +392,11 @@ def judge_q1(o: dict, t: dict):
     return True, why, impact, healed
 
 
+def target_has_autoscaler(t: dict) -> bool:
+    """The cloud Q2 thresholds carry a node-autoscaler guard; kind has no node autoscaler."""
+    return bool(t.get("node_autoscaler"))
+
+
 def judge_q2(o: dict, t: dict):
     # The planned source outage is a fault. Missing evidence that it occurred
     # is not a successful fallback demonstration.
@@ -423,6 +437,16 @@ def judge_q2(o: dict, t: dict):
     scheduler_attributed = any("Insufficient cpu" in (p.get("message") or "") for p in pending)
     if not scheduler_attributed:
         return False, f"Pending pods were not attributed to Insufficient cpu: {pending}", False, False
+
+    # ADR-0017. A node autoscaler that added capacity would make the Pending
+    # window meaningless, so missing or changed node inventory is an error.
+    stability = capacity.get("node_stability")
+    if target_has_autoscaler(t):
+        if not stability:
+            return False, "node inventory was not recorded around the Pending window", False, False
+        if stability.get("unchanged") is not True:
+            return False, ("the node set changed during the Pending window, so an autoscaler may have "
+                           f"hidden the scheduling ceiling: {stability}"), False, False
 
     outage = o.get("outage_requests") or {}
     recovery_requests = capacity.get("recovery_requests") or {}

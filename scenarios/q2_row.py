@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import re
 import time
 import urllib.error
 import urllib.request
@@ -149,7 +150,7 @@ def start_load(h, name: str, rate: int, duration: int) -> tuple[str, float]:
                 "securityContext": {"runAsNonRoot": True, "runAsUser": 10001,
                                     "seccompProfile": {"type": "RuntimeDefault"}},
                 "containers": [{
-                    "name": "load", "image": "selfheal-q2:v1", "imagePullPolicy": "IfNotPresent",
+                    "name": "load", "image": h.Q2_IMAGE, "imagePullPolicy": "IfNotPresent",
                     "args": ["load"],
                     "env": [{"name": "RATE", "value": str(rate)},
                             {"name": "DURATION", "value": str(duration)}],
@@ -200,39 +201,131 @@ def set_signal(port: int, demand: float | None = None, available: bool | None = 
     return post_json(port, "/admin", body)
 
 
-def add_capacity_holder(h) -> dict[str, Any]:
-    nodes = h.kj("get", "nodes").get("items", [])
-    if len(nodes) != 1:
+HOLDER_LABEL = "app=q2-capacity-holder"
+Q2_NODE_LABEL = "selfheal.lab/q2"
+# ADR-0017: fallback on a Value trigger needs KEDA 2.18.0 or later.
+MIN_KEDA = (2, 18)
+
+
+def parse_keda_version(image: str | None) -> tuple[int, int, int] | None:
+    """Read X.Y.Z from a KEDA image reference such as ghcr.io/kedacore/keda:2.21.0 or the AKS 2.19.0-6."""
+    match = re.search(r":v?(\d+)\.(\d+)\.(\d+)", image or "")
+    return tuple(int(part) for part in match.groups()) if match else None  # type: ignore[return-value]
+
+
+def keda_version(h) -> tuple[str | None, tuple[int, int, int] | None]:
+    namespace = "kube-system" if h.TARGET == "aks" else "keda"
+    deploy = h.kj("-n", namespace, "get", "deploy", "keda-operator")
+    image = ((deploy.get("spec", {}).get("template", {}).get("spec", {}).get("containers") or [{}])[0]).get("image")
+    return image, parse_keda_version(image)
+
+
+def q2_nodes(nodes: list[dict], target: str) -> list[dict]:
+    """The nodes Q2 may use. Kind has one unlabelled node. The clouds use the labelled workload nodes."""
+    if target == "kind":
+        return nodes
+    return [n for n in nodes if (n.get("metadata", {}).get("labels") or {}).get(Q2_NODE_LABEL) == "true"]
+
+
+def label_workload_nodes(h) -> list[str]:
+    """Label every current workload node before the Q2 app syncs (ADR-0017). Idempotent."""
+    nodes = h.kj("get", "nodes", "-l", "selfheal.lab/nodes=workload").get("items", [])
+    names = [n["metadata"]["name"] for n in nodes]
+    if not names:
+        raise RuntimeError("no workload nodes found to label for Q2")
+    h.k("label", "node", *names, f"{Q2_NODE_LABEL}=true", "--overwrite", check=True)
+    return names
+
+
+def free_cpu_by_node(nodes: list[dict], pods: list[dict]) -> dict[str, dict[str, int]]:
+    out = {}
+    for node in nodes:
+        name = node["metadata"]["name"]
+        allocatable = cpu_m(node["status"]["allocatable"]["cpu"])
+        requested = scheduled_cpu_m(pods, name)
+        out[name] = {"allocatable_m": allocatable, "requested_m": requested, "free_m": allocatable - requested}
+    return out
+
+
+def replicas_fit(free: dict[str, dict[str, int]], replicas: int, request_m: int) -> bool:
+    """True when `replicas` pods of request_m can all be placed on the labelled nodes."""
+    return sum(max(0, node["free_m"]) // request_m for node in free.values()) >= replicas
+
+
+def node_inventory(h) -> dict[str, Any]:
+    nodes = sorted(n["metadata"]["name"] for n in h.kj("get", "nodes").get("items", []))
+    try:
+        claims = h.kj("get", "nodeclaims.karpenter.sh").get("items", [])
+    except Exception:  # noqa: BLE001
+        claims = []
+    return {"nodes": nodes, "nodeclaims": sorted(c["metadata"]["name"] for c in claims)}
+
+
+def nodes_unchanged(*inventories: dict) -> bool:
+    return all(i == inventories[0] for i in inventories[1:])
+
+
+def add_capacity_holders(h) -> dict[str, Any]:
+    """One holder per Q2 node leaves under the workload request free on every node."""
+    nodes = q2_nodes(h.kj("get", "nodes").get("items", []), h.TARGET)
+    if h.TARGET == "kind" and len(nodes) != 1:
         raise RuntimeError(f"Q2 kind proof requires exactly one node, found {len(nodes)}")
-    node = nodes[0]["metadata"]["name"]
-    allocatable = cpu_m(nodes[0]["status"]["allocatable"]["cpu"])
+    if not nodes:
+        raise RuntimeError("no labelled Q2 workload node for the capacity holders")
     pods = h.kj("get", "pods", "-A").get("items", [])
-    requested = scheduled_cpu_m(pods, node)
-    filler = allocatable - requested - 100
-    if filler < 250:
-        raise RuntimeError(f"not enough free requested CPU for a deterministic holder: {filler}m")
-    h.apply({"apiVersion": "v1", "kind": "Pod",
-             "metadata": {"name": "q2-capacity-holder", "namespace": h.NS,
-                          "labels": {"app": "q2-capacity-holder", "selfheal/row": "Q2"}},
-             "spec": {"nodeSelector": {"kubernetes.io/hostname": node},
-                      "restartPolicy": "Never", "automountServiceAccountToken": False,
-                      "securityContext": {"runAsNonRoot": True, "runAsUser": 10001,
-                                          "seccompProfile": {"type": "RuntimeDefault"}},
-                      "containers": [{"name": "holder", "image": "selfheal-q2:v1", "args": ["hold"],
-                                      "resources": {"requests": {"cpu": f"{filler}m", "memory": "16Mi"},
-                                                    "limits": {"memory": "32Mi"}},
-                                      "securityContext": {"allowPrivilegeEscalation": False,
-                                                          "readOnlyRootFilesystem": True,
-                                                          "capabilities": {"drop": ["ALL"]}}}]}})
-    h.k("-n", h.NS, "wait", "--for=condition=Ready", "pod/q2-capacity-holder", "--timeout=60s",
-        timeout=70, check=True)
-    return {"node": node, "node_allocatable_cpu_m": allocatable,
-            "scheduled_requests_before_holder_m": requested, "holder_request_cpu_m": filler,
-            "free_after_holder_m": 100, "workload_request_cpu_m": 250}
+    free = free_cpu_by_node(nodes, pods)
+    holders = []
+    for index, (node, cpu) in enumerate(sorted(free.items())):
+        filler = cpu["allocatable_m"] - cpu["requested_m"] - 100
+        if filler < 1:
+            holders.append({"node": node, **cpu, "holder": None, "holder_request_cpu_m": 0,
+                            "note": "already below 100m free, no holder needed"})
+            continue
+        if h.TARGET == "kind" and filler < 250:
+            raise RuntimeError(f"not enough free requested CPU for a deterministic holder: {filler}m")
+        name = f"q2-capacity-holder-{index}"
+        spec = {"nodeSelector": {"kubernetes.io/hostname": node},
+                "restartPolicy": "Never", "automountServiceAccountToken": False,
+                "securityContext": {"runAsNonRoot": True, "runAsUser": 10001,
+                                    "seccompProfile": {"type": "RuntimeDefault"}},
+                "containers": [{"name": "holder", "image": h.Q2_IMAGE, "args": ["hold"],
+                                "imagePullPolicy": "IfNotPresent",
+                                "resources": {"requests": {"cpu": f"{filler}m", "memory": "16Mi"},
+                                              "limits": {"memory": "32Mi"}},
+                                "securityContext": {"allowPrivilegeEscalation": False,
+                                                    "readOnlyRootFilesystem": True,
+                                                    "capabilities": {"drop": ["ALL"]}}}]}
+        if h.TARGET != "kind":
+            spec["tolerations"] = [{"key": "selfheal.lab/workload", "operator": "Exists", "effect": "NoSchedule"}]
+        h.apply({"apiVersion": "v1", "kind": "Pod",
+                 "metadata": {"name": name, "namespace": h.NS,
+                              "labels": {"app": "q2-capacity-holder", "selfheal/row": "Q2"}},
+                 "spec": spec})
+        holders.append({"node": node, **cpu, "holder": name, "holder_request_cpu_m": filler,
+                        "free_after_holder_m": 100})
+    created = [x["holder"] for x in holders if x["holder"]]
+    for name in created:
+        h.k("-n", h.NS, "wait", "--for=condition=Ready", f"pod/{name}", "--timeout=120s",
+            timeout=130, check=True)
+    return {"holders": holders, "workload_request_cpu_m": 250,
+            "node": holders[0]["node"], "node_allocatable_cpu_m": holders[0]["allocatable_m"],
+            "scheduled_requests_before_holder_m": holders[0]["requested_m"],
+            "holder_request_cpu_m": holders[0]["holder_request_cpu_m"], "free_after_holder_m": 100}
 
 
 def run(h, _lab, profile: str, directory: Path) -> dict:
-    thresholds = h.THRESHOLDS["kind"]["Q2"]
+    thresholds = h.THRESHOLDS[h.TARGET]["Q2"]
+    cloud = h.TARGET != "kind"
+    # Non-verdict wait bounds. They only stop a stuck run and are never judged.
+    ceiling_wait, pending_wait = (120, 90) if cloud else (60, 60)
+    outage_load_s, capacity_load_s, capacity_collect_s = (140, 260, 320) if cloud else (80, 100, 160)
+    if cloud:
+        # Nodes replaced earlier in a mixed run lose the label (ADR-0017). Idempotent.
+        label_workload_nodes(h)
+    keda_image, keda_ver = keda_version(h)
+    if keda_ver is None or keda_ver[:2] < MIN_KEDA:
+        raise RuntimeError(f"Q2 needs KEDA {MIN_KEDA[0]}.{MIN_KEDA[1]} or later for fallback on a Value "
+                           f"trigger (ADR-0017), found {keda_image}")
     timeline: list[dict] = []
     holder_created = False
     with h.PortForward(h.NS, "svc/q2-signal", 8081) as signal:
@@ -241,6 +334,10 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             initial, _ = wait_state(h, stable_one,
                                     thresholds["scale_down_s"], timeline, "Q2 initial replica")
             precheck = metric_available(signal.port)
+            q2_node_objs = q2_nodes(h.kj("get", "nodes").get("items", []), h.TARGET)
+            free_before = free_cpu_by_node(q2_node_objs, h.kj("get", "pods", "-A").get("items", []))
+            if not replicas_fit(free_before, 3, 250):
+                raise RuntimeError(f"the four-replica ceiling does not fit on the Q2 nodes: {free_before}")
 
             set_signal(signal.port, demand=2)
             _, positive_at = wait_state(h, lambda s: s["ready_replicas"] >= 2,
@@ -249,7 +346,7 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             wait_state(h, stable_one,
                        thresholds["scale_down_s"], timeline, "Q2 reset to one")
 
-            load_name, load_started = start_load(h, f"q2-{profile}-outage", 30, 80)
+            load_name, load_started = start_load(h, f"q2-{profile}-outage", 30, outage_load_s)
             set_signal(signal.port, demand=1)
             time.sleep(3)
             outage_t0 = h.now()
@@ -284,7 +381,7 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             ceiling_state, ceiling_at = wait_state(
                 h, lambda s: s["ready_replicas"] == 4
                 and s["hpa_conditions"].get("ScalingLimited", {}).get("status") == "True",
-                60, timeline, "Q2 maximum replica ceiling")
+                ceiling_wait, timeline, "Q2 maximum replica ceiling")
             ceiling_name, ceiling_load_start = start_load(h, f"q2-{profile}-ceiling", 50, 30)
             ceiling_samples, ceiling_load_end = collect_load(
                 h, ceiling_name, directory / f"q2-{profile}-ceiling-requests.json.gz", timeout=90)
@@ -293,29 +390,32 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             set_signal(signal.port, demand=0)
             wait_state(h, stable_one,
                        thresholds["scale_down_s"], timeline, "Q2 capacity setup at one replica")
-            capacity = add_capacity_holder(h)
+            nodes_before = node_inventory(h)
+            capacity = add_capacity_holders(h)
             holder_created = True
-            capacity_name, capacity_load_start = start_load(h, f"q2-{profile}-capacity", 30, 100)
+            capacity_name, capacity_load_start = start_load(h, f"q2-{profile}-capacity", 30, capacity_load_s)
             capacity_t0 = h.now()
             set_signal(signal.port, demand=4)
             pending_state, pending_at = wait_state(
                 h, lambda s: s["desired_replicas"] == 4 and any(
                     "Insufficient cpu" in (p.get("message") or "") for p in s["pending"]),
-                60, timeline, "Q2 Pending pods with an Insufficient cpu reason")
+                pending_wait, timeline, "Q2 Pending pods with an Insufficient cpu reason")
             while h.now() < pending_at + 20:
                 timeline.append(snapshot(h))
                 time.sleep(2)
-            h.k("-n", h.NS, "delete", "pod", "q2-capacity-holder", "--wait=true", timeout=60, check=True)
+            nodes_during = node_inventory(h)
+            h.k("-n", h.NS, "delete", "pod", "-l", HOLDER_LABEL, "--wait=true", timeout=120, check=True)
             holder_created = False
             capacity_restore_t0 = h.now()
             capacity_ready, capacity_ready_at = wait_state(
                 h, lambda s: s["ready_replicas"] == 4 and not s["pending"],
                 thresholds["capacity_recover_s"], timeline, "Q2 capacity recovery")
             capacity_samples, capacity_load_end = collect_load(
-                h, capacity_name, directory / f"q2-{profile}-capacity-requests.json.gz", timeout=160)
+                h, capacity_name, directory / f"q2-{profile}-capacity-requests.json.gz", timeout=capacity_collect_s)
             constrained_requests = request_stats(capacity_samples, capacity_t0, capacity_restore_t0)
             capacity_recovery_requests = request_stats(capacity_samples, capacity_ready_at, capacity_load_end)
 
+            nodes_after = node_inventory(h)
             withdraw_t0 = h.now()
             set_signal(signal.port, demand=0)
             scale_down_state, scale_down_at = wait_state(
@@ -327,6 +427,9 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             return {
                 "t0": outage_t0,
                 "metric_source_available_before": precheck,
+                "keda_image": keda_image,
+                "keda_version": ".".join(map(str, keda_ver)),
+                "q2_node_cpu_before": free_before,
                 "metric_outage_observed": outage_observed,
                 "metric_failure_detected_s": rel(detected_at, outage_t0),
                 "metric_error_state": error_state,
@@ -344,7 +447,10 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
                              "recovered_s": rel(capacity_ready_at, capacity_restore_t0),
                              "recovered_state": capacity_ready,
                              "constrained_requests": constrained_requests,
-                             "recovery_requests": capacity_recovery_requests},
+                             "recovery_requests": capacity_recovery_requests,
+                             "node_stability": {"before": nodes_before, "during": nodes_during,
+                                                "after": nodes_after,
+                                                "unchanged": nodes_unchanged(nodes_before, nodes_during, nodes_after)}},
                 "scale_down_s": rel(scale_down_at, withdraw_t0),
                 "end_state": scale_down_state,
                 "conditions_present": bool(initial["scaledobject_conditions"] and initial["hpa_conditions"]),
@@ -353,7 +459,7 @@ def run(h, _lab, profile: str, directory: Path) -> dict:
             }
         finally:
             if holder_created:
-                h.k("-n", h.NS, "delete", "pod", "q2-capacity-holder", "--ignore-not-found", "--wait=false")
+                h.k("-n", h.NS, "delete", "pod", "-l", HOLDER_LABEL, "--ignore-not-found", "--wait=false")
             try:
                 set_signal(signal.port, demand=0, available=True)
             except Exception:  # noqa: BLE001

@@ -562,7 +562,7 @@ aks-preflight: ## Read-only checks: subscription, guardrails, providers, quota >
 .PHONY: aks-plan
 aks-plan: aks-preflight ## Write infra/azure/tfplan (API, vault and storage scoped to your IPv4) and print the apply command
 	$(TFZ) init -input=false
-	$(TFZ) plan -input=false -out=tfplan $(MY_IP_AKS)
+	$(TFZ) plan -input=false -out=tfplan $(MY_IP_AKS) $(AKS_PLAN_ARGS)
 	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/azure apply $(CURDIR)/infra/azure/tfplan"
 	@echo "Then, right away (nodes are NotReady until Cilium is in):  make aks-up"
 

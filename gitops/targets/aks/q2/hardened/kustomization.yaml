@@ -1,0 +1,19 @@
+# Q2 on AKS: the same base as kind, pinned to the labelled workload
+# nodes (ADR-0017). Only the workload is pinned. The signal and load stay on
+# the system pool so the capacity holders never touch the measurement.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../q2/hardened
+components:
+  - ../../generated
+patches:
+  - target: {kind: Deployment, name: q2-target}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/q2: "true"}
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - {key: selfheal.lab/workload, operator: Exists, effect: NoSchedule}

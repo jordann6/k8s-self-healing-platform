@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -1089,6 +1089,7 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
 # --------------------------------------------------------------------------- #
 
 Q1_IMAGE = "selfheal-qworker:v1"
+Q2_IMAGE = "selfheal-q2:v1"
 
 
 def q1_depth(queue: str = "work") -> dict | None:
@@ -1348,7 +1349,7 @@ def q1_only(rows: list[str]) -> bool:
 
 
 def q2_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["Q2"]
+    return rows == ["Q2"]
 
 
 def q3_only(rows: list[str]) -> bool:
@@ -1389,17 +1390,21 @@ def focused_row(rows: list[str]) -> str | None:
     return None
 
 
+def keda_preconditions() -> list[tuple[str, str, str]]:
+    """AKS runs the managed add-on in kube-system. Kind and EKS run the pinned chart in keda."""
+    if TARGET == "aks":
+        return [("kube-system", "deploy", "keda-operator"),
+                ("kube-system", "deploy", "keda-operator-metrics-apiserver"),
+                ("kube-system", "deploy", "keda-admission-webhooks")]
+    return FOCUSED_KEDA_PRECONDITIONS
+
+
 def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
     focused = focused_row(rows)
     if focused == "Q1":
-        keda = ([
-            ("kube-system", "deploy", "keda-operator"),
-            ("kube-system", "deploy", "keda-operator-metrics-apiserver"),
-            ("kube-system", "deploy", "keda-admission-webhooks"),
-        ] if TARGET == "aks" else FOCUSED_KEDA_PRECONDITIONS)
-        return FOCUSED_SHARED_PRECONDITIONS + keda
+        return FOCUSED_SHARED_PRECONDITIONS + keda_preconditions()
     if focused == "Q2":
-        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_KEDA_PRECONDITIONS
+        return FOCUSED_SHARED_PRECONDITIONS + keda_preconditions()
     if focused == "Q3":
         return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_Q3_PRECONDITIONS
     if focused == "N1":
@@ -1432,6 +1437,9 @@ def preconditions(rows: list[str]) -> dict:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
     focused = focused_row(rows)
     if focused:
+        if focused == "Q2" and TARGET != "kind":
+            # ADR-0017: the Q2 pods select this label, so it must exist before the app can be Healthy.
+            checks["q2_nodes_labelled"] = q2_row.label_workload_nodes(sys.modules[__name__])
         app = f"selfheal-{focused.lower()}"
         wait_for(lambda: app_state(app).get("health") == "Healthy"
                  and app_state(app).get("sync") == "Synced", 180, step=5,
@@ -1490,10 +1498,18 @@ def apply_q1_profile(profile: str) -> None:
 def apply_q2_profile(profile: str) -> None:
     """Switch only the isolated Q2 application."""
     log(f"profile -> {profile} (Q2 only)")
-    k("-n", "argocd", "patch", "application", "selfheal-q2", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"q2/{profile}"}}}), check=True)
+    app_path = f"q2/{profile}" if TARGET == "kind" else f"targets/{TARGET}/q2/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-q2", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-q2")
-    wait_for(lambda: app_state("selfheal-q2")["path"] == f"q2/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-q2")["path"] == app_path, 120, step=3,
              what="Q2 app path")
     wait_for(lambda: app_state("selfheal-q2")["sync"] == "Synced"
              and app_state("selfheal-q2")["health"] == "Healthy", 180, step=3,
@@ -1742,8 +1758,8 @@ def write_report(outdir: Path, doc: dict) -> None:
     L.append("```json\n" + json.dumps({"preconditions": doc["preconditions"], "versions": doc["versions"]}, indent=2) + "\n```")
     if doc["rows"] == ["Q1"]:
         L.append("\nQ1 uses RabbitMQ queue telemetry and distinct completion IDs. The measured observations are in `report.json`.")
-    elif doc["target"] == "kind" and doc["rows"] == ["Q2"]:
-        L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, node CPU capacity, and timestamped request samples.")
+    elif doc["rows"] == ["Q2"]:
+        L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, per-node CPU capacity, the node inventory around the Pending window, the KEDA version, and timestamped request samples.")
     elif doc["target"] == "kind" and doc["rows"] == ["Q3"]:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
     elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
@@ -1774,7 +1790,7 @@ def alerts_fired(lab: Lab, since: float) -> list[str]:
 
 
 def main() -> int:
-    global TARGET, ROWS, Q1_IMAGE
+    global TARGET, ROWS, Q1_IMAGE, Q2_IMAGE
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=sorted(ROWS_BY_TARGET), default="kind")
     ap.add_argument("--run-id")
@@ -1794,6 +1810,8 @@ def main() -> int:
     if bad:
         raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
 
+    if TARGET in CLOUD_ROWS and "Q2" in rows:
+        Q2_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "Q2_IMAGE").read_text().strip()
     checks = preconditions(rows)
     if args.only_profile:
         focused = focused_row(rows)

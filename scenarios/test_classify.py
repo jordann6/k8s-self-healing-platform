@@ -292,6 +292,37 @@ class Q2FocusedPreflight(unittest.TestCase):
         self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
 
 
+class Q2CloudPreflight(unittest.TestCase):
+    def resources(self, target):
+        old = run.TARGET
+        try:
+            run.TARGET = target
+            return set(run.precondition_resources(["Q2"]))
+        finally:
+            run.TARGET = old
+
+    def test_eks_uses_upstream_keda_namespace(self):
+        self.assertIn(("keda", "deploy", "keda-operator"), self.resources("eks"))
+
+    def test_aks_uses_managed_keda_namespace(self):
+        resources = self.resources("aks")
+        self.assertIn(("kube-system", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+
+    def test_q2_is_focused_on_every_target(self):
+        old = run.TARGET
+        try:
+            for target in ("kind", "eks", "aks"):
+                run.TARGET = target
+                self.assertTrue(run.q2_only(["Q2"]))
+        finally:
+            run.TARGET = old
+
+    def test_both_clouds_list_q2(self):
+        self.assertIn("Q2", run.ROWS_BY_TARGET["eks"])
+        self.assertIn("Q2", run.ROWS_BY_TARGET["aks"])
+
+
 class Q3FocusedPreflight(unittest.TestCase):
     def test_q3_only_uses_metrics_and_recommender_dependencies(self):
         old = run.TARGET
@@ -354,6 +385,41 @@ def q2(**kw):
     }
     o.update(kw)
     return o
+
+
+class Q2CloudVerdict(unittest.TestCase):
+    def stable(self, **kw):
+        inv = {"nodes": ["a", "b", "c"], "nodeclaims": []}
+        o = q2()
+        o["capacity"]["node_stability"] = {"before": inv, "during": inv, "after": inv, "unchanged": True}
+        o["capacity"].update(kw)
+        return o
+
+    def test_cloud_pass_with_unchanged_nodes(self):
+        v = verdict("Q2", "hardened", self.stable(), "impact", target="eks")
+        self.assertEqual(v["status"], "healed")
+
+    def test_new_node_during_pending_window_is_an_error(self):
+        o = self.stable()
+        o["capacity"]["node_stability"]["unchanged"] = False
+        self.assertEqual(verdict("Q2", "hardened", o, "impact", target="aks")["status"], "error")
+
+    def test_missing_inventory_is_an_error_on_cloud(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact", target="eks")["status"], "error")
+
+    def test_kind_needs_no_inventory(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact")["status"], "healed")
+
+    def test_cloud_fallback_allows_sixty_seconds_but_not_more(self):
+        self.assertEqual(verdict("Q2", "hardened", self.stable_with(fallback_replicas_s=59), "impact",
+                                 target="eks")["status"], "healed")
+        self.assertEqual(verdict("Q2", "hardened", self.stable_with(fallback_replicas_s=61), "impact",
+                                 target="eks")["status"], "miss")
+
+    def stable_with(self, **kw):
+        o = self.stable()
+        o.update(kw)
+        return o
 
 
 class Q2ScalingFailure(unittest.TestCase):
@@ -805,11 +871,21 @@ class EksThresholds(unittest.TestCase):
         for target in ("kind", "eks", "aks"):
             self.assertEqual(THRESHOLDS[target]["Q1"], THRESHOLDS["kind"]["Q1"])
 
-    def test_later_q_rows_are_kind_only(self):
-        for row in ("Q2", "Q3"):
-            self.assertIn(row, THRESHOLDS["kind"])
-            self.assertNotIn(row, THRESHOLDS["eks"])
-            self.assertNotIn(row, THRESHOLDS["aks"])
+    def test_q3_is_kind_only(self):
+        self.assertIn("Q3", THRESHOLDS["kind"])
+        self.assertNotIn("Q3", THRESHOLDS["eks"])
+        self.assertNotIn("Q3", THRESHOLDS["aks"])
+
+    def test_q2_cloud_thresholds_differ_only_where_adr_0017_says(self):
+        kind = THRESHOLDS["kind"]["Q2"]
+        for target in ("eks", "aks"):
+            cloud = THRESHOLDS[target]["Q2"]
+            changed = {k for k in set(kind) | set(cloud) if kind.get(k) != cloud.get(k)}
+            self.assertEqual(changed, {"fallback_s", "capacity_recover_s", "scale_down_s", "node_autoscaler"})
+            self.assertEqual((cloud["fallback_s"], cloud["capacity_recover_s"], cloud["scale_down_s"]),
+                             (60, 90, 120))
+            for key in ("detect_s", "metric_recover_s", "p95_ms", "error_rate"):
+                self.assertEqual(cloud[key], kind[key])
 
     def test_n1_is_kind_only_in_phase_three(self):
         self.assertIn("N1", THRESHOLDS["kind"])
@@ -1040,7 +1116,7 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:
