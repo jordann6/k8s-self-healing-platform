@@ -173,6 +173,30 @@ class Q1BusyWorkerAttribution(unittest.TestCase):
                  {"connection": "<c3>", "messages_unacknowledged": 0}]
         self.assertEqual(self.run_with(chans, conns), {"qworker-2": 1})
 
+    def test_real_rabbitmq_shape_decodes_ipv4_mapped_peer_words(self):
+        # Captured from RabbitMQ 3.13 on EKS: pids are "#PID<...>" strings and
+        # peer_host is eight 16-bit words (eks-20261110-123247 crashed on this).
+        pods = [{"metadata": {"name": "qworker-a"}, "status": {"podIP": "10.30.19.80"}}]
+        conns = [{"pid": "#PID<13322.1083.0>", "peer_host": [0, 0, 0, 0, 0, 65535, 2590, 4944]},
+                 {"pid": "#PID<13322.1217.0>", "peer_host": [0, 0, 0, 0, 0, 65535, 2590, 4105]}]
+        chans = [{"connection": "#PID<13322.1083.0>", "messages_unacknowledged": 1},
+                 {"connection": "#PID<13322.1217.0>", "messages_unacknowledged": 1}]
+        import json
+        import subprocess
+        orig = run.k
+        run.k = lambda *a, **kw: subprocess.CompletedProcess(
+            a, 0, json.dumps(chans) + "\n@@SPLIT@@\n" + json.dumps(conns), "")
+        try:
+            self.assertEqual(run.q1_busy_workers(pods), {"qworker-a": 1})
+        finally:
+            run.k = orig
+
+    def test_peer_ip_rejects_unrecognised_shapes(self):
+        self.assertEqual(run.q1_peer_ip([0, 0, 0, 0, 0, 65535, 2590, 4944]), "10.30.19.80")
+        self.assertEqual(run.q1_peer_ip("10.0.0.7"), "10.0.0.7")
+        self.assertIsNone(run.q1_peer_ip([1, 2, 3]))
+        self.assertIsNone(run.q1_peer_ip(None))
+
     def test_unknown_peer_such_as_the_producer_is_never_a_victim(self):
         conns = [{"pid": "<p>", "peer_host": "10.9.9.9"}]
         self.assertEqual(self.run_with([{"connection": "<p>", "messages_unacknowledged": 1}], conns), {})

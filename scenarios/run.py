@@ -1107,6 +1107,19 @@ def q1_depth(queue: str = "work") -> dict | None:
     return None  # a missing queue is missing telemetry, never an empty queue
 
 
+def q1_peer_ip(peer) -> str | None:
+    """RabbitMQ 3.13 prints peer_host as eight 16-bit words, an IPv4-mapped IPv6
+    address such as [0,0,0,0,0,65535,2590,4944] for 10.30.19.80. Accept a dotted
+    string too. Anything else is missing telemetry."""
+    if isinstance(peer, str):
+        return peer or None
+    if isinstance(peer, list) and len(peer) == 8 and all(isinstance(w, int) for w in peer) \
+            and peer[:6] == [0, 0, 0, 0, 0, 65535]:
+        hi, lo = peer[6], peer[7]
+        return f"{hi >> 8}.{hi & 255}.{lo >> 8}.{lo & 255}"
+    return None
+
+
 def q1_busy_workers(running: list[dict]) -> dict[str, int]:
     """Map worker pod name -> messages it holds unacked, per the broker.
 
@@ -1124,12 +1137,13 @@ def q1_busy_workers(running: list[dict]) -> dict[str, int]:
         chans, conns = json.loads(chans_raw), json.loads(conns_raw)
     except json.JSONDecodeError:
         return {}
-    ip_of = {c.get("pid"): c.get("peer_host") for c in conns}
+    ip_of = {c.get("pid"): q1_peer_ip(c.get("peer_host")) for c in conns}
     pod_of = {pod["status"].get("podIP"): pod["metadata"]["name"] for pod in running if pod["status"].get("podIP")}
     busy: dict[str, int] = {}
     for ch in chans:
         n = ch.get("messages_unacknowledged", 0) or 0
-        pod = pod_of.get(ip_of.get(ch.get("connection")))
+        ip = ip_of.get(ch.get("connection"))
+        pod = pod_of.get(ip) if ip else None
         if n >= 1 and pod:
             busy[pod] = busy.get(pod, 0) + n
     return busy
