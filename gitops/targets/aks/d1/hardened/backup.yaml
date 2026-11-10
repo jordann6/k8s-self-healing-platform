@@ -1,0 +1,58 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: d1-backup
+  namespace: selfheal-d1-source
+spec:
+  schedule: "0 0 * * *"
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 120
+      template:
+        metadata:
+          labels:
+            app: d1-backup
+            azure.workload.identity/use: "true"
+        spec:
+          restartPolicy: Never
+          # workload identity identity, no static keys. The service account is created
+          # by the bootstrap (Argo CD does not manage ServiceAccounts).
+          serviceAccountName: d1-backup
+          automountServiceAccountToken: false
+          enableServiceLinks: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70
+            runAsGroup: 70
+            fsGroup: 70
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: backup
+              image: selfheal-d1-cloud
+              imagePullPolicy: IfNotPresent
+              command: [/usr/local/bin/backup.sh]
+              env:
+                - {name: POSTGRES_HOST, value: d1-source.selfheal-d1-source.svc.cluster.local}
+                - {name: POSTGRES_USER, value: d1}
+                - {name: POSTGRES_DB, value: d1}
+                - name: POSTGRES_PASSWORD
+                  valueFrom: {secretKeyRef: {name: d1-postgres, key: password}}
+              envFrom:
+                - configMapRef: {name: d1-store}
+              resources:
+                requests: {cpu: 25m, memory: 64Mi}
+                limits: {cpu: 500m, memory: 256Mi}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              volumeMounts:
+                - {name: work, mountPath: /work}
+          volumes:
+            - name: work
+              emptyDir: {sizeLimit: 256Mi}

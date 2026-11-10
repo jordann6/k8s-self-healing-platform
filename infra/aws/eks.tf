@@ -46,7 +46,7 @@ module "eks" {
   # group create fails (found on the first apply). The VPC CNI is only the
   # bootstrap network: eks-platform pins aws-node to a label no node carries
   # before Cilium takes over, and restarts the pods it addressed.
-  addons = {
+  addons = merge({
     vpc-cni = {
       before_compute = true
     }
@@ -72,7 +72,7 @@ module "eks" {
     # KernelReady, NetworkingReady, StorageReady and ContainerRuntimeReady node
     # conditions; Karpenter's NodeRepair acts on them (ADR-0005).
     eks-node-monitoring-agent = {}
-  }
+  }, local.ebs_csi_addon)
 
   # Under Cilium ENI IPAM, pod addresses live on ENIs that carry the node
   # security group, so that group filters every cross-node pod-to-pod packet.

@@ -68,3 +68,4 @@ gitops/targets/eks/generated/
 gitops/targets/aks/generated/
 # Written by make aks-preflight (what existed before the session, for verify-gone)
 infra/azure/.session/
+.d1/

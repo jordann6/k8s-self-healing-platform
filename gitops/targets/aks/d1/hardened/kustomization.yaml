@@ -1,0 +1,17 @@
+# D1 on AKS: the kind hardened profile with the cloud CronJob in place of
+# MinIO (ADR-0022). The store settings (bucket or account, region) are in the
+# d1-store ConfigMap the bootstrap creates, because they name this account.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../d1/base
+  - ../../../../d1/restore-target
+  - backup.yaml
+components:
+  - ../../generated
+patches:
+  - target: {kind: ConfigMap, name: d1-profile}
+    patch: |-
+      - op: add
+        path: /data/profile
+        value: hardened

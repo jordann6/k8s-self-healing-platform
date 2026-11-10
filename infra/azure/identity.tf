@@ -5,7 +5,7 @@
 # row depends on it.
 
 locals {
-  workload_identities = {
+  workload_identities = merge({
     # ESO reads the partner key from Key Vault (row S1). Referenced mode: the
     # SecretStore names this service account in the lab namespace.
     eso = { namespace = "selfheal", service_account = "eso-backend" }
@@ -19,7 +19,7 @@ locals {
     # admission and the reports controller (background PolicyReport).
     kyverno_admission = { namespace = "kyverno", service_account = "kyverno-admission-controller" }
     kyverno_reports   = { namespace = "kyverno", service_account = "kyverno-reports-controller" }
-  }
+  }, local.d1_workload_identities)
 }
 
 resource "azurerm_user_assigned_identity" "workload" {

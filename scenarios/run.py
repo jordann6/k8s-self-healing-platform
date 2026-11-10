@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -1355,6 +1355,8 @@ FOCUSED_D1_PRECONDITIONS = [
     ("selfheal-d1-store", "statefulset", "d1-minio"),
     ("selfheal-d1-source", "statefulset", "d1-source"),
 ]
+# The cloud store is S3 or Blob, not a StatefulSet (ADR-0022), so there is no store workload to wait for.
+FOCUSED_D1_CLOUD_PRECONDITIONS = [p for p in FOCUSED_D1_PRECONDITIONS if p[0] not in ("selfheal-d1-store", "selfheal-d1-source")]
 FOCUSED_O1_PRECONDITIONS = FOCUSED_SHARED_PRECONDITIONS
 
 
@@ -1379,7 +1381,7 @@ def p1_only(rows: list[str]) -> bool:
 
 
 def d1_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["D1"]
+    return rows == ["D1"]
 
 
 def o1_only(rows: list[str]) -> bool:
@@ -1427,7 +1429,7 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         # ADR-0021: on the clouds the outage is attributed through Hubble drops.
         return FOCUSED_P1_PRECONDITIONS + ([] if TARGET == "kind" else FOCUSED_N1_PRECONDITIONS)
     if focused == "D1":
-        return FOCUSED_D1_PRECONDITIONS
+        return FOCUSED_D1_PRECONDITIONS if TARGET == "kind" else FOCUSED_D1_CLOUD_PRECONDITIONS
     if focused == "O1":
         return FOCUSED_O1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
@@ -1602,26 +1604,30 @@ def apply_p1_profile(profile: str) -> None:
 def apply_d1_profile(profile: str) -> None:
     """Switch the isolated D1 application and wait for its stateful boundary."""
     log(f"profile -> {profile} (D1 only)")
+    app_path = f"d1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/d1/{profile}"
     k("-n", "argocd", "patch", "application", "selfheal-d1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"d1/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-d1")
-    wait_for(lambda: app_state("selfheal-d1")["path"] == f"d1/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-d1")["path"] == app_path, 120, step=3,
              what="D1 app path")
     wait_for(lambda: app_state("selfheal-d1")["sync"] == "Synced"
              and app_state("selfheal-d1")["health"] == "Healthy", 240, step=3,
              what="D1 app Synced and Healthy")
+    # A cloud volume is provisioned and attached before PostgreSQL can start (ADR-0022 L18).
+    pg_wait = 120 if TARGET == "kind" else 300
     wait_for(lambda: k("-n", d1_row.SOURCE_NS, "rollout", "status", "statefulset/d1-source",
                        "--timeout=10s", timeout=15).returncode == 0,
-             120, step=2, what="D1 source PostgreSQL")
-    wait_for(lambda: k("-n", d1_row.STORE_NS, "rollout", "status", "statefulset/d1-minio",
-                       "--timeout=10s", timeout=15).returncode == 0,
-             120, step=2, what="D1 object store")
+             pg_wait, step=2, what="D1 source PostgreSQL")
+    if TARGET == "kind":
+        wait_for(lambda: k("-n", d1_row.STORE_NS, "rollout", "status", "statefulset/d1-minio",
+                           "--timeout=10s", timeout=15).returncode == 0,
+                 120, step=2, what="D1 object store")
     if profile == "hardened":
         wait_for(lambda: bool(kj("-n", d1_row.SOURCE_NS, "get", "cronjob", "d1-backup").get("metadata")),
                  120, step=2, what="D1 backup CronJob")
         wait_for(lambda: k("-n", d1_row.RESTORE_NS, "rollout", "status", "statefulset/d1-restore",
                            "--timeout=10s", timeout=15).returncode == 0,
-                 120, step=2, what="D1 restore PostgreSQL")
+                 pg_wait, step=2, what="D1 restore PostgreSQL")
     else:
         wait_for(lambda: not kj("-n", d1_row.SOURCE_NS, "get", "cronjob", "d1-backup").get("metadata"),
                  120, step=2, what="D1 baseline without backup CronJob")
@@ -1787,7 +1793,7 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
     elif doc["rows"] == ["P1"]:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
-    elif doc["target"] == "kind" and doc["rows"] == ["D1"]:
+    elif doc["rows"] == ["D1"]:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
     elif doc["rows"] == ["O1"]:
         L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
@@ -1831,6 +1837,8 @@ def main() -> int:
     if bad:
         raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
 
+    if TARGET in CLOUD_ROWS and "D1" in rows:
+        d1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "D1_IMAGE").read_text().strip()
     if TARGET in CLOUD_ROWS and "O1" in rows:
         o1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "O1_IMAGE").read_text().strip()
     if TARGET in CLOUD_ROWS and "Q2" in rows:

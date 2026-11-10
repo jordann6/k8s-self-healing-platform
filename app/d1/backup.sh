@@ -23,13 +23,30 @@ printf '{"backup_id":"%s","archive_key":"%s","archive_sha256":"%s","source_max_s
 	"$backup_id" "$object_key" "$archive_sha256" "$source_max_seq" "$created_at" >"$manifest"
 manifest_sha256="$(sha256sum "$manifest" | awk '{print $1}')"
 
-mc alias set store "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
-mc cp "$archive" "store/$S3_BUCKET/$object_key" >/dev/null
-mc cp "$manifest" "store/$S3_BUCKET/$manifest_key" >/dev/null
+# D1_STORE selects the object store. The default is the kind MinIO through mc.
+# s3 and azblob are the EKS and AKS stores through d1store.py (ADR-0022); the
+# markers below keep the same shape either way.
+store="${D1_STORE:-mc}"
+if [ "$store" = mc ]; then
+	mc alias set store "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
+	mc cp "$archive" "store/$S3_BUCKET/$object_key" >/dev/null
+	mc cp "$manifest" "store/$S3_BUCKET/$manifest_key" >/dev/null
+else
+	d1store.py put "$archive" "$object_key" >/dev/null
+	d1store.py put "$manifest" "$manifest_key" >/dev/null
+fi
 printf 'D1_BACKUP_COMPLETE '
 cat "$manifest"
 printf 'D1_MANIFEST_SHA256 %s\n' "$manifest_sha256"
 printf 'D1_ARCHIVE_STAT '
-mc stat --json "store/$S3_BUCKET/$object_key"
+if [ "$store" = mc ]; then
+	mc stat --json "store/$S3_BUCKET/$object_key"
+else
+	d1store.py stat "$object_key"
+fi
 printf 'D1_RETENTION_INFO '
-mc retention info --default "store/$S3_BUCKET"
+if [ "$store" = mc ]; then
+	mc retention info --default "store/$S3_BUCKET"
+else
+	d1store.py retention "$object_key"
+fi

@@ -35,7 +35,7 @@ resource "aws_kms_alias" "data" {
 # the exact image it measured. linux/amd64 builds, as the nodes are x86.
 resource "aws_ecr_repository" "lab" {
   for_each = toset(["app", "gitserver", "dbprobe", "qworker", "q2", "o1", "q3",
-  "p1-trusted", "p1-unsigned", "p1-invalid", "p1-untrusted", "p1-recovery"])
+  "p1-trusted", "p1-unsigned", "p1-invalid", "p1-untrusted", "p1-recovery", "d1"])
 
   name                 = "${local.name}/${each.key}"
   image_tag_mutability = "IMMUTABLE"

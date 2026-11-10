@@ -400,12 +400,13 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd app/q3 && python3 -m unittest -v test_app
 	cd app/n1 && python3 -m unittest -v test_app
 	cd app/p1 && python3 -m unittest -v test_app
+	cd app/d1 && python3 -m unittest -v test_scripts test_d1store
 	cd app/d1 && python3 -m unittest -v test_scripts
 	cd app/o1 && python3 -m unittest -v test_app
-	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry test_argocd_inclusions
+	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry test_argocd_inclusions test_d1_store_guard
 
 .PHONY: check
-check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
+check: test eks-check aks-check d1-store-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	kubectl kustomize gitops/q1/baseline >/dev/null
@@ -431,7 +432,7 @@ check: test eks-check aks-check ## Static checks: every profile renders (kind, E
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------
@@ -479,11 +480,51 @@ eks-cost: ## Infracost estimate of the full stack (before any live session)
 eks-preflight: ## Read-only checks: accounts, Config recorder, GuardDuty admin, leftovers, quota, IPv4
 	scripts/eks-preflight.sh
 
+# --- D1 WORM stores (ADR-0022). Their own roots, planned and applied by hand, because the
+# S3 COMPLIANCE default and the Azure Locked policy cannot be undone. Read each plan.
+.PHONY: d1-store-aws-plan
+d1-store-aws-plan: eks-preflight ## Plan the S3 Object Lock bucket (own root, COMPLIANCE 1 day) and print the apply command
+	AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=infra/d1-store-aws init -input=false
+	AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=infra/d1-store-aws plan -input=false -out=tfplan -var-file=$(CURDIR)/infra/aws/lab.auto.tfvars
+	@echo; echo "COMPLIANCE retention cannot be undone. Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/d1-store-aws apply $(CURDIR)/infra/d1-store-aws/tfplan"
+	@echo "Then plan the cluster with:  make eks-plan EKS_PLAN_ARGS=-var=d1_store_bucket=<the bucket output>"
+
+.PHONY: d1-store-azure-plan
+d1-store-azure-plan: ## Plan the Blob account (own root and resource group, Locked 1-day version-level policy)
+	terraform -chdir=infra/d1-store-azure init -input=false
+	terraform -chdir=infra/d1-store-azure plan -input=false -out=tfplan -var-file=$(CURDIR)/infra/azure/lab.auto.tfvars
+	@echo; echo "A Locked policy cannot be deleted or shortened. Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/d1-store-azure apply $(CURDIR)/infra/d1-store-azure/tfplan"
+	@echo "Then plan the cluster with:  make aks-plan AKS_PLAN_ARGS=-var=d1_store_account_id=<the account_id output>"
+
+.PHONY: d1-store-destroy-plan
+d1-store-destroy-plan: ## Second step, 24h+ later: refuses before retention ends, then writes the destroy plan (CLOUD=aws|azure)
+	scripts/d1-store-destroy.sh $(CLOUD) plan
+
+.PHONY: d1-store-azure-empty
+d1-store-azure-empty: ## Azure only: delete expired blob versions and the container before the destroy plan (refused before expiry)
+	scripts/d1-store-destroy.sh azure empty
+
+.PHONY: d1-store-check
+d1-store-check: ## Terraform gates for both WORM store roots (no credentials)
+	terraform fmt -check -recursive infra/d1-store-aws infra/d1-store-azure
+	terraform -chdir=infra/d1-store-aws init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/d1-store-aws validate
+	terraform -chdir=infra/d1-store-azure init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/d1-store-azure validate
+	tflint --chdir=infra/d1-store-aws --minimum-failure-severity=warning
+	tflint --chdir=infra/d1-store-azure --minimum-failure-severity=warning
+	checkov -d infra/d1-store-aws --framework terraform --quiet --compact --skip-path .terraform
+	checkov -d infra/d1-store-azure --framework terraform --quiet --compact --skip-path .terraform
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/d1-store-aws/.terraform infra/d1-store-aws
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/d1-store-azure/.terraform infra/d1-store-azure
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/d1-store-aws/*.tf
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/d1-store-azure/*.tf
+
 .PHONY: eks-plan
 eks-plan: eks-preflight ## Write infra/aws/tfplan (API scoped to your IPv4 /32) and print the apply command
 	infra/aws/rotation/build.sh
 	$(TFA) init -input=false
-	$(TFA) plan -input=false -out=tfplan $(MY_IP_CIDRS)
+	$(TFA) plan -input=false -out=tfplan $(MY_IP_CIDRS) $(EKS_PLAN_ARGS)
 	@echo; echo "Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws apply $(CURDIR)/infra/aws/tfplan"
 
 .PHONY: eks-platform

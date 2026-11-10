@@ -150,6 +150,13 @@ THRESHOLDS["aks"]["Q3"] = {**THRESHOLDS["kind"]["Q3"], "sample_window_s": 420, "
 THRESHOLDS["eks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
 THRESHOLDS["aks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
 
+# Row D1 on EKS and AKS (ADR-0022). Every ADR-0014 threshold is unchanged. Added: the
+# retention mode in the store's own words (Azure calls the same one-day locked state
+# Locked) and the administrator attribution, which makes a retention refusal count only
+# when the operator was shown to hold the delete permission.
+THRESHOLDS["eks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True}
+THRESHOLDS["aks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True, "retention_mode": "Locked"}
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.
@@ -785,6 +792,17 @@ def judge_d1(o: dict, t: dict):
     if missing:
         return False, f"D1 required telemetry missing: {', '.join(missing)}", False, False
 
+    if t.get("admin_attribution"):
+        # ADR-0022 decision 8: on a cloud the administrator is the operator identity. A refusal only
+        # counts as retention if the operator was first shown to hold the delete permission, and an
+        # unrecognised refusal is an error, never a pass. A delete that succeeded stays a miss.
+        if resistance.get("admin_permission_checked") is not True:
+            return False, ("the administrator delete permission was not proven, so a refusal could be a "
+                           f"permission gap ({resistance.get('admin_permission_reason')!r})"), False, False
+        if resistance.get("admin_deleted") is False and resistance.get("admin_refusal_recognised") is not True:
+            return False, ("the administrator version delete was refused for an unrecognised reason: "
+                           f"{resistance.get('admin_reason')!r}"), False, False
+
     archive_sha = str(backup.get("archive_sha256"))
     manifest_sha = str(backup.get("manifest_sha256"))
     checksums_well_formed = (len(archive_sha) == 64 and len(manifest_sha) == 64)
@@ -801,7 +819,7 @@ def judge_d1(o: dict, t: dict):
         backup.get("completed") is True
         and le(backup.get("completion_s"), t["backup_s"])
         and backup.get("source_max_seq") == t["rows"]
-        and backup.get("retention_mode") == "COMPLIANCE"
+        and backup.get("retention_mode") == t.get("retention_mode", "COMPLIANCE")
         and backup.get("retention_days") == t["retention_days"]
         and checksums_well_formed
         and sentinel.get("seq") == t["rows"] + 1

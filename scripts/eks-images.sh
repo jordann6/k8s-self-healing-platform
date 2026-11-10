@@ -8,6 +8,7 @@
 #   gitserver:<sha>                         dbprobe:<sha>
 #   qworker:<sha>                           q2:<sha>
 #   o1:<sha>                                q3:<sha>
+#   d1:<sha> (the D1 cloud tool image, app/d1/cloud.Dockerfile)
 # A tag that already exists is not rebuilt.
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
@@ -51,6 +52,7 @@ push qworker "$sha" "$root/app/qworker"
 push q2 "$sha" "$root/app/q2"
 push o1 "$sha" "$root/app/o1"
 push q3 "$sha" "$root/app/q3"
+push d1 "$sha" "$root/app/d1" -f "$root/app/d1/cloud.Dockerfile"
 
 gen="$root/gitops/targets/eks/generated"
 mkdir -p "$gen"
@@ -78,10 +80,14 @@ images:
   - name: selfheal-q3
     newName: $(repo q3)
     newTag: $sha
+  - name: selfheal-d1-cloud
+    newName: $(repo d1)
+    newTag: $sha
 EOF
 printf '%s\n' "$sha" >"$gen/IMAGE_SHA"
 printf '%s:%s\n' "$(repo gitserver)" "$sha" >"$gen/GITSERVER_IMAGE"
 printf '%s:%s\n' "$(repo qworker)" "$sha" >"$gen/QWORKER_IMAGE"
 printf '%s:%s\n' "$(repo q2)" "$sha" >"$gen/Q2_IMAGE"
 printf '%s:%s\n' "$(repo o1)" "$sha" >"$gen/O1_IMAGE"
+printf '%s:%s\n' "$(repo d1)" "$sha" >"$gen/D1_IMAGE"
 echo "eks-images: wrote $gen (selfheal-app -> $sha-v1)"

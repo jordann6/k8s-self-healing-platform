@@ -5,8 +5,12 @@ work=/work
 export MC_CONFIG_DIR="$work/.mc"
 archive="$work/restore.dump"
 mkdir -p "$work"
-mc alias set store "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
-mc cp "store/$S3_BUCKET/$OBJECT_KEY" "$archive" >/dev/null
+if [ "${D1_STORE:-mc}" = mc ]; then
+	mc alias set store "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" >/dev/null
+	mc cp "store/$S3_BUCKET/$OBJECT_KEY" "$archive" >/dev/null
+else
+	d1store.py get "$OBJECT_KEY" "$archive"
+fi
 if [ -n "${TRUNCATE_BYTES:-}" ]; then
 	head -c "$TRUNCATE_BYTES" "$archive" >"$work/truncated.dump"
 	mv "$work/truncated.dump" "$archive"
