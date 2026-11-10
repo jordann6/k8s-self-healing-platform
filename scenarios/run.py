@@ -1106,6 +1106,34 @@ def q1_depth(queue: str = "work") -> dict | None:
     return None  # a missing queue is missing telemetry, never an empty queue
 
 
+def q1_busy_workers(running: list[dict]) -> dict[str, int]:
+    """Map worker pod name -> messages it holds unacked, per the broker.
+
+    Prefetch is 1, so a channel with an unacked message is a worker mid-work.
+    The channel's connection peer address is the pod IP, so the victim is
+    attributed by the broker itself at any replica count, not by guessing
+    from the queue total. Any telemetry gap returns {} (never a guess)."""
+    script = ("rabbitmqctl list_channels connection messages_unacknowledged --formatter json; "
+              "echo @@SPLIT@@; rabbitmqctl list_connections pid peer_host --formatter json")
+    p = k("-n", NS, "exec", "deploy/rabbitmq", "-c", "rabbitmq", "--", "sh", "-c", script, timeout=60)
+    if p.returncode != 0 or "@@SPLIT@@" not in p.stdout:
+        return {}
+    try:
+        chans_raw, conns_raw = p.stdout.split("@@SPLIT@@", 1)
+        chans, conns = json.loads(chans_raw), json.loads(conns_raw)
+    except json.JSONDecodeError:
+        return {}
+    ip_of = {c.get("pid"): c.get("peer_host") for c in conns}
+    pod_of = {pod["status"].get("podIP"): pod["metadata"]["name"] for pod in running if pod["status"].get("podIP")}
+    busy: dict[str, int] = {}
+    for ch in chans:
+        n = ch.get("messages_unacknowledged", 0) or 0
+        pod = pod_of.get(ip_of.get(ch.get("connection")))
+        if n >= 1 and pod:
+            busy[pod] = busy.get(pod, 0) + n
+    return busy
+
+
 def q1_running() -> list[dict]:
     items = kj("-n", NS, "get", "pod", "-l", "app=qworker").get("items", [])
     return [p for p in items if p["status"].get("phase") == "Running" and not p["metadata"].get("deletionTimestamp")]
@@ -1192,15 +1220,17 @@ def row_q1(lab: Lab, profile: str, d: Path) -> dict:
             ev["scaled_up"] = now()
         depth = q1_depth("work") or {"ready": 1, "unacked": 0}
         # Kill one busy worker once, mid-drain: it holds an in-flight (unacked)
-        # message the broker must redeliver (no lost work).
-        # With one running worker, the queue's unacked count belongs to the
-        # victim. With several workers it cannot identify which pod is busy.
-        if not killed and len(running) == 1 and depth["ready"] > 0 and depth["unacked"] >= 1:
-            victim = running[0]["metadata"]["name"]
-            ev["unacked_at_kill"] = depth["unacked"]
-            ev["workers_at_kill"] = len(running)
-            k("-n", NS, "delete", "pod", victim, "--grace-period=0", "--force", "--wait=false", timeout=30)
-            ev["killed_pod"], killed = victim, True
+        # message the broker must redeliver (no lost work). The victim is the
+        # pod the broker reports as holding an unacked message, so it works at
+        # any replica count (a scale-out can pass one worker between polls).
+        if not killed and depth["ready"] > 0 and depth["unacked"] >= 1:
+            busy = q1_busy_workers(running)
+            if busy:
+                victim = sorted(busy)[0]
+                ev["unacked_at_kill"] = busy[victim]
+                ev["workers_at_kill"] = len(running)
+                k("-n", NS, "delete", "pod", victim, "--grace-period=0", "--force", "--wait=false", timeout=30)
+                ev["killed_pod"], killed = victim, True
         if ev["drained"] is None and depth["ready"] == 0 and depth["unacked"] == 0:
             ev["drained"] = now()
             break

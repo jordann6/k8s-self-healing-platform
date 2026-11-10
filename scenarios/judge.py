@@ -363,10 +363,10 @@ def judge_q1(o: dict, t: dict):
     start, mx, end = o.get("profile_start_replicas") or 0, o.get("max_replicas") or 0, o.get("end_replicas")
     no_lost_work = dd == pub and o.get("expected_done") == pub and o.get("unexpected_done") == 0
     scaled_out = o.get("scaled_up_s") is not None and mx > start
-    # The kill only has teeth if a worker held an in-flight (unacknowledged)
-    # message when it died; otherwise a drop could not have been tested.
-    kill_had_teeth = (o.get("killed_pod") is not None and o.get("workers_at_kill") == 1
-                      and (o.get("unacked_at_kill") or 0) >= 1)
+    # The kill only has teeth if the victim itself held an in-flight
+    # (unacknowledged) message when it died, as the broker attributed it to
+    # that pod; otherwise a drop could not have been tested.
+    kill_had_teeth = o.get("killed_pod") is not None and (o.get("unacked_at_kill") or 0) >= 1
     drained_ok = le(o.get("drained_s"), t["drain_s"])
     zero_after_drain = (o["scaled_to_zero_s"] - o["drained_s"]
                         if o.get("scaled_to_zero_s") is not None and o.get("drained_s") is not None else None)

@@ -150,6 +150,38 @@ def q1(**kw):
     return o
 
 
+class Q1BusyWorkerAttribution(unittest.TestCase):
+    """The kill victim is the pod the broker says holds an unacked message."""
+
+    PODS = [{"metadata": {"name": f"qworker-{i}"}, "status": {"podIP": f"10.0.0.{i}"}} for i in (1, 2, 3)]
+
+    def run_with(self, chans, conns, rc=0, split=True):
+        import json
+        import subprocess
+        out = json.dumps(chans) + ("\n@@SPLIT@@\n" if split else "") + json.dumps(conns)
+        orig = run.k
+        run.k = lambda *a, **kw: subprocess.CompletedProcess(a, rc, out, "")
+        try:
+            return run.q1_busy_workers(self.PODS)
+        finally:
+            run.k = orig
+
+    def test_picks_the_pod_that_holds_an_unacked_message_among_many(self):
+        conns = [{"pid": f"<c{i}>", "peer_host": f"10.0.0.{i}"} for i in (1, 2, 3)]
+        chans = [{"connection": "<c1>", "messages_unacknowledged": 0},
+                 {"connection": "<c2>", "messages_unacknowledged": 1},
+                 {"connection": "<c3>", "messages_unacknowledged": 0}]
+        self.assertEqual(self.run_with(chans, conns), {"qworker-2": 1})
+
+    def test_unknown_peer_such_as_the_producer_is_never_a_victim(self):
+        conns = [{"pid": "<p>", "peer_host": "10.9.9.9"}]
+        self.assertEqual(self.run_with([{"connection": "<p>", "messages_unacknowledged": 1}], conns), {})
+
+    def test_telemetry_gap_is_empty_never_a_guess(self):
+        self.assertEqual(self.run_with([], [], rc=1), {})
+        self.assertEqual(self.run_with([], [], split=False), {})
+
+
 class Q1QueueScaling(unittest.TestCase):
     def test_scale_from_zero_drain_and_return_heals(self):
         self.assertEqual(verdict("Q1", "hardened", q1(), "impact")["status"], "healed")
@@ -179,7 +211,9 @@ class Q1QueueScaling(unittest.TestCase):
     def test_kill_without_an_in_flight_message_is_a_miss(self):
         self.assertEqual(verdict("Q1", "hardened", q1(unacked_at_kill=0), "impact")["status"], "miss")
         self.assertEqual(verdict("Q1", "hardened", q1(killed_pod=None), "impact")["status"], "miss")
-        self.assertEqual(verdict("Q1", "hardened", q1(workers_at_kill=2), "impact")["status"], "miss")
+
+    def test_kill_of_a_broker_attributed_busy_worker_among_many_heals(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(workers_at_kill=3), "impact")["status"], "healed")
 
     def test_slow_drain_is_a_miss(self):
         self.assertEqual(verdict("Q1", "hardened", q1(drained_s=T["Q1"]["drain_s"] + 1), "impact")["status"], "miss")
