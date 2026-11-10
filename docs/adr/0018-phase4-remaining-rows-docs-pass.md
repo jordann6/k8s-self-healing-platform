@@ -1,7 +1,19 @@
 # ADR 0018: Phase 4 remaining rows, docs pass before the cloud ports
 
-Status: PROPOSED 2026-11-10. Nothing is built or applied. Jordan reviews the
-open decisions before any per-row ADR, overlay or plan is written.
+Status: ACCEPTED 2026-11-10. Jordan accepted all four recommendations (A to
+D below) the same day. O1 is ported first. Nothing is built or applied yet.
+
+Decisions as accepted
+
+- A. The remaining cloud rows run on Kubernetes 1.36 on both EKS and AKS. The
+  existing VPA 0.16.0 chart pin (app 1.8.1) serves every target.
+- B. D1 uses S3 Object Lock COMPLIANCE and a locked one-day version-level
+  Blob policy, each in its own Terraform root (its own resource group on
+  Azure). The store is destroyed in a second step at least 24 hours later.
+- C. O1 keeps the in-cluster alert receiver as its judged sink on both clouds.
+  No SNS topic or action group.
+- D. One session per cloud runs O1, Q3, P1 and D1, then N1 last. Each row
+  keeps its own run id, evidence directory and verdict.
 
 ## Context
 
