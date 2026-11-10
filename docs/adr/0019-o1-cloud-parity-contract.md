@@ -1,7 +1,7 @@
 # ADR 0019: O1 cloud parity contract
 
-Status: PROPOSED 2026-11-10. Accepted before the first O1 cloud experiment.
-Nothing is built or applied yet.
+Status: ACCEPTED 2026-11-10 by Jordan, before the first O1 cloud experiment.
+Source is built (unit tests and `make check` green); nothing is applied to any cloud yet.
 
 ## Context
 

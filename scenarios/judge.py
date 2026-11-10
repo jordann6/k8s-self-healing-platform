@@ -127,6 +127,12 @@ Q2_CLOUD = {**THRESHOLDS["kind"]["Q2"], "fallback_s": 60, "capacity_recover_s": 
 THRESHOLDS["eks"]["Q2"] = Q2_CLOUD
 THRESHOLDS["aks"]["Q2"] = Q2_CLOUD
 
+# Row O1 on EKS and AKS (ADR-0019). The ADR-0015 numbers are unchanged: the
+# replacement clock stays 60s because the controller is pinned to one node
+# with a warm image cache, and nothing here is relaxed to obtain a pass.
+THRESHOLDS["eks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
+THRESHOLDS["aks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.

@@ -1,7 +1,8 @@
+import json
 import unittest
 
 import o1_row
-from judge import judge_o1
+from judge import THRESHOLDS as ALL_THRESHOLDS, judge_o1
 
 
 THRESHOLDS = {"controller_recover_s": 60, "evidence_s": 30, "alert_s": 30, "release_s": 30}
@@ -81,6 +82,106 @@ class O1Tests(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("alert", reason)
         self.assertFalse(healed)
+
+
+class _Result:
+    def __init__(self, returncode=0, stdout="", stderr=""):
+        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+
+
+class O1CloudTests(unittest.TestCase):
+    """ADR-0019: the cloud port of the kind row."""
+
+    def test_cloud_thresholds_equal_kind(self):
+        for target in ("eks", "aks"):
+            self.assertEqual(ALL_THRESHOLDS[target]["O1"], ALL_THRESHOLDS["kind"]["O1"])
+
+    def test_dry_run_uses_the_target_image(self):
+        seen = {}
+
+        class Harness:
+            @staticmethod
+            def k(*_args, input=None, **_kwargs):
+                seen["manifest"] = json.loads(input)
+                return _Result()
+
+        old = o1_row.IMAGE
+        o1_row.IMAGE = "123.dkr.ecr.us-east-2.amazonaws.com/selfheal/o1:abc1234"
+        try:
+            o1_row._server_dry_run(Harness, "probe")
+        finally:
+            o1_row.IMAGE = old
+        self.assertEqual(seen["manifest"]["spec"]["containers"][0]["image"],
+                         "123.dkr.ecr.us-east-2.amazonaws.com/selfheal/o1:abc1234")
+
+    def test_forbidden_impersonation_is_an_error_not_a_pass(self):
+        class Harness:
+            @staticmethod
+            def k(*_args, **_kwargs):
+                return _Result(1, "", 'Error from server (Forbidden): users "system:serviceaccount:..." cannot impersonate')
+
+        with self.assertRaises(RuntimeError) as ctx:
+            o1_row.check_impersonation(Harness)
+        self.assertIn("not a hardening verdict", str(ctx.exception))
+
+    def test_impersonation_answered_no_is_also_an_error(self):
+        class Harness:
+            @staticmethod
+            def k(*_args, **_kwargs):
+                return _Result(1, "no\n", "")
+
+        with self.assertRaises(RuntimeError):
+            o1_row.check_impersonation(Harness)
+
+    def test_impersonation_yes_passes(self):
+        class Harness:
+            @staticmethod
+            def k(*_args, **_kwargs):
+                return _Result(0, "yes\n", "")
+
+        o1_row.check_impersonation(Harness)
+
+    def test_label_system_node_reuses_an_existing_pin(self):
+        calls = []
+
+        class Harness:
+            @staticmethod
+            def kj(*args):
+                calls.append(args)
+                return {"items": [{"metadata": {"name": "pinned"}}]}
+
+            @staticmethod
+            def k(*args, **_kwargs):
+                raise AssertionError("must not relabel")
+
+        self.assertEqual(o1_row.label_system_node(Harness), "pinned")
+
+    def test_label_system_node_labels_first_system_node(self):
+        labelled = []
+
+        class Harness:
+            @staticmethod
+            def kj(*args):
+                if f"{o1_row.NODE_LABEL}=true" in args:
+                    return {"items": []}
+                return {"items": [{"metadata": {"name": "sys-a"}}, {"metadata": {"name": "sys-b"}}]}
+
+            @staticmethod
+            def k(*args, **_kwargs):
+                labelled.append(args)
+                return _Result()
+
+        self.assertEqual(o1_row.label_system_node(Harness), "sys-a")
+        self.assertIn("sys-a", labelled[0])
+
+    def test_label_system_node_errors_without_a_system_node(self):
+        class Harness:
+            @staticmethod
+            def kj(*_args):
+                return {"items": []}
+
+        with self.assertRaises(RuntimeError):
+            o1_row.label_system_node(Harness)
 
 
 if __name__ == "__main__":

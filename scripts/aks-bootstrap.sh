@@ -92,6 +92,9 @@ kubectl -n cert-manager get secret lab-ca -o jsonpath='{.data.ca\.crt}' | base64
 	kubectl apply -f - >/dev/null
 kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-cert.sh" 3600 >/dev/null
 
+echo "aks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
+kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
+
 echo "aks-bootstrap: Git"
 kubectl -n gitops rollout status deploy/gitserver --timeout=180s >/dev/null
 "$root/scripts/seed-git.sh"

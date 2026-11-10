@@ -45,6 +45,9 @@ kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-
 
 "$root/scripts/eks-db-bootstrap.sh"
 
+echo "eks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
+kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
+
 echo "eks-bootstrap: Git"
 kubectl -n gitops rollout status deploy/gitserver --timeout=180s >/dev/null
 "$root/scripts/seed-git.sh"

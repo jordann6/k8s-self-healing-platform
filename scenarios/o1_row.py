@@ -12,6 +12,10 @@ ACTIONS = {
 }
 NS = "selfheal-o1"
 OPERATOR = f"system:serviceaccount:{NS}:o1-operator"
+# The runner sets IMAGE from gitops/targets/<cloud>/generated/O1_IMAGE on the clouds (ADR-0019).
+IMAGE = "selfheal-o1:v1"
+NODE_LABEL = "selfheal.lab/o1"
+SYSTEM_NODE_SELECTOR = "selfheal.lab/nodes=system"
 
 
 def parse_marker(text: str, marker: str) -> dict[str, Any]:
@@ -27,7 +31,7 @@ def parse_marker(text: str, marker: str) -> dict[str, Any]:
 
 def _server_dry_run(h: Any, name: str, resources: dict | None = None) -> Any:
     container: dict[str, Any] = {
-        "name": "probe", "image": "selfheal-o1:v1",
+        "name": "probe", "image": IMAGE,
         "securityContext": {
             "allowPrivilegeEscalation": False,
             "capabilities": {"drop": ["ALL"]},
@@ -87,7 +91,38 @@ def _iso_timestamp(value: str | None) -> float | None:
         return None
 
 
+def label_system_node(h: Any) -> str:
+    """Pin O1 to one system-pool node so a replacement controller pulls from a warm cache (ADR-0019).
+
+    Reuses a node that already carries the label, so a rerun never moves the pin."""
+    labelled = h.kj("get", "nodes", "-l", f"{NODE_LABEL}=true").get("items", [])
+    if labelled:
+        return labelled[0]["metadata"]["name"]
+    nodes = h.kj("get", "nodes", "-l", SYSTEM_NODE_SELECTOR).get("items", [])
+    if not nodes:
+        raise RuntimeError(f"no node matches {SYSTEM_NODE_SELECTOR} to carry the O1 pin")
+    name = nodes[0]["metadata"]["name"]
+    h.k("label", "node", name, f"{NODE_LABEL}=true", "--overwrite", check=True)
+    return name
+
+
+def check_impersonation(h: Any) -> None:
+    """The caller must be allowed to impersonate the operator (ADR-0019 decision 5, live check L11).
+
+    `_can` treats any failure as "no", so without this a Forbidden on impersonation would read as a
+    hardened pass. The named Lease is the one thing the operator may read in both profiles."""
+    result = h.k("auth", "can-i", "get", "lease.coordination.k8s.io/o1-release",
+                 "-n", NS, "--as", OPERATOR, timeout=20)
+    answer = result.stdout.strip()
+    if result.returncode == 0 and answer == "yes":
+        return
+    detail = (result.stderr or result.stdout).strip()[:300]
+    raise RuntimeError(f"O1 precondition: cannot evaluate access as {OPERATOR} ({detail or 'answered ' + answer!r}); "
+                       "the runner identity needs the impersonate permission, this is not a hardening verdict")
+
+
 def run(h: Any, _lab: Any, profile: str, _evidence_dir: Any) -> dict[str, Any]:
+    check_impersonation(h)
     t0 = h.now()
     quota = h.kj("-n", NS, "get", "resourcequota", "o1-budget")
     limits = h.kj("-n", NS, "get", "limitrange", "o1-defaults")

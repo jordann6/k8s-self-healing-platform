@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -1383,7 +1383,7 @@ def d1_only(rows: list[str]) -> bool:
 
 
 def o1_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["O1"]
+    return rows == ["O1"]
 
 
 def focused_row(rows: list[str]) -> str | None:
@@ -1451,6 +1451,9 @@ def preconditions(rows: list[str]) -> dict:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
     focused = focused_row(rows)
     if focused:
+        if focused == "O1" and TARGET != "kind":
+            # ADR-0019: the O1 pods select this label, so it must exist before the app can be Healthy.
+            checks["o1_node_labelled"] = o1_row.label_system_node(sys.modules[__name__])
         if focused == "Q2" and TARGET != "kind":
             # ADR-0017: the Q2 pods select this label, so it must exist before the app can be Healthy.
             checks["q2_nodes_labelled"] = q2_row.label_workload_nodes(sys.modules[__name__])
@@ -1624,10 +1627,11 @@ def apply_d1_profile(profile: str) -> None:
 def apply_o1_profile(profile: str) -> None:
     """Switch O1 and reset its runtime evidence and release state."""
     log(f"profile -> {profile} (O1 only)")
+    app_path = f"o1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/o1/{profile}"
     k("-n", "argocd", "patch", "application", "selfheal-o1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"o1/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-o1")
-    wait_for(lambda: app_state("selfheal-o1")["path"] == f"o1/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-o1")["path"] == app_path, 120, step=3,
              what="O1 app path")
     wait_for(lambda: app_state("selfheal-o1")["sync"] == "Synced"
              and app_state("selfheal-o1")["health"] == "Healthy", 180, step=3,
@@ -1782,7 +1786,7 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
     elif doc["target"] == "kind" and doc["rows"] == ["D1"]:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
-    elif doc["target"] == "kind" and doc["rows"] == ["O1"]:
+    elif doc["rows"] == ["O1"]:
         L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
     else:
         L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
@@ -1824,6 +1828,8 @@ def main() -> int:
     if bad:
         raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
 
+    if TARGET in CLOUD_ROWS and "O1" in rows:
+        o1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "O1_IMAGE").read_text().strip()
     if TARGET in CLOUD_ROWS and "Q2" in rows:
         Q2_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "Q2_IMAGE").read_text().strip()
     checks = preconditions(rows)

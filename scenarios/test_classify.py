@@ -1140,14 +1140,14 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:
             self.assertTrue(hypothesis(r, "aks"))
 
     def test_shared_rows_keep_their_numbers(self):
-        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1"):
+        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "O1"):
             self.assertEqual(THRESHOLDS["aks"][r], THRESHOLDS["kind"][r], r)
 
     def test_aks_hypotheses_name_the_aks_numbers(self):

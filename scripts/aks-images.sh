@@ -8,6 +8,7 @@
 #   selfheal/app:<sha>-v1   the good release   selfheal/app:<sha>-v2   the bad release (row A2)
 #   selfheal/gitserver:<sha>                   selfheal/r2worker:<sha> (row R2)
 #   selfheal/qworker:<sha> (row Q1)   selfheal/q2:<sha> (row Q2)
+#   selfheal/o1:<sha> (row O1)
 #
 # Runs BEFORE aks-platform on AKS (unlike EKS): the platform step applies the
 # R2 worker, which needs its image. A tag that already exists is not rebuilt.
@@ -48,6 +49,7 @@ push selfheal/gitserver "$sha" "$root/app/gitserver"
 push selfheal/r2worker "$sha" "$root/app/r2worker"
 push selfheal/qworker "$sha" "$root/app/qworker"
 push selfheal/q2 "$sha" "$root/app/q2"
+push selfheal/o1 "$sha" "$root/app/o1"
 
 gen="$root/gitops/targets/aks/generated"
 mkdir -p "$gen"
@@ -67,6 +69,9 @@ images:
   - name: selfheal-q2
     newName: $registry/selfheal/q2
     newTag: $sha
+  - name: selfheal-o1
+    newName: $registry/selfheal/o1
+    newTag: $sha
 patches:
   - target: {kind: SecretStore, name: backend}
     patch: |-
@@ -79,5 +84,6 @@ printf '%s/selfheal/gitserver:%s\n' "$registry" "$sha" >"$gen/GITSERVER_IMAGE"
 printf '%s/selfheal/r2worker:%s\n' "$registry" "$sha" >"$gen/RESPONDER_IMAGE"
 printf '%s/selfheal/qworker:%s\n' "$registry" "$sha" >"$gen/QWORKER_IMAGE"
 printf '%s/selfheal/q2:%s\n' "$registry" "$sha" >"$gen/Q2_IMAGE"
+printf '%s/selfheal/o1:%s\n' "$registry" "$sha" >"$gen/O1_IMAGE"
 "$root/scripts/render-aks-profiles.sh" >/dev/null
 echo "aks-images: wrote $gen (selfheal-app -> $sha-v1)"
