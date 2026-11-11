@@ -1,0 +1,2 @@
+NOTICE:  database "d1" does not exist, skipping
+D1_RESTORE_COMPLETE {"target_db":"d1","archive_sha256":"48242b3f8345d2b143e4b3588445816b030b1319be81477cf81ef8234634e1f2"}

@@ -1,0 +1,4 @@
+D1_BACKUP_COMPLETE {"backup_id":"d1-backup-1794369609-kdgzv","archive_key":"backups/d1-backup-1794369609-kdgzv.dump","archive_sha256":"48242b3f8345d2b143e4b3588445816b030b1319be81477cf81ef8234634e1f2","source_max_seq":100,"created_at":"2026-11-11T04:00:13Z"}
+D1_MANIFEST_SHA256 51ae1daaeb5e31e42d66f3a87eddf312f6aea0018b330493130408f9b833e5ed
+D1_ARCHIVE_STAT {"versionID": "iyyjH4WzQp045rhkSLMpl.KxHJekacI7", "size": 6396, "mode": "COMPLIANCE", "retainUntilDate": "2026-11-12T04:00:14Z"}
+D1_RETENTION_INFO Object locking 'COMPLIANCE' is configured for 1DAYS
