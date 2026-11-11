@@ -198,6 +198,20 @@ the same one-day locked state, not a relaxation.
 | L20 | `azure-identity` workload identity reads and writes Blob from the tool image |
 | L21 | The `azurerm` Locked policy can be created with the account, or needs an Unlocked create then a lock (plan review before apply) |
 | L22 | The EBS CSI add-on and the gp3 class bind a PVC on EKS 1.36 |
+| L23 | Destroying the AKS root removes the firewall resource it applied to the store account and the account returns to allow, so the second destroy from the workstation is not blocked |
+
+## Operational notes
+
+- Keep both store roots in the same region as their cluster root. Nothing enforces it. A
+  mismatch still works but reaches S3 through NAT instead of the gateway endpoint.
+- Both store roots use local state that must survive until the second destroy. Copy
+  `infra/d1-store-aws/terraform.tfstate` and `infra/d1-store-azure/terraform.tfstate` somewhere
+  safe after each apply. If a state file is lost, `terraform destroy` cannot remove the store.
+  After the retention has ended the store can still be removed by hand. On AWS, delete every
+  object version and delete marker in the bucket (`aws s3api list-object-versions`, then
+  `delete-object --version-id`) and then the bucket. On Azure, run
+  `scripts/d1-store-destroy.sh azure empty`, then delete the resource group
+  `rg-selfheal-d1-store` with `az group delete`.
 
 ## Cost and session boundary
 
