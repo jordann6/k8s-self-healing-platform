@@ -85,9 +85,13 @@ def cloud_outage(h: Any, directory: Path, profile: str, image: str) -> dict[str,
         restored = h.now()
         h.k("-n", KYVERNO_NS, "delete", "ciliumnetworkpolicy", OUTAGE_POLICY,
             "--ignore-not-found", "--wait=true", check=True, timeout=60)
+    # Only drops to TCP 443 attribute the outage: that is ECR, ACR and the token exchange. A drop to
+    # anything else would not show the registry was cut off (ADR-0021 amendment).
+    registry_drops = [f for f in drops if summarize_drop(f)["port"] == 443]
     return {"record": record, "restored": restored,
             "outage": {"mode": "cilium-egress-allow-list", "settle_s": OUTAGE_SETTLE_S,
-                       "admission_pods": pods, "policy_drops": len(drops),
+                       "admission_pods": pods, "policy_drops": len(registry_drops),
+                       "all_policy_drops": len(drops),
                        "drop_samples": [summarize_drop(f) for f in drops[:10]]}}
 
 

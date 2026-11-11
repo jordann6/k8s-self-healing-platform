@@ -138,6 +138,29 @@ before any code. No threshold below comes from a run.
 9. Versions. Session plans pass 1.36 as in ADR-0019 Decision 7. Kyverno stays
    1.19.2 (L16).
 
+## Amendment after review, 2026-11-10
+
+Found by rereading the code, no run motivated it, and no threshold changed.
+
+1. Only Hubble drops to TCP 443 attribute the outage. The runner recorded every policy drop from
+   the admission controller pod, so a drop to an unrelated port could have counted as proof the
+   registry was cut off. It now counts TCP 443 drops (ECR, ACR and the token exchange) for the
+   verdict and records the total beside it as `all_policy_drops`.
+2. A network-policy outage drops packets without answering, unlike the stopped registry on kind
+   that refuses at once. The verifier can then hang until the 15s webhook timeout, and with
+   `failurePolicy: Fail` the API server reports a failed webhook call that names neither the
+   policy nor the digest. For the verifier-outage case only, on a cloud only, a reason that names
+   a failed webhook call with a deadline or timeout is now an attributable denial. The judge has
+   already required Hubble drops by then, so the denial is still tied to the policy. Every other
+   negative case still needs the policy or digest wording, and kind is unchanged. The 20s request
+   bar still applies, and the 15s webhook timeout leaves room under it.
+3. The cloud globs are `*.dkr.ecr.*.amazonaws.com/selfheal/p1-*` and `*.azurecr.io/selfheal/p1/*`.
+   The Kyverno docs do not say whether `*` crosses `.` or `/`. These patterns never need it to
+   cross either, each `*` stands for one dot-free, slash-free segment, so the question does not
+   arise. Keep it that way if the layout changes.
+
+Added live check L24 below.
+
 ## Thresholds
 
 Identical to ADR-0013 on kind, EKS and AKS.
@@ -184,6 +207,7 @@ adds one more.
 | L8 | Cosign 2.6.3 legacy signature tags in ECR and ACR are found by Kyverno 1.19.2, and ECR accepts the signature manifest and the tampered `.sig` write |
 | L16 | Kyverno 1.19.2 reaches Ready on Kubernetes 1.36 on both clouds |
 | L17 | The egress allow-list produces attributable Hubble drops and the first outage request is denied on both clouds, and deletion restores admission inside 60s |
+| L24 | The text the API server returns for the outage denial on each cloud (a policy-named error or a webhook timeout), and that it arrives inside 20s |
 
 ## Cost and session boundary
 

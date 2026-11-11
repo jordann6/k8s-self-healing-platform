@@ -712,6 +712,26 @@ class P1CloudOutage(unittest.TestCase):
         obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_admitted(obs["digest"])}
         self.assertEqual(verdict("P1", "hardened", obs, "impact", "aks")["status"], "miss")
 
+    def test_webhook_timeout_is_an_attributable_outage_denial_on_a_cloud(self):
+        timeout = ('Internal error occurred: failed calling webhook "ivpol.validate.kyverno.svc-fail": '
+                   'failed to call webhook: context deadline exceeded')
+        obs = self.cloud(3)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_rejected(timeout)}
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", obs, "impact", target)["status"], "healed")
+
+    def test_webhook_timeout_is_not_accepted_for_the_other_negatives(self):
+        timeout = 'failed calling webhook "ivpol.validate.kyverno.svc-fail": context deadline exceeded'
+        obs = self.cloud(3)
+        obs["admissions"] = {**obs["admissions"], "unsigned": p1_rejected(timeout)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_webhook_timeout_is_not_accepted_on_kind(self):
+        timeout = 'failed calling webhook "ivpol.validate.kyverno.svc-fail": context deadline exceeded'
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_rejected(timeout)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "kind")["status"], "miss")
+
     def test_kind_outage_needs_no_hubble(self):
         self.assertEqual(verdict("P1", "hardened", p1(), "impact", "kind")["status"], "healed")
 

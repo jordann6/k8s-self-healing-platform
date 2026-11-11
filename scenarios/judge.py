@@ -686,6 +686,15 @@ def judge_p1(o: dict, t: dict):
         reason = str(item.get("reason") or "")
         attributable = ("p1-trusted-signature" in reason or "P1 requires" in reason
                         or "digest" in reason.lower() or "image signature" in reason.lower())
+        lowered = reason.lower()
+        # ADR-0021 amendment: a network-policy outage drops packets silently, so the verifier can hang
+        # until the webhook times out, and the API server then names the webhook, not the policy. That
+        # is an attributable denial for the outage case only, and only on a cloud, where the judge has
+        # already required Hubble drops from the admission controller before it gets here.
+        if (case == "verifier_outage" and t.get("min_outage_drops")
+                and "failed calling webhook" in lowered
+                and any(word in lowered for word in ("deadline exceeded", "timeout", "timed out"))):
+            attributable = True
         return (item.get("returncode") not in (None, 0) and item.get("pod_created") is False
                 and le(item.get("elapsed_s"), t["admission_s"])
                 and bool(reason) and attributable)

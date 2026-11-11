@@ -123,6 +123,7 @@ class CloudOutage(unittest.TestCase):
         self.assertNotEqual(result["record"]["returncode"], 0)
         self.assertFalse(result["record"]["pod_created"])
         self.assertEqual(result["outage"]["policy_drops"], 1)
+        self.assertEqual(result["outage"]["all_policy_drops"], 1)
         self.assertEqual(result["outage"]["drop_samples"][0],
                          {"direction": "EGRESS", "destination": "10.0.1.9", "port": 443, "reason": "POLICY_DENIED"})
         self.assertEqual(result["outage"]["settle_s"], p1_row.OUTAGE_SETTLE_S)
@@ -147,6 +148,27 @@ class CloudOutage(unittest.TestCase):
         with mock.patch.object(p1_row.time, "sleep"):
             cloud_outage(harness, Path("."), "hardened", "reg/img@sha256:" + "a" * 64)
         self.assertIn(("hubble", ("kyverno-admission-controller-abc", "kyverno")), harness.calls)
+
+    def test_only_drops_to_the_registry_port_attribute_the_outage(self):
+        dns = {"traffic_direction": "EGRESS", "l4": {"UDP": {"destination_port": 53}},
+               "drop_reason_desc": "POLICY_DENIED"}
+        other = {"traffic_direction": "EGRESS", "l4": {"TCP": {"destination_port": 8080}},
+                 "drop_reason_desc": "POLICY_DENIED"}
+        registry = {"traffic_direction": "EGRESS", "l4": {"TCP": {"destination_port": 443}},
+                    "drop_reason_desc": "POLICY_DENIED"}
+        harness = self.Harness(drops=[dns, other, registry])
+        with mock.patch.object(p1_row.time, "sleep"):
+            result = cloud_outage(harness, Path("."), "hardened", "reg/img@sha256:" + "a" * 64)
+        self.assertEqual(result["outage"]["policy_drops"], 1)
+        self.assertEqual(result["outage"]["all_policy_drops"], 3)
+
+    def test_drops_to_other_ports_alone_attribute_nothing(self):
+        other = {"traffic_direction": "EGRESS", "l4": {"TCP": {"destination_port": 8080}},
+                 "drop_reason_desc": "POLICY_DENIED"}
+        harness = self.Harness(drops=[other])
+        with mock.patch.object(p1_row.time, "sleep"):
+            result = cloud_outage(harness, Path("."), "hardened", "reg/img@sha256:" + "a" * 64)
+        self.assertEqual(result["outage"]["policy_drops"], 0)
 
     def test_fixture_paths_are_per_target(self):
         for target, expected in (("kind", "/repo/.p1"), ("eks", "/repo/.p1/eks"), ("aks", "/repo/.p1/aks")):
