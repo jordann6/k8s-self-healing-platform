@@ -157,6 +157,12 @@ THRESHOLDS["aks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
 THRESHOLDS["eks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True}
 THRESHOLDS["aks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True, "retention_mode": "Locked"}
 
+# Row N1 on EKS and AKS (ADR-0023). Every ADR-0012 threshold is unchanged. AKS keeps the kind tunnel
+# contract. EKS runs ENI IPAM with native routing, so its datapath is named and the judge counts
+# plaintext pod packets in place of VXLAN.
+THRESHOLDS["aks"]["N1"] = dict(THRESHOLDS["kind"]["N1"])
+THRESHOLDS["eks"]["N1"] = {**THRESHOLDS["kind"]["N1"], "datapath": "native"}
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.
@@ -216,6 +222,14 @@ HYPOTHESES = {
 
 # Rows whose mechanism differs on a target state their own hypothesis there.
 HYPOTHESES_BY_TARGET = {
+    "eks": {
+        "N1": "For Cilium-managed pods on different nodes under ENI IPAM with native routing, the baseline "
+              "sends the request as plaintext between the two pod addresses on the physical NICs. Hardened "
+              "WireGuard replaces it with UDP 51871 between the node addresses, leaves no pod TCP and no "
+              "plaintext marker on a physical NIC, establishes peers whose routes hold the remote pod "
+              "address, keeps legitimate requests healthy and keeps an unauthorized cross-node request "
+              "attributable to policy enforcement.",
+    },
     "aks": {
         "A4": "When the scale set instance hosting the most web pods is stopped, the error rate stays under 1% "
               "from the moment its node is marked NotReady, and every web replica is serving again, off that "
@@ -618,7 +632,27 @@ def judge_n1(o: dict, t: dict):
     if config not in ("true", "false"):
         return False, f"Cilium WireGuard configuration telemetry was missing ({config!r})", False, False
 
+    native = t.get("datapath") == "native"
+    if native:
+        # ADR-0023: native routing has no tunnel. The capture must name the physical NICs it read and
+        # count the plaintext pod traffic, or there is nothing to judge.
+        if not capture.get("interfaces"):
+            return False, "N1 underlay interface telemetry was missing", False, False
+        if capture.get("plain_packets") is None:
+            return False, "N1 plaintext packet telemetry was missing", False, False
+
     if config != "true":
+        if native:
+            baseline_capture = (capture.get("plain_packets", 0) >= t["min_packets"]
+                                and capture.get("wireguard_packets") == 0
+                                and capture.get("marker_visible") is True)
+            impact = baseline_capture and service_ok and policy_ok
+            why = (f"plaintext pod packets {capture.get('plain_packets')} on {capture.get('interfaces')}, WireGuard "
+                   f"{capture.get('wireguard_packets')}, marker visible {capture.get('marker_visible')}; "
+                   f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+                   f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+                   f"policy drops {o.get('policy_drops')}")
+            return True, why, impact, False
         baseline_capture = (capture.get("vxlan_packets", 0) >= t["min_packets"]
                             and capture.get("wireguard_packets") == 0
                             and capture.get("marker_visible") is True)
@@ -643,10 +677,27 @@ def judge_n1(o: dict, t: dict):
                      and wireguard.get("server_routes_client") is True
                      and wireguard.get("client_handshake") is True
                      and wireguard.get("server_handshake") is True)
-    encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
-                         and capture.get("vxlan_packets") == 0
-                         and capture.get("marker_visible") is False)
+    if native:
+        # No pod TCP between the two pod addresses may leave on a physical NIC, and the marker must
+        # not be visible there. VXLAN does not exist on this datapath, so its absence proves nothing.
+        encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
+                             and capture.get("plain_packets") == 0
+                             and capture.get("marker_visible") is False)
+    else:
+        encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
+                             and capture.get("vxlan_packets") == 0
+                             and capture.get("marker_visible") is False)
     healed = service_ok and policy_ok and peer_evidence and encrypted_capture
+    if native:
+        why = (f"WireGuard {capture.get('wireguard_packets')} packets, plaintext pod packets "
+               f"{capture.get('plain_packets')} on {capture.get('interfaces')}, marker visible "
+               f"{capture.get('marker_visible')}; peers match {wireguard.get('peer_keys_match')}, pod routes "
+               f"{wireguard.get('client_routes_server')}/{wireguard.get('server_routes_client')}, handshakes "
+               f"{wireguard.get('client_handshake')}/{wireguard.get('server_handshake')}; "
+               f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+               f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+               f"policy drops {o.get('policy_drops')}")
+        return True, why, True, healed
     why = (f"WireGuard {capture.get('wireguard_packets')} packets, VXLAN "
            f"{capture.get('vxlan_packets')} attributed "
            f"({capture.get('vxlan_packets_total', capture.get('vxlan_packets'))} total), "

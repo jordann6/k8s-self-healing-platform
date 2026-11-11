@@ -609,6 +609,75 @@ class N1WireGuard(unittest.TestCase):
         self.assertEqual(verdict("N1", "hardened", n1(policy_drops=0), "impact")["status"], "miss")
 
 
+def n1_native(**kw):
+    """An EKS observation (ADR-0023): no VXLAN, plaintext pod packets on named physical NICs."""
+    o = n1()
+    o["capture"] = {"bytes": 9000, "interfaces": ["ens5", "ens6"], "vxlan_packets": 0,
+                    "wireguard_packets": 20, "plain_packets": 0, "marker_visible": False,
+                    "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}}
+    o.update(kw)
+    return o
+
+
+class N1NativeRouting(unittest.TestCase):
+    def baseline(self, **capture):
+        base = {"bytes": 9000, "interfaces": ["ens5"], "vxlan_packets": 0, "wireguard_packets": 0,
+                "plain_packets": 20, "marker_visible": True,
+                "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}}
+        base.update(capture)
+        return n1(wireguard_config="false", wireguard={}, capture=base)
+
+    def test_thresholds_equal_kind_except_the_named_datapath(self):
+        kind = THRESHOLDS["kind"]["N1"]
+        self.assertEqual(THRESHOLDS["aks"]["N1"], kind)
+        self.assertEqual({k: v for k, v in THRESHOLDS["eks"]["N1"].items() if kind.get(k) != v},
+                         {"datapath": "native"})
+
+    def test_eks_baseline_with_plaintext_on_the_nics_is_impact_without_any_vxlan(self):
+        self.assertEqual(verdict("N1", "baseline", self.baseline(), None, "eks")["status"], "impact")
+
+    def test_eks_baseline_that_shows_no_plaintext_is_not_impact(self):
+        obs = self.baseline(plain_packets=0, marker_visible=False)
+        self.assertNotEqual(verdict("N1", "baseline", obs, None, "eks")["status"], "impact")
+
+    def test_eks_hardened_wireguard_with_no_plaintext_heals(self):
+        self.assertEqual(verdict("N1", "hardened", n1_native(), "impact", "eks")["status"], "healed")
+
+    def test_pod_tcp_still_on_the_nic_is_a_miss(self):
+        obs = n1_native()
+        obs["capture"] = {**obs["capture"], "plain_packets": 3}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_a_visible_marker_is_a_miss(self):
+        obs = n1_native()
+        obs["capture"] = {**obs["capture"], "marker_visible": True}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_peers_with_no_pod_route_are_a_miss(self):
+        obs = n1_native()
+        obs["wireguard"] = {**obs["wireguard"], "client_routes_server": False}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_no_interface_telemetry_is_an_error(self):
+        for phase, obs in (("hardened", n1_native()), ("baseline", self.baseline())):
+            obs["capture"] = {k: v for k, v in obs["capture"].items() if k != "interfaces"}
+            self.assertEqual(verdict("N1", phase, obs, "impact", "eks")["status"], "error", phase)
+
+    def test_missing_plaintext_telemetry_is_an_error_not_a_pass(self):
+        obs = n1_native()
+        obs["capture"] = {k: v for k, v in obs["capture"].items() if k != "plain_packets"}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "error")
+
+    def test_aks_keeps_the_kind_tunnel_contract(self):
+        self.assertEqual(verdict("N1", "hardened", n1(), "impact", "aks")["status"], "healed")
+
+    def test_eks_states_its_own_hypothesis(self):
+        from judge import hypothesis
+        self.assertIn("ENI IPAM", hypothesis("N1", "eks"))
+        self.assertNotIn("VXLAN", hypothesis("N1", "eks"))
+        self.assertNotEqual(hypothesis("N1", "eks"), hypothesis("N1", "kind"))
+
+
 def p1_admitted(digest):
     return {"returncode": 0, "pod_created": True, "elapsed_s": 1.0, "ready_s": 4.0,
             "image_id": f"docker-pullable://selfheal-p1-registry:5000/p1/artifact@{digest}"}
@@ -973,11 +1042,6 @@ class EksThresholds(unittest.TestCase):
             for key in ("detect_s", "metric_recover_s", "p95_ms", "error_rate"):
                 self.assertEqual(cloud[key], kind[key])
 
-    def test_n1_is_kind_only_in_phase_three(self):
-        self.assertIn("N1", THRESHOLDS["kind"])
-        self.assertNotIn("N1", THRESHOLDS["eks"])
-        self.assertNotIn("N1", THRESHOLDS["aks"])
-
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])
 
@@ -1202,7 +1266,7 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:

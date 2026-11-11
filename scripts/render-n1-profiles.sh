@@ -45,7 +45,7 @@ for profile in ("baseline", "hardened"):
     if app_namespaces != {"selfheal"}:
         fail.append(f"{profile}: application resources escaped the restricted namespace")
 
-capture_ns = yaml.safe_load((repo / "kind/n1-capture-namespace.yaml").read_text())
+capture_ns = yaml.safe_load((repo / "bootstrap/n1-capture-namespace.yaml").read_text())
 labels = capture_ns.get("metadata", {}).get("labels", {})
 if capture_ns.get("metadata", {}).get("name") != "selfheal-n1-capture":
     fail.append("capture namespace name changed")
@@ -61,3 +61,19 @@ if fail:
     raise SystemExit("render-n1-profiles:\n  " + "\n  ".join(fail))
 print("render-n1-profiles: baseline and hardened workloads match")
 PY
+
+# ADR-0023: the cloud overlays keep the kind workload, selected by the slot labels the runner applies,
+# and keep the capture pod on the host network with only NET_RAW.
+for cloud in eks aks; do
+	for profile in baseline hardened; do
+		doc="$(kubectl kustomize "$root/gitops/targets/$cloud/n1/$profile")"
+		for want in 'selfheal.lab/n1-slot: server' 'selfheal.lab/n1-slot: client' 'hostNetwork: true' 'NET_RAW' 'name: n1-capture'; do
+			grep -q "$want" <<<"$doc" || { echo "N1 $cloud $profile is missing $want" >&2; exit 1; }
+		done
+		if grep -q 'imagePullPolicy: Never' <<<"$doc"; then
+			echo "N1 $cloud $profile uses a kind-only pull policy" >&2
+			exit 1
+		fi
+	done
+done
+echo "N1 cloud overlays render with the slot labels and the host-network capture"

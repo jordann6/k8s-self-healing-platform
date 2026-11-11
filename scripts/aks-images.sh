@@ -10,6 +10,7 @@
 #   selfheal/qworker:<sha> (row Q1)   selfheal/q2:<sha> (row Q2)
 #   selfheal/o1:<sha> (row O1)   selfheal/q3:<sha> (row Q3)
 #   selfheal/d1:<sha> (row D1 cloud tool image, app/d1/cloud.Dockerfile)
+#   selfheal/n1:<sha> and selfheal/n1-capture:<sha> (row N1)
 #
 # Runs BEFORE aks-platform on AKS (unlike EKS): the platform step applies the
 # R2 worker, which needs its image. A tag that already exists is not rebuilt.
@@ -53,6 +54,8 @@ push selfheal/q2 "$sha" "$root/app/q2"
 push selfheal/o1 "$sha" "$root/app/o1"
 push selfheal/q3 "$sha" "$root/app/q3"
 push selfheal/d1 "$sha" "$root/app/d1" -f "$root/app/d1/cloud.Dockerfile"
+push selfheal/n1 "$sha" "$root/app/n1"
+push selfheal/n1-capture "$sha" "$root/app/n1-capture"
 
 gen="$root/gitops/targets/aks/generated"
 mkdir -p "$gen"
@@ -80,6 +83,12 @@ images:
     newTag: $sha
   - name: selfheal-d1-cloud
     newName: $registry/selfheal/d1
+    newTag: $sha
+  - name: selfheal-n1
+    newName: $registry/selfheal/n1
+    newTag: $sha
+  - name: selfheal-n1-capture
+    newName: $registry/selfheal/n1-capture
     newTag: $sha
 patches:
   - target: {kind: SecretStore, name: backend}

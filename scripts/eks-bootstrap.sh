@@ -48,6 +48,9 @@ kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-
 echo "eks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
 kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
 
+echo "eks-bootstrap: N1 capture namespace (privileged, hostNetwork tcpdump)"
+kubectl apply -f "$root/bootstrap/n1-capture-namespace.yaml" >/dev/null
+
 echo "eks-bootstrap: D1 namespaces, identities and store settings"
 "$root/scripts/d1-bootstrap.sh" eks
 

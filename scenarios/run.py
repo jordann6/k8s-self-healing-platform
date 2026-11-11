@@ -65,9 +65,9 @@ ROWS_BY_TARGET = {
     # the original rows exercise.
     "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -1373,7 +1373,7 @@ def q3_only(rows: list[str]) -> bool:
 
 
 def n1_only(rows: list[str]) -> bool:
-    return TARGET == "kind" and rows == ["N1"]
+    return rows == ["N1"]
 
 
 def p1_only(rows: list[str]) -> bool:
@@ -1454,6 +1454,9 @@ def preconditions(rows: list[str]) -> dict:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
     focused = focused_row(rows)
     if focused:
+        if focused == "N1" and TARGET != "kind":
+            # ADR-0023: the N1 pods select these slot labels, so they must exist before the app can be Healthy.
+            checks["n1_slot_nodes"] = n1_row.label_slot_nodes(sys.modules[__name__])
         if focused == "O1" and TARGET != "kind":
             # ADR-0019: the O1 pods select this label, so it must exist before the app can be Healthy.
             checks["o1_node_labelled"] = o1_row.label_system_node(sys.modules[__name__])
@@ -1560,10 +1563,11 @@ def apply_q3_profile(profile: str) -> None:
 def apply_n1_profile(profile: str) -> None:
     """Switch the N1 Git path and the cluster-level Cilium encryption control."""
     log(f"profile -> {profile} (N1 only)")
-    values = ROOT / "cilium" / f"n1-{profile}.yaml"
+    # The cloud value files stay in the chain, or the switch would replace ENI IPAM or the AKS BYO
+    # CNI settings with kind's defaults (ADR-0023 decision 6).
+    value_args = [arg for path in n1_row.value_files(ROOT, TARGET, profile) for arg in ("-f", str(path))]
     result = sh(["helm", "upgrade", "cilium", "cilium/cilium", "--version", "1.20.4",
-                 "-n", "kube-system", "-f", str(ROOT / "cilium" / "values.yaml"),
-                 "-f", str(values), "--wait", "--timeout", "10m"], timeout=660)
+                 "-n", "kube-system", *value_args, "--wait", "--timeout", "10m"], timeout=660)
     if result.returncode != 0:
         raise RuntimeError(f"N1 Cilium profile failed: {(result.stderr or result.stdout).strip()[-500:]}")
     # The Cilium chart updates cilium-config without changing the DaemonSet pod
@@ -1572,10 +1576,11 @@ def apply_n1_profile(profile: str) -> None:
     wait_for(lambda: k("-n", "kube-system", "rollout", "status", "daemonset/cilium",
                        "--timeout=20s", timeout=25).returncode == 0,
              300, step=5, what=f"Cilium {profile} rollout")
+    app_path = f"n1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/n1/{profile}"
     k("-n", "argocd", "patch", "application", "selfheal-n1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": f"n1/{profile}"}}}), check=True)
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-n1")
-    wait_for(lambda: app_state("selfheal-n1")["path"] == f"n1/{profile}", 120, step=3,
+    wait_for(lambda: app_state("selfheal-n1")["path"] == app_path, 120, step=3,
              what="N1 app path")
     wait_for(lambda: app_state("selfheal-n1")["sync"] == "Synced"
              and app_state("selfheal-n1")["health"] == "Healthy", 180, step=3,
@@ -1789,7 +1794,7 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, per-node CPU capacity, the node inventory around the Pending window, the KEDA version, and timestamped request samples.")
     elif doc["rows"] == ["Q3"]:
         L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
-    elif doc["target"] == "kind" and doc["rows"] == ["N1"]:
+    elif doc["rows"] == ["N1"]:
         L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
     elif doc["rows"] == ["P1"]:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")

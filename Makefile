@@ -134,7 +134,7 @@ q3-kind-up: ## Create the kind cluster, install Cilium, and load only Q3 images
 n1-kind-up: ## Create N1's two-worker kind cluster and baseline Cilium datapath
 	mkdir -p .kube
 	kind create cluster --config kind/n1-cluster.yaml --kubeconfig $(KUBECONFIG)
-	kubectl apply -f kind/n1-capture-namespace.yaml
+	kubectl apply -f bootstrap/n1-capture-namespace.yaml
 	$(MAKE) repos
 	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system \
 		-f cilium/values.yaml -f cilium/n1-baseline.yaml
