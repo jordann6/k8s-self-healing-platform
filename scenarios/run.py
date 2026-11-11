@@ -1618,8 +1618,16 @@ def apply_d1_profile(profile: str) -> None:
     """Switch the isolated D1 application and wait for its stateful boundary."""
     log(f"profile -> {profile} (D1 only)")
     app_path = f"d1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/d1/{profile}"
-    k("-n", "argocd", "patch", "application", "selfheal-d1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # Same as O1 and N1: a cloud root app self-heals its children, so move the root.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-d1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-d1")
     wait_for(lambda: app_state("selfheal-d1")["path"] == app_path, 120, step=3,
              what="D1 app path")
