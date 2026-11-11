@@ -1,0 +1,40 @@
+# Accepted Trivy findings for this repo's K8s manifests and the N1 capture
+# image, caught by GitHub Advanced Security's repo-wide scan (the local
+# `make check` / guardrails.yml static job only points trivy at infra/aws).
+# Each ID below is a deliberate experiment-design choice, not an oversight.
+# IDs verified against `trivy config gitops app/n1-capture` (CRITICAL,HIGH,MEDIUM).
+
+# KSV-0044 "Role permits wildcard verb on wildcard resource"
+# KSV-0112 "Role ... shouldn't manage all resources at the namespace"
+# gitops/o1/baseline/rbac.yaml is the deliberately-permissive BEFORE state row
+# O1 measures its least-privilege hardened RBAC against (ADR-0015, ADR-0019).
+# Narrowing it would eliminate the thing the row proves.
+KSV-0044
+KSV-0112
+
+# KSV-0049 "Role ... should not have access to resource 'configmaps' for
+#   verbs [...]"
+# KSV-0056 "Role ... should not have access to resources [...] for verbs [...]"
+# gitops/o1/hardened/rbac.yaml's o1-controller Role is scoped with
+# `resourceNames` to exactly one named object per rule (the one target pod,
+# the one evidence configmap, the one release lease, the one quarantine
+# NetworkPolicy) — as narrow as Kubernetes RBAC can express. These checks
+# flag the verb+resource-type combination without crediting resourceNames
+# scoping, so they fire on a Role that is already minimal by design.
+KSV-0049
+KSV-0056
+
+# KSV-0009 "Deployment ... should not set hostNetwork to true"
+# KSV-0118 "... is using the default security context, which allows root
+#   privileges"
+# KSV-0119 "... should not include 'NET_RAW' in securityContext.capabilities.add"
+# DS-0002 "Specify at least 1 USER command in Dockerfile with non-root user"
+# gitops/n1/base/workload.yaml's n1-capture Deployment and its Dockerfile
+# (app/n1-capture) are a tcpdump capture pod that has to see the node's real
+# network interface to prove WireGuard encryption between nodes (ADR-0012):
+# host networking and NET_RAW are the point, not a gap, and tcpdump needs
+# root to open a raw socket. Same pattern as the netseg lab's Hubble capture.
+KSV-0009
+KSV-0118
+KSV-0119
+DS-0002

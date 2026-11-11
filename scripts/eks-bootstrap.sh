@@ -20,6 +20,7 @@ export AWS_PROFILE="$LAB_PROFILE" AWS_REGION="$region"
 echo "eks-bootstrap: namespaces, CA, Git server"
 kubectl kustomize "$root/bootstrap" | sed "s|image: selfheal-gitserver:dev|image: $(cat "$gen/GITSERVER_IMAGE")|" |
 	kubectl apply -f - >/dev/null
+"$root/scripts/q1-credentials.sh"
 # The kind backend namespace and its reader are not used on EKS (Secrets
 # Manager is the backend), but are harmless; the SecretStore no longer
 # references them.
@@ -43,6 +44,24 @@ kubectl -n cert-manager get secret lab-ca -o jsonpath='{.data.ca\.crt}' | base64
 kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-cert.sh" 3600 >/dev/null
 
 "$root/scripts/eks-db-bootstrap.sh"
+
+echo "eks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
+kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
+
+echo "eks-bootstrap: N1 capture namespace (privileged, hostNetwork tcpdump)"
+kubectl apply -f "$root/bootstrap/n1-capture-namespace.yaml" >/dev/null
+
+echo "eks-bootstrap: D1 namespaces, identities and store settings"
+"$root/scripts/d1-bootstrap.sh" eks
+
+echo "eks-bootstrap: P1 trust root (public key only)"
+p1_keys="${P1_KEY_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/k8s-self-healing-platform/p1}"
+if [[ -s "$p1_keys/trusted.pub" ]]; then
+	kubectl -n kyverno create configmap p1-cosign-trust-root --from-file=cosign.pub="$p1_keys/trusted.pub" \
+		--dry-run=client -o yaml | kubectl apply -f - >/dev/null
+else
+	echo "  no P1 key yet: run make eks-p1-images, then rerun make eks-bootstrap before row P1"
+fi
 
 echo "eks-bootstrap: Git"
 kubectl -n gitops rollout status deploy/gitserver --timeout=180s >/dev/null

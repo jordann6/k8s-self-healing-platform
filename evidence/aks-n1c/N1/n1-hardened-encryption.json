@@ -1,0 +1,130 @@
+{
+  "aks-system-13980686-vmss000000": {
+    "interfaces": [
+      {
+        "listen-port": 51871,
+        "name": "cilium_wg0",
+        "peer-count": 5,
+        "peers": [
+          {
+            "allowed-ips": [
+              "10.42.0.5/32"
+            ],
+            "endpoint": "10.42.0.5:51871",
+            "last-handshake-time": "2026-11-11T15:41:29.210Z",
+            "public-key": "6mt3adrPkwIRP5vCZL/gHycm5jhTfsiq9+APlt6ttGo=",
+            "transfer-rx": 15954176,
+            "transfer-tx": 1235732
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.4/32"
+            ],
+            "endpoint": "10.42.0.4:51871",
+            "last-handshake-time": "2026-11-11T15:41:29.191Z",
+            "public-key": "h2cf9brsoi0hP6Y969wVFZGeQd10C8DdQk8EnPZxXXI=",
+            "transfer-rx": 650340,
+            "transfer-tx": 275884
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.8/32"
+            ],
+            "endpoint": "10.42.0.8:51871",
+            "last-handshake-time": "2026-11-11T15:41:33.672Z",
+            "public-key": "eyQZj0J7AfjCjWk6xH8xoA+JvPiWzES3D1h7/PI+Uzs=",
+            "transfer-rx": 144080,
+            "transfer-tx": 14140
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.9/32"
+            ],
+            "endpoint": "10.42.0.9:51871",
+            "last-handshake-time": "2026-11-11T15:41:31.388Z",
+            "public-key": "b6Cd+ItVI8VloFBJNqDctF8yQr+7+5RHEeQYpPOO8nw=",
+            "transfer-rx": 128692,
+            "transfer-tx": 18924
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.7/32"
+            ],
+            "endpoint": "10.42.0.7:51871",
+            "last-handshake-time": "2026-11-11T15:41:29.221Z",
+            "public-key": "bsseZHYTocJpzw/nAl0OJ/HPQ4EqE8rwvHOzNAWwAno=",
+            "transfer-rx": 238324,
+            "transfer-tx": 62412
+          }
+        ],
+        "public-key": "QHGaflCHGYXUQAbNCv0K+dUr8ZV3hPPNe3ngK5xLj08="
+      }
+    ],
+    "node-encrypt-opt-out-labels": "node-role.kubernetes.io/control-plane",
+    "node-encryption": "Enabled"
+  },
+  "aks-system-13980686-vmss000001": {
+    "interfaces": [
+      {
+        "listen-port": 51871,
+        "name": "cilium_wg0",
+        "peer-count": 5,
+        "peers": [
+          {
+            "allowed-ips": [
+              "10.42.0.7/32"
+            ],
+            "endpoint": "10.42.0.7:51871",
+            "last-handshake-time": "2026-11-11T15:41:06.726Z",
+            "public-key": "bsseZHYTocJpzw/nAl0OJ/HPQ4EqE8rwvHOzNAWwAno=",
+            "transfer-rx": 1440408,
+            "transfer-tx": 153340
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.9/32"
+            ],
+            "endpoint": "10.42.0.9:51871",
+            "last-handshake-time": "2026-11-11T15:41:16.728Z",
+            "public-key": "b6Cd+ItVI8VloFBJNqDctF8yQr+7+5RHEeQYpPOO8nw=",
+            "transfer-rx": 877488,
+            "transfer-tx": 125044
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.4/32"
+            ],
+            "endpoint": "10.42.0.4:51871",
+            "last-handshake-time": "2026-11-11T15:41:15.290Z",
+            "public-key": "h2cf9brsoi0hP6Y969wVFZGeQd10C8DdQk8EnPZxXXI=",
+            "transfer-rx": 3544836,
+            "transfer-tx": 534564
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.8/32"
+            ],
+            "endpoint": "10.42.0.8:51871",
+            "last-handshake-time": "2026-11-11T15:41:27.956Z",
+            "public-key": "eyQZj0J7AfjCjWk6xH8xoA+JvPiWzES3D1h7/PI+Uzs=",
+            "transfer-rx": 709128,
+            "transfer-tx": 104596
+          },
+          {
+            "allowed-ips": [
+              "10.42.0.6/32"
+            ],
+            "endpoint": "10.42.0.6:51871",
+            "last-handshake-time": "2026-11-11T15:41:29.209Z",
+            "public-key": "QHGaflCHGYXUQAbNCv0K+dUr8ZV3hPPNe3ngK5xLj08=",
+            "transfer-rx": 1777852,
+            "transfer-tx": 16273360
+          }
+        ],
+        "public-key": "6mt3adrPkwIRP5vCZL/gHycm5jhTfsiq9+APlt6ttGo="
+      }
+    ],
+    "node-encrypt-opt-out-labels": "node-role.kubernetes.io/control-plane",
+    "node-encryption": "Enabled"
+  }
+}

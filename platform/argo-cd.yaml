@@ -16,16 +16,26 @@ configs:
     # the controller and a watch per kind on the API server.
     resource.inclusions: |
       - apiGroups: [""]
-        kinds: [Service, Pod]
+        kinds: [Service, Pod, ConfigMap, PersistentVolumeClaim, ServiceAccount, ResourceQuota, LimitRange]
         clusters: ["*"]
       - apiGroups: [apps]
-        kinds: [Deployment, ReplicaSet]
+        kinds: [Deployment, ReplicaSet, StatefulSet]
+        clusters: ["*"]
+      - apiGroups: [batch]
+        kinds: [Job, CronJob]
         clusters: ["*"]
       - apiGroups: [autoscaling]
         kinds: [HorizontalPodAutoscaler]
         clusters: ["*"]
       - apiGroups: [policy]
         kinds: [PodDisruptionBudget]
+        clusters: ["*"]
+      # O1 manages a namespaced readiness boundary.
+      - apiGroups: [rbac.authorization.k8s.io]
+        kinds: [Role, RoleBinding]
+        clusters: ["*"]
+      - apiGroups: [networking.k8s.io]
+        kinds: [NetworkPolicy]
         clusters: ["*"]
       - apiGroups: [argoproj.io]
         kinds: [Application, Rollout, AnalysisTemplate, AnalysisRun]
@@ -42,9 +52,20 @@ configs:
       - apiGroups: [monitoring.coreos.com]
         kinds: [PrometheusRule, PodMonitor]
         clusters: ["*"]
-      # Row A3 on AKS only (KEDA add-on); no such objects on kind or EKS.
+      # Row A3 on AKS (KEDA add-on) and row Q1 on kind (KEDA chart): the
+      # ScaledObjects, plus Q1's TriggerAuthentication (rare, so cheap to watch).
       - apiGroups: [keda.sh]
-        kinds: [ScaledObject]
+        kinds: [ScaledObject, TriggerAuthentication]
+        clusters: ["*"]
+      # Row Q3 uses recommendation-only VPA. The focused platform installs
+      # only the recommender, with no updater or admission controller.
+      - apiGroups: [autoscaling.k8s.io]
+        kinds: [VerticalPodAutoscaler]
+        clusters: ["*"]
+      # Row P1 uses the CEL based image policy API. Legacy ClusterPolicy is
+      # deprecated in Kyverno 1.19 and is deliberately not used.
+      - apiGroups: [policies.kyverno.io]
+        kinds: [ImageValidatingPolicy]
         clusters: ["*"]
 controller:
   resources:

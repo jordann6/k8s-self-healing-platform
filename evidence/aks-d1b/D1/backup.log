@@ -1,0 +1,4 @@
+D1_BACKUP_COMPLETE {"backup_id":"d1-backup-1794410187-clbn8","archive_key":"backups/d1-backup-1794410187-clbn8.dump","archive_sha256":"a76147a96a1bf59515f71054c5fbe48740d712b1f5f7cde8b2a7005c75539252","source_max_seq":100,"created_at":"2026-11-11T15:16:30Z"}
+D1_MANIFEST_SHA256 c6a23320f2cac5a6cba1fe206844c94620b0640d68e178fb809ee0d8a73af8ee
+D1_ARCHIVE_STAT {"versionID": "2026-11-11T15:16:32.3310667Z", "size": 6390, "mode": "Locked", "retainUntilDate": "2026-11-12T15:16:32Z"}
+D1_RETENTION_INFO Object locking 'Locked' is configured for 1DAYS

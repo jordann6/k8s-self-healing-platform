@@ -1,0 +1,9 @@
+{
+  "original_bytes": 13313432,
+  "original_sha256": "0670c9c5e038a40b99cd85841bd5ed17bbc18355ea4ade8c1caadbf588908804",
+  "kept_bytes": 699985,
+  "wireguard_packet_lines_in_original": 11475,
+  "why": "tcpdump -A on eth0 filtered by node pair records all WireGuard traffic between the two nodes, not only the N1 pods",
+  "full_copy": "~/k8s-evidence-raw/aks-n1c/n1-hardened-capture.txt.gz (outside the repo)",
+  "verdict_inputs": "the judge's counts and the marker check were taken from the full capture at run time and are in report.json"
+}

@@ -1,0 +1,205 @@
+{
+  "run_id": "aks-d1c",
+  "target": "aks",
+  "started": "2026-11-11T15:19:02.221Z",
+  "rows": [
+    "D1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "d1_synced": true
+  },
+  "versions": {
+    "repo_commit": "02b9dbd7669f5661e985d0af92e3a32a1cba8fce-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealebab1v.azurecr.io/selfheal/qworker:20ce7a0",
+    "q2-signal": "acrselfhealebab1v.azurecr.io/selfheal/q2:20ce7a0",
+    "q2-target": "acrselfhealebab1v.azurecr.io/selfheal/q2:20ce7a0",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealebab1v.azurecr.io/selfheal/q3:20ce7a0",
+    "n1-server": "acrselfhealebab1v.azurecr.io/selfheal/n1:20ce7a0",
+    "n1-client": "acrselfhealebab1v.azurecr.io/selfheal/n1:20ce7a0",
+    "n1-denied": "acrselfhealebab1v.azurecr.io/selfheal/n1:20ce7a0",
+    "o1-controller": "acrselfhealebab1v.azurecr.io/selfheal/o1:20ce7a0",
+    "o1-alert-receiver": "acrselfhealebab1v.azurecr.io/selfheal/o1:20ce7a0",
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealebab1v.azurecr.io/selfheal/app:20ce7a0-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "D1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true,
+          "retention_mode": "Locked"
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "backup d1-backup-1794410462-8bc97 version 2026-11-11T15:21:06.6307678Z completed in 10s; restored 100 exact rows into selfheal-d1-restore/d1 in 48s; RPO 1 row and 10s; truncated restore failed atomically True; writer and WORM deletion denied True",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true,
+          "retention_mode": "Locked"
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "D1": {
+      "baseline": {
+        "t0": 1794410382.773241,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "cronjob_present": false,
+        "backup": null,
+        "loss": {
+          "started_at": "2026-11-11T15:19:46.539Z",
+          "elapsed_s": 28.87,
+          "source_reprovision_s": 25.279,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore_available": false,
+        "window": "deterministic source creation through unprotected source PVC replacement",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794410459.817156,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "backup": {
+          "backup_id": "d1-backup-1794410462-8bc97",
+          "archive_key": "backups/d1-backup-1794410462-8bc97.dump",
+          "archive_sha256": "e198eb0b09eff4cf836eb6bf4b27a67722e53972c775b8e5853c208dc728d2f0",
+          "source_max_seq": 100,
+          "created_at": "2026-11-11T15:21:05Z",
+          "manifest_sha256": "316398bc36766100efbbc65f5957186ec213d78d21f1ed8d226d74aa3c45db26",
+          "object_version": "2026-11-11T15:21:06.6307678Z",
+          "object_size": 6389,
+          "retain_until": "2026-11-12T15:21:06Z",
+          "retention_mode": "Locked",
+          "retention_days": 1,
+          "job_name": "d1-backup-1794410462",
+          "job_uid": "<azure-guid>",
+          "completed": true,
+          "completion_s": 10.384,
+          "started_at": "2026-11-11T15:21:02.861Z"
+        },
+        "backup_s": 10.384,
+        "post_backup_sentinel": {
+          "seq": 101,
+          "acknowledged": true,
+          "at": "2026-11-11T15:21:14.722Z"
+        },
+        "loss": {
+          "started_at": "2026-11-11T15:21:15.624Z",
+          "elapsed_s": 36.349,
+          "source_reprovision_s": 33.692,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore": {
+          "target_db": "d1",
+          "archive_sha256": "e198eb0b09eff4cf836eb6bf4b27a67722e53972c775b8e5853c208dc728d2f0",
+          "job_name": "d1-restore-1794410511",
+          "job_uid": "<azure-guid>",
+          "completed": true,
+          "completion_s": 6.941,
+          "target_namespace": "selfheal-d1-restore",
+          "target_database": "d1"
+        },
+        "restored": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "rpo_rows": 1,
+        "rpo_seconds": 9.722,
+        "rto_s": 48.235,
+        "invalid_restore": {
+          "job_name": "d1-invalid-1794410523",
+          "job_uid": "<azure-guid>",
+          "failed": true,
+          "completion_s": 7.058,
+          "reason": "pg_restore: error: could not read from input file: end of file",
+          "application_tables": 0
+        },
+        "deletion_resistance": {
+          "writer_delete_denied": true,
+          "writer_reason": "AuthorizationPermissionMismatch: This request is not authorized to perform this operation using this permission.\nRequestId:<azure-guid>\nTime:2026-11-11T15:22:19.8648691Z\nErrorCode:AuthorizationPermissionMismatch\nContent: <?xml version=\"1.0\" encoding=\"utf-8\"?><Error><Code>AuthorizationPermissionMismatch</Code><Message>This request is not authorized to perform this operation using this permission.\nRequestId:<azure-guid>\nTime:2026-11-11T15:22:19.8648691Z</Message></Error>",
+          "admin_version_delete_denied": true,
+          "admin_reason": "ERROR: This operation is not permitted as the blob is immutable due to a policy.\nRequestId:<azure-guid>\nTime:2026-11-11T15:22:25.6658660Z\nErrorCode:BlobImmutableDueToPolicy",
+          "admin_permission_checked": true,
+          "admin_permission_reason": "ERROR: The specified blob does not exist.\nRequestId:<azure-guid>\nTime:2026-11-11T15:22:25.0012800Z\nErrorCode:BlobNotFound",
+          "admin_deleted": false,
+          "admin_refusal_recognised": true,
+          "archive_readable_after": true,
+          "manifest_readable_after": true,
+          "verified_checksums": {
+            "archive_sha256": "e198eb0b09eff4cf836eb6bf4b27a67722e53972c775b8e5853c208dc728d2f0",
+            "manifest_sha256": "316398bc36766100efbbc65f5957186ec213d78d21f1ed8d226d74aa3c45db26"
+          }
+        },
+        "window": "backup completion through source PVC replacement, fresh-target restore, integrity, invalid restore, and delete denial",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T15:22:39.431Z",
+  "pass": true
+}

@@ -1,0 +1,15 @@
+# N1 needs two workers because WireGuard intentionally does not encrypt
+# same-node pod traffic. kindnet is disabled so Cilium owns the datapath.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: selfheal
+networking:
+  disableDefaultCNI: true
+nodes:
+  - role: control-plane
+  - role: worker
+    labels:
+      selfheal.lab/n1-slot: client
+  - role: worker
+    labels:
+      selfheal.lab/n1-slot: server

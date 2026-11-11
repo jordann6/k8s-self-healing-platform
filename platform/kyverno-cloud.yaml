@@ -1,0 +1,32 @@
+# Kyverno on EKS and AKS for row P1 (ADR-0021). The registries are ECR and ACR
+# over TLS, so unlike platform/kyverno.yaml (kind) there is no
+# allowInsecureRegistry. Verification caching stays off so the outage case
+# cannot pass on a prior successful decision. The registry credentials come from
+# the per-cloud identity settings the platform scripts add at install time
+# (IRSA on EKS, workload identity on AKS), never from this file.
+admissionController:
+  replicas: 1
+  container:
+    extraArgs:
+      imageVerifyCacheEnabled: "false"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 192Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+backgroundController:
+  replicas: 1
+cleanupController:
+  enabled: false
+reportsController:
+  replicas: 1
+  extraArgs:
+    imageVerifyCacheEnabled: "false"
+features:
+  backgroundScan:
+    enabled: true
+    backgroundScanInterval: 10s
+  reporting:
+    imageVerify: true

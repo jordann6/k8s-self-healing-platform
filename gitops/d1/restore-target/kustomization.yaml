@@ -1,0 +1,5 @@
+# The empty PostgreSQL restore target, shared by the kind and cloud hardened profiles.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - restore-target.yaml

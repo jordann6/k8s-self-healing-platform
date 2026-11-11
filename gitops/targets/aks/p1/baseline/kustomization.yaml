@@ -1,0 +1,5 @@
+# P1 on AKS: the kind baseline, no image policy (ADR-0021).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../p1/baseline

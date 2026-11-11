@@ -28,6 +28,7 @@ secret=partner-api-key
 echo "aks-bootstrap: namespaces, CA, Git server"
 kubectl kustomize "$root/bootstrap" | sed "s|image: selfheal-gitserver:dev|image: $(cat "$gen/GITSERVER_IMAGE")|" |
 	kubectl apply -f - >/dev/null
+"$root/scripts/q1-credentials.sh"
 # The kind backend namespace and its reader are not used on AKS (Key Vault is
 # the backend) but are harmless; the SecretStore no longer references them.
 kubectl apply -f "$root/bootstrap/ca.yaml" >/dev/null
@@ -90,6 +91,24 @@ kubectl -n cert-manager get secret lab-ca -o jsonpath='{.data.ca\.crt}' | base64
 	kubectl -n selfheal create configmap lab-ca --from-file=ca.crt=/dev/stdin --dry-run=client -o yaml |
 	kubectl apply -f - >/dev/null
 kubectl -n selfheal get secret web-tls >/dev/null 2>&1 || "$root/scripts/static-cert.sh" 3600 >/dev/null
+
+echo "aks-bootstrap: O1 runtime objects (Secret, Lease, quarantine policy; Argo CD excludes them)"
+kubectl apply -f "$root/bootstrap/o1-runtime.yaml" >/dev/null
+
+echo "aks-bootstrap: N1 capture namespace (privileged, hostNetwork tcpdump)"
+kubectl apply -f "$root/bootstrap/n1-capture-namespace.yaml" >/dev/null
+
+echo "aks-bootstrap: D1 namespaces, identities and store settings"
+"$root/scripts/d1-bootstrap.sh" aks
+
+echo "aks-bootstrap: P1 trust root (public key only)"
+p1_keys="${P1_KEY_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/k8s-self-healing-platform/p1}"
+if [[ -s "$p1_keys/trusted.pub" ]]; then
+	kubectl -n kyverno create configmap p1-cosign-trust-root --from-file=cosign.pub="$p1_keys/trusted.pub" \
+		--dry-run=client -o yaml | kubectl apply -f - >/dev/null
+else
+	echo "  no P1 key yet: run make aks-p1-images, then rerun make aks-bootstrap before row P1"
+fi
 
 echo "aks-bootstrap: Git"
 kubectl -n gitops rollout status deploy/gitserver --timeout=180s >/dev/null

@@ -1,0 +1,18 @@
+# P1 on AKS: the kind policy pointed at the cloud registry with the
+# `azure` credential provider (ADR-0021). The glob uses wildcards so no
+# account or registry name is committed. allowInsecureRegistry is not set.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../p1/hardened
+patches:
+  - target: {group: policies.kyverno.io, version: v1beta1, kind: ImageValidatingPolicy, name: p1-trusted-signature}
+    patch: |-
+      - op: replace
+        path: /spec/matchImageReferences
+        value:
+          - glob: "*.azurecr.io/selfheal/p1/*"
+      - op: add
+        path: /spec/credentials
+        value:
+          providers: [azure]

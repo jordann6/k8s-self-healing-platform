@@ -1,0 +1,240 @@
+{
+  "run_id": "kind-20261109-095920",
+  "target": "kind",
+  "started": "2026-11-09T15:59:24.844Z",
+  "rows": [
+    "P1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "kyverno/kyverno-admission-controller": true,
+    "kyverno/kyverno-background-controller": true,
+    "kyverno/kyverno-reports-controller": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "p1_synced": true
+  },
+  "versions": {
+    "repo_commit": "f9dad9b65fdbe5de40c52146a8dfdf7fef8e127d-dirty",
+    "cilium": null,
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "P1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no P1 policy; admitted signed, unsigned, copied-invalid, untrusted-signer, and tag-only references at sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "trusted and recovered images ran at sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b; denied unsigned, invalid, untrusted, tag_only, verifier_outage; policy metrics pass 2.0, fail or error 5.0; verifier recovery 10.135s",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "P1": {
+      "baseline": {
+        "t0": 1794239965.9520829,
+        "policy_present": false,
+        "policy_ready": false,
+        "digest": "sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 0.086,
+            "reason": "pod/p1-baseline-trusted created",
+            "pod_created": true,
+            "ready_s": 11.146,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "unsigned": {
+            "returncode": 0,
+            "elapsed_s": 0.08,
+            "reason": "pod/p1-baseline-unsigned created",
+            "pod_created": true,
+            "ready_s": 10.054,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "invalid": {
+            "returncode": 0,
+            "elapsed_s": 0.083,
+            "reason": "pod/p1-baseline-invalid created",
+            "pod_created": true,
+            "ready_s": 9.946,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "untrusted": {
+            "returncode": 0,
+            "elapsed_s": 0.078,
+            "reason": "pod/p1-baseline-untrusted created",
+            "pod_created": true,
+            "ready_s": 11.017,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "tag_only": {
+            "returncode": 0,
+            "elapsed_s": 0.094,
+            "reason": "pod/p1-baseline-tag created",
+            "pod_created": true,
+            "ready_s": 13.283,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          }
+        },
+        "metrics_available": true,
+        "metric_delta": {
+          "fail": 0.0,
+          "pass": 0.0,
+          "error": 0.0
+        },
+        "policy_report_pass": false,
+        "trusted_admission_s": 0.086,
+        "recovery_s": null,
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794240026.1421828,
+        "policy_present": true,
+        "policy_ready": true,
+        "digest": "sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 0.156,
+            "reason": "pod/p1-hardened-trusted created",
+            "pod_created": true,
+            "ready_s": 11.087,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "unsigned": {
+            "returncode": 1,
+            "elapsed_s": 0.172,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "invalid": {
+            "returncode": 1,
+            "elapsed_s": 0.102,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "untrusted": {
+            "returncode": 1,
+            "elapsed_s": 0.102,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "tag_only": {
+            "returncode": 1,
+            "elapsed_s": 0.078,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: image selfheal-p1-registry:5000/p1/trusted:v1 does not have a digest",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "verifier_outage": {
+            "returncode": 1,
+            "elapsed_s": 5.468,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature error: failed to evaluate policy: Get \"https://selfheal-p1-registry:5000/v2/\": dial tcp 172.18.0.3:5000: i/o timeout; Get \"http://selfheal-p1-registry:5000/v2/\": dial tcp 172.18.0.3:5000: i/o timeout",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "recovery": {
+            "returncode": 0,
+            "elapsed_s": 0.167,
+            "reason": "pod/p1-hardened-recovery created",
+            "pod_created": true,
+            "ready_s": 8.936,
+            "image_id": "selfheal-p1-registry:5000/p1/invalid@sha256:bc5f2c12ccfbd17e5ec6ff0af832359b1fd3989818994775e4b605dce2c6351b"
+          },
+          "recovery_s": 10.135
+        },
+        "metrics_available": true,
+        "metric_delta": {
+          "fail": 4.0,
+          "pass": 2.0,
+          "error": 1.0
+        },
+        "policy_report_pass": true,
+        "trusted_admission_s": 0.156,
+        "recovery_s": 10.135,
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-09T16:01:08.348Z",
+  "pass": true
+}

@@ -223,9 +223,11 @@ def resolve(event: dict) -> dict:
         "finding": target,
         "pod": pod["metadata"]["name"],
         "pod_uid": pod["metadata"]["uid"],
+        "pod_resource_version": pod["metadata"].get("resourceVersion"),
         "service_account": pod["spec"].get("serviceAccountName", "default"),
         "pod_labels_before": pod["metadata"].get("labels", {}),
         "node": node_name,
+        "node_uid": node["metadata"].get("uid"),
         "instance_id": instance_of(node),
         "container_ids": [c for c in cids if CONTAINER_ID.match(c)],
         "capture_commands": capture_commands(cids),
@@ -236,22 +238,49 @@ def resolve(event: dict) -> dict:
 # actions
 # --------------------------------------------------------------------------- #
 
+def _reread_or_refuse(kind: str, path: str, uid: str | None, name: str) -> dict:
+    """Re-read the object right before mutating it and refuse if its uid changed.
+
+    Between resolve and the mutation the pod (or node) can be replaced: a crashed
+    pod is recreated with the same name but a new uid, a Karpenter node is
+    replaced. Acting by name alone would then quarantine an innocent replacement.
+    We read the live object, require the uid resolve recorded, and hand back the
+    live resourceVersion so the PATCH can pin optimistic concurrency to it.
+    """
+    live = k8s("GET", path)
+    live_uid = (live.get("metadata") or {}).get("uid")
+    if uid and live_uid != uid:
+        raise RuntimeError(
+            f"{kind} {name} uid changed (resolve saw {uid!r}, live is {live_uid!r}); "
+            f"refusing to act on a replacement {kind}")
+    return live
+
+
 def isolate_pod(ctx: dict) -> dict:
-    k8s("PATCH", f"/api/v1/namespaces/{NAMESPACE}/pods/{ctx['pod']}",
-        {"metadata": {"labels": QUARANTINE_LABELS,
+    path = f"/api/v1/namespaces/{NAMESPACE}/pods/{ctx['pod']}"
+    live = _reread_or_refuse("pod", path, ctx.get("pod_uid"), ctx["pod"])
+    rv = (live.get("metadata") or {}).get("resourceVersion")
+    k8s("PATCH", path,
+        {"metadata": {"uid": ctx.get("pod_uid"), "resourceVersion": rv,
+                      "labels": QUARANTINE_LABELS,
                       "annotations": {"selfheal.lab/quarantined-by": "r2-responder",
                                       "selfheal.lab/finding": str(ctx["finding"]["finding_id"])}}})
-    return {"at": now(), "labels": QUARANTINE_LABELS}
+    return {"at": now(), "labels": QUARANTINE_LABELS,
+            "precondition": {"pod_uid": ctx.get("pod_uid"), "resource_version": rv}}
 
 
 def cordon(ctx: dict) -> dict:
-    k8s("PATCH", f"/api/v1/nodes/{ctx['node']}",
+    path = f"/api/v1/nodes/{ctx['node']}"
+    live = _reread_or_refuse("node", path, ctx.get("node_uid"), ctx["node"])
+    rv = (live.get("metadata") or {}).get("resourceVersion")
+    k8s("PATCH", path,
         {"spec": {"unschedulable": True},
-         "metadata": {"labels": {"selfheal.lab/quarantined": "true"},
+         "metadata": {"uid": ctx.get("node_uid"), "resourceVersion": rv,
+                      "labels": {"selfheal.lab/quarantined": "true"},
                       "annotations": {"karpenter.sh/do-not-disrupt": "true",
                                       "karpenter.sh/do-not-repair": "true",
                                       "selfheal.lab/finding": str(ctx["finding"]["finding_id"])}}})
-    return {"at": now()}
+    return {"at": now(), "precondition": {"node_uid": ctx.get("node_uid"), "resource_version": rv}}
 
 
 def revoke(ctx: dict) -> dict:

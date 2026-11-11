@@ -1,0 +1,172 @@
+{
+  "run_id": "aks-run2",
+  "target": "aks",
+  "started": "2026-11-07T01:13:13.464Z",
+  "rows": [
+    "A3",
+    "R2"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "24516a3df5eea109b5f0ab305e4811895a941c47",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "kubernetes": "v1.34.12",
+    "web_image": "acrselfhealxmzuyg.azurecr.io/selfheal/app:24516a3-v1",
+    "node_images": [
+      "AKSUbuntu-2204gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "A3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "sustain window p95 2051.2 ms, errors 31.40%, replicas 3 -> 3",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "R2": {
+      "baseline": {
+        "status": "error",
+        "reason": "no Defender alert naming the attacked pod within 3600s: the trigger never fired, so there was nothing to respond to",
+        "thresholds": {
+          "alert_s": 3600,
+          "isolate_s": 300,
+          "evidence_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "A3": {
+      "baseline": {
+        "t0": 1794014072.3783119,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 2051.2,
+        "error_rate": 0.314,
+        "min_replicas": 3,
+        "max_replicas": 3,
+        "scaled_s": null,
+        "aborted": false,
+        "samples": 328,
+        "expected": 328.1531310081482,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.19,
+          "p95_ms": 2049.6,
+          "n": 500
+        },
+        "k6": {
+          "sustain_p95_ms": 1239.740149,
+          "sustain_failed_rate": 0.24726967236068328,
+          "dropped_iterations": 44
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1794014172.4529068,
+          "until": 1794014238.083533,
+          "n": 328,
+          "errors": 103,
+          "error_rate": 0.314,
+          "p95_ms": 2051.2,
+          "error_kinds": {
+            "URLError": 102,
+            "TimeoutError": 1
+          },
+          "first_error": 1794014172.6361144,
+          "last_error": 1794014230.2361274,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6b4446b7bd-6sm9q",
+            "web-6b4446b7bd-pvb7s",
+            "web-6b4446b7bd-zmsrm"
+          ],
+          "expected": 328.1531310081482
+        },
+        "alerts_fired": []
+      }
+    },
+    "R2": {
+      "baseline": {
+        "t0": 1794014324.274698,
+        "target_pod": "web-6b4446b7bd-6sm9q",
+        "node": "aks-work-68611554-vmss000000",
+        "reachable_before": true,
+        "reachable_after": null,
+        "alert": null,
+        "alert_s": null,
+        "isolated_s": null,
+        "evidence_s": null,
+        "pod_kept": true,
+        "scale_down_disabled": false,
+        "replacement_on_quarantined_node": null,
+        "snapshot_state": null,
+        "capture_bytes": 0,
+        "logic_app_run": null,
+        "logic_app_runs": [],
+        "failed_reason": null,
+        "error_rate": 0.0,
+        "samples": 18088,
+        "expected": 18087.43975996971,
+        "window": "T0 (attack) to evidence, or to the alert plus the response window",
+        "impact": {
+          "kind": "http",
+          "since": 1794014324.349293,
+          "until": 1794017941.837245,
+          "n": 18088,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 72.5,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6b4446b7bd-6sm9q",
+            "web-6b4446b7bd-pvb7s",
+            "web-6b4446b7bd-zmsrm"
+          ],
+          "expected": 18087.43975996971
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "(running)",
+  "pass": false
+}

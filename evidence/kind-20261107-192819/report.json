@@ -1,0 +1,110 @@
+{
+  "run_id": "kind-20261107-192819",
+  "target": "kind",
+  "started": "2026-11-08T01:28:20.950Z",
+  "rows": [
+    "Q1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "keda/keda-operator": true,
+    "keda/keda-operator-metrics-apiserver": true,
+    "keda/keda-admission-webhooks": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "selfheal/rabbitmq": true,
+    "selfheal/qworker": true,
+    "q1_synced": true
+  },
+  "versions": {
+    "repo_commit": "cf9a6377c5de88da1d62fa880b58192e85c2fe62-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "selfheal-qworker:v1",
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "Q1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "published 240, distinct done 240 (0 duplicate completions), replicas 2 to 2 to 2, drained 34s, back to zero never, killed none (unacked None)",
+        "thresholds": {
+          "drain_s": 120,
+          "zero_s": 120
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "published 240, distinct done 240 (0 duplicate completions), replicas 0 to 5 to 0, drained 30s, back to zero 56s, killed qworker-598766ff55-8tmwq (unacked 1)",
+        "thresholds": {
+          "drain_s": 120,
+          "zero_s": 120
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "Q1": {
+      "baseline": {
+        "t0": 1794101306.317719,
+        "n_target": 240,
+        "published": 240,
+        "profile_start_replicas": 2,
+        "max_replicas": 2,
+        "end_replicas": 2,
+        "scaled_up_s": null,
+        "drained_s": 34.3,
+        "scaled_to_zero_s": null,
+        "distinct_done": 240,
+        "expected_done": 240,
+        "unexpected_done": 0,
+        "done_total": 240,
+        "duplicates": 0,
+        "killed_pod": null,
+        "unacked_at_kill": null,
+        "workers_at_kill": null,
+        "metrics_source_ok": null,
+        "window": "T0 (backlog published) to drained and scaled back to zero",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794101359.6637251,
+        "n_target": 240,
+        "published": 240,
+        "profile_start_replicas": 0,
+        "max_replicas": 5,
+        "end_replicas": 0,
+        "scaled_up_s": 9.7,
+        "drained_s": 30.3,
+        "scaled_to_zero_s": 55.8,
+        "distinct_done": 240,
+        "expected_done": 240,
+        "unexpected_done": 0,
+        "done_total": 240,
+        "duplicates": 0,
+        "killed_pod": "qworker-598766ff55-8tmwq",
+        "unacked_at_kill": 1,
+        "workers_at_kill": 1,
+        "metrics_source_ok": true,
+        "window": "T0 (backlog published) to drained and scaled back to zero",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-08T01:30:25.024Z",
+  "pass": true
+}

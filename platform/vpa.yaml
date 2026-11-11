@@ -1,0 +1,19 @@
+# Q3 is recommendation-only. Disable every component capable of mutating a
+# workload and run one recommender on the single-node kind proving ground.
+admissionController:
+  enabled: false
+updater:
+  enabled: false
+recommender:
+  replicas: 1
+  podDisruptionBudget:
+    enabled: false
+  extraArgs:
+    - --pod-recommendation-min-cpu-millicores=10
+    - --pod-recommendation-min-memory-mb=16
+  resources:
+    requests: {cpu: 50m, memory: 64Mi}
+    limits: {memory: 192Mi}
+crds:
+  enabled: true
+  keep: false

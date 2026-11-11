@@ -202,6 +202,14 @@ resource "azurerm_kubernetes_cluster_node_pool" "workload" {
   }
   tags = local.tags
 
+  # Destroy order: the pool goes BEFORE the operator's cluster roles, so
+  # kubectl stays authorized while the pool drains (on 11/7 the roles went
+  # first, kubectl was Forbidden and a stuck drain could not be fixed).
+  depends_on = [
+    azurerm_role_assignment.operator_cluster_user,
+    azurerm_role_assignment.operator_cluster_admin,
+  ]
+
   lifecycle {
     # The autoscaler owns the count between min and max.
     ignore_changes = [node_count]

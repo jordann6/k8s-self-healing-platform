@@ -95,6 +95,58 @@ class Resolve(unittest.TestCase):
             handler.resolve(ev)
 
 
+class Preconditions(unittest.TestCase):
+    """The mutations re-read the target and refuse a replacement, so a repeated
+    or delayed response never quarantines an innocent pod or node."""
+
+    def setUp(self):
+        self.ctx = {"pod": "web-1", "pod_uid": "pod-uid-1", "node": "n1",
+                    "node_uid": "node-uid-1", "finding": {"finding_id": "f1"}}
+
+    def _stub(self, live_pod_uid="pod-uid-1", live_node_uid="node-uid-1"):
+        calls = []
+
+        def k8s(method, path, body=None, patch="merge"):
+            calls.append((method, path, body))
+            if method == "GET" and "/pods/" in path:
+                return {"metadata": {"uid": live_pod_uid, "resourceVersion": "100"}}
+            if method == "GET" and "/nodes/" in path:
+                return {"metadata": {"uid": live_node_uid, "resourceVersion": "200"}}
+            return {}
+        handler.k8s = k8s
+        return calls
+
+    def test_isolate_rereads_then_patches_with_precondition(self):
+        calls = self._stub()
+        out = handler.isolate_pod(self.ctx)
+        methods = [c[0] for c in calls]
+        self.assertEqual(methods, ["GET", "PATCH"])  # re-read, then patch
+        patch_body = calls[1][2]
+        self.assertEqual(patch_body["metadata"]["uid"], "pod-uid-1")
+        self.assertEqual(patch_body["metadata"]["resourceVersion"], "100")
+        self.assertEqual(out["precondition"], {"pod_uid": "pod-uid-1", "resource_version": "100"})
+
+    def test_isolate_refuses_replacement_pod(self):
+        calls = self._stub(live_pod_uid="pod-uid-2")
+        with self.assertRaisesRegex(RuntimeError, "refusing to act on a replacement pod"):
+            handler.isolate_pod(self.ctx)
+        self.assertEqual([c[0] for c in calls], ["GET"])  # no PATCH after the uid mismatch
+
+    def test_cordon_refuses_replacement_node(self):
+        calls = self._stub(live_node_uid="node-uid-2")
+        with self.assertRaisesRegex(RuntimeError, "refusing to act on a replacement node"):
+            handler.cordon(self.ctx)
+        self.assertEqual([c[0] for c in calls], ["GET"])
+
+    def test_isolate_is_idempotent_on_the_same_pod(self):
+        # Two deliveries for the same live pod apply the same quarantine labels.
+        self._stub()
+        a = handler.isolate_pod(self.ctx)
+        b = handler.isolate_pod(self.ctx)
+        self.assertEqual(a["labels"], b["labels"])
+        self.assertEqual(a["labels"], handler.QUARANTINE_LABELS)
+
+
 class CaptureCommands(unittest.TestCase):
     def test_only_hex_container_ids_reach_the_shell(self):
         cmds = "\n".join(handler.capture_commands(["abc123def456", "x; rm -rf /", "ABCDEF123456"]))

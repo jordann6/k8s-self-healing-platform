@@ -5,7 +5,7 @@
 # row depends on it.
 
 locals {
-  workload_identities = {
+  workload_identities = merge({
     # ESO reads the partner key from Key Vault (row S1). Referenced mode: the
     # SecretStore names this service account in the lab namespace.
     eso = { namespace = "selfheal", service_account = "eso-backend" }
@@ -15,7 +15,11 @@ locals {
     grafana = { namespace = "monitoring", service_account = "kps-grafana" }
     # The R2 worker: takes incidents off the queue, cordons and relabels.
     responder = { namespace = "responder", service_account = "responder" }
-  }
+    # Row P1 (ADR-0021): Kyverno verifies image signatures in ACR from both the
+    # admission and the reports controller (background PolicyReport).
+    kyverno_admission = { namespace = "kyverno", service_account = "kyverno-admission-controller" }
+    kyverno_reports   = { namespace = "kyverno", service_account = "kyverno-reports-controller" }
+  }, local.d1_workload_identities)
 }
 
 resource "azurerm_user_assigned_identity" "workload" {
@@ -33,4 +37,13 @@ resource "azurerm_federated_identity_credential" "workload" {
   issuer                    = azurerm_kubernetes_cluster.lab.oidc_issuer_url
   subject                   = "system:serviceaccount:${each.value.namespace}:${each.value.service_account}"
   audience                  = ["api://AzureADTokenExchange"]
+}
+
+# Row P1: the Kyverno identities read the lab registry, nothing else.
+resource "azurerm_role_assignment" "kyverno_acr_pull" {
+  for_each             = toset(["kyverno_admission", "kyverno_reports"])
+  scope                = azurerm_container_registry.lab.id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.workload[each.key].principal_id
+  principal_type       = "ServicePrincipal"
 }

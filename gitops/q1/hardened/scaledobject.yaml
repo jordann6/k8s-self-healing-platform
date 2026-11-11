@@ -1,0 +1,41 @@
+# Row Q1, hardened: KEDA scales the worker on the backlog in the work queue.
+#
+# minReplicaCount 0 is the capability: idle at zero replicas, scaled up by the
+# backlog, scaled back to zero when it drains. A short pollingInterval and
+# cooldownPeriod keep the lab's scale-to-zero inside the row's window (the
+# production defaults are 30s / 300s). queueLength mode asks for one replica per
+# `value` messages, capped at maxReplicaCount, so a 240-message backlog scales
+# the worker out and drains fast where the fixed baseline cannot.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: qworker
+spec:
+  scaleTargetRef:
+    name: qworker
+  minReplicaCount: 0
+  maxReplicaCount: 10
+  pollingInterval: 5
+  cooldownPeriod: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          selectPolicy: Max
+          policies:
+            - {type: Percent, value: 100, periodSeconds: 15}
+            - {type: Pods, value: 4, periodSeconds: 15}
+        scaleDown:
+          stabilizationWindowSeconds: 10
+          policies:
+            - {type: Percent, value: 100, periodSeconds: 15}
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: amqp
+        queueName: work
+        mode: QueueLength
+        value: "30"
+      authenticationRef:
+        name: q1-rabbitmq-auth

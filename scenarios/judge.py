@@ -36,6 +36,48 @@ THRESHOLDS = {
         "S2": {"tls_errors": 0, "renew_s": 60, "serve_s": 150},
         "S3": {"revert_s": 60},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        # Row Q1. Phase 3 fixed the kind contract and Phase 4 carries the same
+        # values to EKS and AKS. drain_s: a 240-message backlog is drained
+        # (work queue empty, nothing unacknowledged). zero_s: the worker is back
+        # to zero replicas after the drain. The cloud ports are Phase 4.
+        "Q1": {"drain_s": 120, "zero_s": 120},
+        # Row Q2 (kind only, Phase 3). Fixed before the first live run in
+        # ADR-0010. Missing metric, condition, request, or scheduler evidence
+        # is an error rather than a protected pass.
+        "Q2": {"detect_s": 30, "fallback_s": 30, "metric_recover_s": 45,
+               "capacity_recover_s": 60, "scale_down_s": 90,
+               "p95_ms": 300, "error_rate": 0.01, "fallback_replicas": 3,
+               "max_replicas": 4, "min_replicas": 1, "min_request_samples": 20},
+        # Row Q3 (kind only, Phase 3). Fixed before the first live run in
+        # ADR-0011. The VPA is recommendation-only, so any workload mutation
+        # is a miss and missing resource telemetry is an error.
+        "Q3": {"recommend_s": 240, "min_samples": 6,
+               "cpu_pressure_m": 100, "memory_pressure_mib": 64,
+               "cpu_ratio_min": 0.70, "cpu_ratio_max": 2.00,
+               "memory_ratio_min": 0.90, "memory_ratio_max": 2.00,
+               "restarts": 0,
+               # Collection windows (ADR-0020): (min_samples + 1) x metrics resolution.
+               "sample_window_s": 240, "baseline_window_s": 120},
+        # N1 (kind only, Phase 3). Fixed in ADR-0012 before live proof.
+        "N1": {"min_requests": 20, "max_failures": 0, "p95_ms": 300,
+               "min_denied": 5, "denied_successes": 0, "min_policy_drops": 1,
+               "min_packets": 5, "interfaces": 1, "min_peers": 1},
+        # P1 (kind only, Phase 3). Fixed in ADR-0013 before live proof.
+        # Policy, signature-state, reason, metric, report, or digest evidence
+        # missing from hardened is an error rather than a protected pass.
+        "P1": {"admission_s": 20, "ready_s": 120, "recovery_s": 60,
+               "min_pass_decisions": 2, "min_reject_decisions": 5,
+               "min_outage_drops": 0},
+        # D1 (kind only, Phase 3). Fixed in ADR-0014 before live proof.
+        # Missing backup, restore, integrity, invalid-restore, or retention
+        # telemetry is an error rather than a protected pass.
+        "D1": {"backup_s": 120, "restore_s": 120, "rto_s": 180,
+               "rpo_rows": 1, "rows": 100, "retention_days": 1},
+        # O1 (kind only, Phase 3). Fixed in ADR-0015 before live proof.
+        # Missing boundary, RBAC, replacement, alert, evidence, release, or
+        # connectivity telemetry is an error rather than a protected pass.
+        "O1": {"controller_recover_s": 60, "evidence_s": 30,
+               "alert_s": 30, "release_s": 30},
     },
     # Set before the first EKS run (ADR-0003). The rows shared with kind keep
     # the kind numbers: A3 in particular keeps 300 ms, the bar kind could not
@@ -55,6 +97,7 @@ THRESHOLDS = {
         "S4": {"revert_s": 600},
         "S5": {"failed": 0, "replaced_s": 1200, "max_disrupted": 1},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "Q1": {"drain_s": 120, "zero_s": 120},
         "R2": {"isolate_s": 600, "evidence_s": 900, "error_rate": 0.01},
     },
     # Set before the first AKS run (ADR-0003, "AKS thresholds"). Shared rows
@@ -73,9 +116,52 @@ THRESHOLDS = {
         "S3": {"revert_s": 60},
         "S4": {"revert_s": 1200},
         "R1": {"isolate_s": 30, "evidence_s": 90, "error_rate": 0.01},
+        "Q1": {"drain_s": 120, "zero_s": 120},
         "R2": {"alert_s": 3600, "isolate_s": 300, "evidence_s": 600, "error_rate": 0.01},
     },
 }
+
+# Row Q2 on EKS and AKS (ADR-0017). Fixed before the first cloud run from the
+# documented 15s HPA sync (not configurable on either Standard control plane),
+# KEDA 5s poll, image pull and readiness. Only the three clocks that include a
+# longer HPA sync or an image pull on a fresh node differ from kind.
+Q2_CLOUD = {**THRESHOLDS["kind"]["Q2"], "fallback_s": 60, "capacity_recover_s": 90,
+            "scale_down_s": 120, "node_autoscaler": True}
+THRESHOLDS["eks"]["Q2"] = Q2_CLOUD
+THRESHOLDS["aks"]["Q2"] = Q2_CLOUD
+
+# Row O1 on EKS and AKS (ADR-0019). The ADR-0015 numbers are unchanged: the
+# replacement clock stays 60s because the controller is pinned to one node
+# with a warm image cache, and nothing here is relaxed to obtain a pass.
+THRESHOLDS["eks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
+THRESHOLDS["aks"]["O1"] = dict(THRESHOLDS["kind"]["O1"])
+
+# Row Q3 on EKS and AKS (ADR-0020). Every ADR-0011 observation threshold is
+# unchanged. Only the collection windows differ on AKS, derived from the
+# documented 60s Metrics API refresh: (6 + 1) x 60 = 420s. EKS runs
+# metrics-server at 15s like kind. The 240s recommendation clock is separate.
+THRESHOLDS["eks"]["Q3"] = dict(THRESHOLDS["kind"]["Q3"])
+THRESHOLDS["aks"]["Q3"] = {**THRESHOLDS["kind"]["Q3"], "sample_window_s": 420, "baseline_window_s": 420}
+
+# Row P1 on EKS and AKS (ADR-0021). Every ADR-0013 threshold is unchanged. The
+# one addition is the outage attribution: the egress policy that replaces the
+# stopped registry must produce at least one Hubble drop from the admission
+# controller, or the row is an error.
+THRESHOLDS["eks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
+THRESHOLDS["aks"]["P1"] = {**THRESHOLDS["kind"]["P1"], "min_outage_drops": 1}
+
+# Row D1 on EKS and AKS (ADR-0022). Every ADR-0014 threshold is unchanged. Added: the
+# retention mode in the store's own words (Azure calls the same one-day locked state
+# Locked) and the administrator attribution, which makes a retention refusal count only
+# when the operator was shown to hold the delete permission.
+THRESHOLDS["eks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True}
+THRESHOLDS["aks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True, "retention_mode": "Locked"}
+
+# Row N1 on EKS and AKS (ADR-0023). Every ADR-0012 threshold is unchanged. AKS keeps the kind tunnel
+# contract. EKS runs ENI IPAM with native routing, so its datapath is named and the judge counts
+# plaintext pod packets in place of VXLAN.
+THRESHOLDS["aks"]["N1"] = dict(THRESHOLDS["kind"]["N1"])
+THRESHOLDS["eks"]["N1"] = {**THRESHOLDS["kind"]["N1"], "datapath": "native"}
 
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
@@ -96,6 +182,31 @@ HYPOTHESES = {
     "S3": "A deleted network policy and a hand-edited Deployment are reverted to Git within 60s.",
     "R1": "A shell in a web pod is isolated within 30s and evidence is preserved within 90s, "
           "with the pod kept for capture rather than killed.",
+    "Q1": "A backlog of 240 messages scales the worker from zero, drains within 120s with no lost work "
+          "even when a busy worker is killed mid-message, and the worker returns to zero, while the fixed "
+          "baseline never scales to zero.",
+    # Q2 is a template: hypothesis() fills it from the target's thresholds, so a
+    # cloud run prints the cloud clocks rather than kind's.
+    "Q2": "When the scaling metric fails, the failure is visible within {detect_s}s and the hardened fallback "
+          "reaches three replicas within {fallback_s}s while meeting the request SLO. Restored telemetry recovers "
+          "within {metric_recover_s}s, the maximum-replica and CPU scheduling ceilings are explicitly observed, "
+          "restored capacity recovers within {capacity_recover_s}s, and withdrawn demand scales back to one "
+          "within {scale_down_s}s.",
+    "Q3": "Under sustained CPU and memory pressure, the hardened VPA publishes a bounded recommendation within "
+          "240s that is related to measured use, while Off mode leaves requests, the running pod, and restart "
+          "count unchanged. The baseline has the same pressure and telemetry but no sizing recommendation.",
+    "N1": "For Cilium-managed pods on different workers, hardened WireGuard replaces visible VXLAN underlay "
+          "traffic with an established encrypted peer path while legitimate requests remain healthy and an "
+          "unauthorized cross-node request remains attributable to policy enforcement.",
+    "P1": "A digest-pinned artifact signed by the trusted local key is admitted and runs at the signed digest, "
+          "while unsigned, invalid-signature, untrusted-signer, tag-only, and verifier-outage requests are "
+          "denied with attributable telemetry and the verifier recovers within 60 seconds.",
+    "D1": "A completed PostgreSQL backup restores exactly 100 deterministic rows into a fresh target within "
+          "180 seconds, loses only the one intentional post-backup row, rejects a truncated archive atomically, "
+          "and remains readable after identity and WORM deletion attempts.",
+    "O1": "The hardened namespace enforces a resource budget and default limits, confines the operator to a "
+          "named release request, replaces a failed controller within 60 seconds, captures evidence and delivers "
+          "a matching alert within 30 seconds, then releases quarantine only after evidence while restoring access.",
     "A4": "When the node hosting the most web pods is terminated, the error rate stays under 1% and every "
           "web replica is serving again, on a replacement node, within 300s.",
     "S1b": "Rotating the database password twice (both alternating users) causes 0 failed queries and "
@@ -111,6 +222,14 @@ HYPOTHESES = {
 
 # Rows whose mechanism differs on a target state their own hypothesis there.
 HYPOTHESES_BY_TARGET = {
+    "eks": {
+        "N1": "For Cilium-managed pods on different nodes under ENI IPAM with native routing, the baseline "
+              "sends the request as plaintext between the two pod addresses on the physical NICs. Hardened "
+              "WireGuard replaces it with UDP 51871 between the node addresses, leaves no pod TCP and no "
+              "plaintext marker on a physical NIC, establishes peers whose routes hold the remote pod "
+              "address, keeps legitimate requests healthy and keeps an unauthorized cross-node request "
+              "attributable to policy enforcement.",
+    },
     "aks": {
         "A4": "When the scale set instance hosting the most web pods is stopped, the error rate stays under 1% "
               "from the moment its node is marked NotReady, and every web replica is serving again, off that "
@@ -124,8 +243,15 @@ HYPOTHESES_BY_TARGET = {
 }
 
 
+# Rows whose hypothesis text is filled from THRESHOLDS[target][row].
+TEMPLATED = {"Q2"}
+
+
 def hypothesis(row: str, target: str = "kind") -> str:
-    return HYPOTHESES_BY_TARGET.get(target, {}).get(row) or HYPOTHESES[row]
+    text = HYPOTHESES_BY_TARGET.get(target, {}).get(row) or HYPOTHESES[row]
+    if row in TEMPLATED:
+        text = text.format(**THRESHOLDS.get(target, THRESHOLDS["kind"]).get(row, THRESHOLDS["kind"][row]))
+    return text
 
 
 def enough(samples: int | None, expected: float) -> bool:
@@ -283,6 +409,585 @@ def judge_r1(o: dict, t: dict):
 
 
 fmt_s = lambda v: f"{v:.0f}s" if v is not None else "never"  # noqa: E731
+
+
+def judge_q1(o: dict, t: dict):
+    pub, n = o.get("published"), o.get("n_target")
+    # No data is never a pass: the backlog under test must have been enqueued.
+    if n is None or pub != n:
+        return False, f"the producer enqueued {pub} of {n}, so the backlog under test was not established", False, False
+    dd = o.get("distinct_done")
+    if dd is None:
+        return False, "the done queue could not be read, so completion is unknown", False, False
+    # Telemetry-failure honesty: if KEDA could not read the queue (hardened),
+    # any scaling cannot be attributed to the control.
+    if o.get("metrics_source_ok") is False:
+        return False, "the ScaledObject was not Ready (KEDA could not read the queue), so scaling cannot be attributed", False, False
+    start, mx, end = o.get("profile_start_replicas") or 0, o.get("max_replicas") or 0, o.get("end_replicas")
+    no_lost_work = dd == pub and o.get("expected_done") == pub and o.get("unexpected_done") == 0
+    scaled_out = o.get("scaled_up_s") is not None and mx > start
+    # The kill only has teeth if the victim itself held an in-flight
+    # (unacknowledged) message when it died, as the broker attributed it to
+    # that pod; otherwise a drop could not have been tested.
+    kill_had_teeth = o.get("killed_pod") is not None and (o.get("unacked_at_kill") or 0) >= 1
+    drained_ok = le(o.get("drained_s"), t["drain_s"])
+    zero_after_drain = (o["scaled_to_zero_s"] - o["drained_s"]
+                        if o.get("scaled_to_zero_s") is not None and o.get("drained_s") is not None else None)
+    zero_ok = le(zero_after_drain, t["zero_s"]) and end == 0
+    # Baseline shows impact by never idling to zero (fixed replicas); hardened
+    # heals by scaling from zero, draining in time, losing no work across the
+    # kill, and returning to zero.
+    impact = (end or 0) > 0 or not drained_ok
+    healed = no_lost_work and scaled_out and kill_had_teeth and drained_ok and zero_ok
+    why = (f"published {pub}, distinct done {dd} ({o.get('duplicates')} duplicate completions), replicas "
+           f"{start} to {mx} to {end}, drained {fmt_s(o.get('drained_s'))}, back to zero "
+           f"{fmt_s(o.get('scaled_to_zero_s'))}, killed {o.get('killed_pod') or 'none'} "
+           f"(unacked {o.get('unacked_at_kill')})")
+    return True, why, impact, healed
+
+
+def target_has_autoscaler(t: dict) -> bool:
+    """The cloud Q2 thresholds carry a node-autoscaler guard; kind has no node autoscaler."""
+    return bool(t.get("node_autoscaler"))
+
+
+def judge_q2(o: dict, t: dict):
+    # The planned source outage is a fault. Missing evidence that it occurred
+    # is not a successful fallback demonstration.
+    if o.get("metric_source_available_before") is not True:
+        return False, "the metric source was not readable before the fault", False, False
+    if o.get("metric_outage_observed") is not True:
+        return False, "the planned metric-source outage was not observed", False, False
+    if o.get("conditions_present") is not True:
+        return False, "ScaledObject or HPA conditions were missing before the fault", False, False
+    error_state = o.get("metric_error_state") or {}
+    if not error_state.get("scaledobject_conditions") or not error_state.get("hpa_conditions"):
+        return False, "autoscaler conditions were missing during the metric failure", False, False
+
+    detected = o.get("metric_failure_detected_s")
+    recovered = o.get("metric_recovered_s")
+    if detected is None:
+        return False, "no autoscaler condition reported the metric failure", False, False
+    if recovered is None:
+        return False, "metric recovery was not measured", False, False
+
+    ceiling = o.get("ceiling") or {}
+    ceiling_state = ceiling.get("state") or {}
+    limit_condition = (ceiling_state.get("hpa_conditions") or {}).get("ScalingLimited")
+    if not limit_condition:
+        return False, "the HPA ScalingLimited condition was missing at the replica ceiling", False, False
+    ceiling_observed = (ceiling.get("demand", 0) > t["max_replicas"]
+                        and ceiling_state.get("max_replicas") == t["max_replicas"]
+                        and ceiling_state.get("actual_replicas") == t["max_replicas"]
+                        and limit_condition.get("status") == "True")
+
+    capacity = o.get("capacity") or {}
+    pending_state = capacity.get("pending_state") or {}
+    pending = pending_state.get("pending") or []
+    if pending and any(not p.get("message") for p in pending):
+        return False, "a Pending pod had no scheduler message", False, False
+    if not pending:
+        return False, "no Pending workload pod was observed at the node-capacity ceiling", False, False
+    scheduler_attributed = any("Insufficient cpu" in (p.get("message") or "") for p in pending)
+    if not scheduler_attributed:
+        return False, f"Pending pods were not attributed to Insufficient cpu: {pending}", False, False
+
+    # ADR-0017. A node autoscaler that added capacity would make the Pending
+    # window meaningless, so missing or changed node inventory is an error.
+    stability = capacity.get("node_stability")
+    if target_has_autoscaler(t):
+        if not stability:
+            return False, "node inventory was not recorded around the Pending window", False, False
+        if stability.get("unchanged") is not True:
+            return False, ("the node set changed during the Pending window, so an autoscaler may have "
+                           f"hidden the scheduling ceiling: {stability}"), False, False
+
+    outage = o.get("outage_requests") or {}
+    recovery_requests = capacity.get("recovery_requests") or {}
+    for label, stats in (("metric-outage", outage), ("capacity-recovery", recovery_requests)):
+        if (stats.get("samples") or 0) < t["min_request_samples"]:
+            return False, f"{label} request telemetry was too thin ({stats.get('samples')} samples)", False, False
+        if stats.get("failure_rate") is None:
+            return False, f"{label} request failures were missing", False, False
+        if stats.get("p95_ms") is None and stats.get("failure_rate") < 1:
+            return False, f"{label} request latency was missing", False, False
+
+    outage_bad = (outage.get("p95_ms") is None or outage["p95_ms"] > t["p95_ms"]
+                  or outage["failure_rate"] >= t["error_rate"])
+    healthy_outage = (outage.get("p95_ms") is not None and outage["p95_ms"] <= t["p95_ms"]
+                      and outage["failure_rate"] < t["error_rate"])
+    healthy_recovery = (recovery_requests.get("p95_ms") is not None
+                        and recovery_requests["p95_ms"] <= t["p95_ms"]
+                        and recovery_requests["failure_rate"] < t["error_rate"])
+    fallback_ok = (o.get("fallback_condition_observed") is True
+                   and le(o.get("fallback_replicas_s"), t["fallback_s"]))
+    capacity_ok = le(capacity.get("recovered_s"), t["capacity_recover_s"])
+    scale_down_ok = (le(o.get("scale_down_s"), t["scale_down_s"])
+                     and (o.get("end_state") or {}).get("ready_replicas") == t["min_replicas"])
+    timing_ok = le(detected, t["detect_s"]) and le(recovered, t["metric_recover_s"])
+
+    # Baseline impact comes from measured user impact during the signal loss.
+    # Hardened healing additionally requires every negative mode and recovery.
+    impact = outage_bad
+    healed = (timing_ok and fallback_ok and healthy_outage and ceiling_observed
+              and scheduler_attributed and capacity_ok and healthy_recovery and scale_down_ok)
+    why = (f"metric error detected {fmt_s(detected)}, fallback {fmt_s(o.get('fallback_replicas_s'))}, "
+           f"metric recovered {fmt_s(recovered)}; outage p95 {outage.get('p95_ms')} ms, "
+           f"failures {outage.get('failure_rate')}; ceiling {ceiling_state.get('actual_replicas')} of "
+           f"{ceiling_state.get('max_replicas')} (limited {limit_condition.get('status')}); "
+           f"Pending {len(pending)} ({pending[0].get('message')}); capacity recovered "
+           f"{fmt_s(capacity.get('recovered_s'))}, scale-down {fmt_s(o.get('scale_down_s'))}")
+    return True, why, impact, healed
+
+
+def judge_q3(o: dict, t: dict):
+    if o.get("metrics_available") is not True:
+        return False, "the resource Metrics API never reported the Q3 target", False, False
+    usage = o.get("usage") or {}
+    if (usage.get("samples") or 0) < t["min_samples"]:
+        return False, f"resource telemetry was too thin ({usage.get('samples')} samples)", False, False
+    if usage.get("cpu_p90_m") is None or usage.get("memory_p90_mib") is None:
+        return False, "CPU or memory usage telemetry was missing", False, False
+    if o.get("hpa_present") is True:
+        return False, "an HPA targeted q3-target, so the recommendation cannot be isolated", False, False
+
+    initial = o.get("initial_state") or {}
+    final = o.get("final_state") or {}
+    if initial.get("pod_count") != 1 or final.get("pod_count") != 1:
+        return False, "the Q3 workload did not remain a single observable pod", False, False
+    requests = initial.get("requests") or {}
+    if requests.get("cpu_m") is None or requests.get("memory_mib") is None:
+        return False, "the initial CPU or memory request was missing", False, False
+
+    cpu_p90 = usage["cpu_p90_m"]
+    memory_p90 = usage["memory_p90_mib"]
+    pressure = cpu_p90 >= t["cpu_pressure_m"] and memory_p90 >= t["memory_pressure_mib"]
+    stable = (o.get("requests_unchanged") is True and o.get("pod_uid_unchanged") is True
+              and o.get("restart_delta") == t["restarts"])
+
+    recommendation = o.get("recommendation")
+    if not o.get("vpa_present"):
+        if recommendation:
+            return False, "a VPA recommendation appeared without the Q3 VPA object", False, False
+        why = (f"{usage.get('samples')} samples, CPU p90 {cpu_p90}m, memory p90 {memory_p90}MiB; "
+               f"no VPA recommendation; requests {requests.get('cpu')}/{requests.get('memory')}")
+        return True, why, pressure, False
+
+    if o.get("update_mode") != "Off":
+        return False, f"VPA updateMode was {o.get('update_mode')!r}, expected 'Off'", False, False
+    if not recommendation:
+        return False, "the VPA status contained no target-container recommendation", False, False
+    if o.get("recommendation_s") is None:
+        return False, "the recommendation publication time was not measured", False, False
+
+    for key in ("lowerBound", "target", "upperBound"):
+        values = recommendation.get(key) or {}
+        if not values.get("cpu_m") or not values.get("memory_mib"):
+            return False, f"the VPA {key} CPU or memory value was missing", False, False
+    lower = recommendation["lowerBound"]
+    target = recommendation["target"]
+    upper = recommendation["upperBound"]
+    bounded = (lower["cpu_m"] <= target["cpu_m"] <= upper["cpu_m"]
+               and lower["memory_mib"] <= target["memory_mib"] <= upper["memory_mib"])
+    cpu_ratio = target["cpu_m"] / cpu_p90 if cpu_p90 else None
+    memory_ratio = target["memory_mib"] / memory_p90 if memory_p90 else None
+    related = (cpu_ratio is not None and t["cpu_ratio_min"] <= cpu_ratio <= t["cpu_ratio_max"]
+               and memory_ratio is not None
+               and t["memory_ratio_min"] <= memory_ratio <= t["memory_ratio_max"])
+    above_requests = (target["cpu_m"] > requests["cpu_m"]
+                      and target["memory_mib"] > requests["memory_mib"])
+    healed = (pressure and le(o.get("recommendation_s"), t["recommend_s"])
+              and bounded and related and above_requests and stable)
+    why = (f"{usage.get('samples')} samples, CPU p90 {cpu_p90}m, memory p90 {memory_p90}MiB; "
+           f"recommendation {target.get('cpu')}/{target.get('memory')} at {fmt_s(o.get('recommendation_s'))}, "
+           f"ratios {cpu_ratio:.2f}/{memory_ratio:.2f}; bounded {bounded}, requests unchanged "
+           f"{o.get('requests_unchanged')}, pod unchanged {o.get('pod_uid_unchanged')}, "
+           f"restart delta {o.get('restart_delta')}")
+    return True, why, pressure, healed
+
+
+def judge_n1(o: dict, t: dict):
+    placement = o.get("placement") or {}
+    if placement.get("cross_node") is not True:
+        return False, "the client and server were not on different nodes", False, False
+    capture = o.get("capture") or {}
+    if not capture.get("bytes"):
+        return False, "worker underlay capture was missing", False, False
+    requests = capture.get("probe") or {}
+    if (requests.get("samples") or 0) < t["min_requests"] or requests.get("p95_ms") is None:
+        return False, f"legitimate request telemetry was too thin: {requests}", False, False
+    denied = o.get("denied") or {}
+    if (denied.get("samples") or 0) < t["min_denied"]:
+        return False, f"denied-request telemetry was too thin: {denied}", False, False
+    if o.get("hubble_available") is not True:
+        return False, "Hubble policy telemetry was unavailable", False, False
+    if o.get("policy_drops") is None:
+        return False, "Hubble policy-drop count was missing", False, False
+
+    service_ok = (requests.get("failures") == t["max_failures"]
+                  and requests.get("p95_ms") <= t["p95_ms"])
+    policy_ok = (denied.get("successes") == t["denied_successes"]
+                 and o.get("policy_drops", 0) >= t["min_policy_drops"])
+    config = str(o.get("wireguard_config") or "").lower()
+    if config not in ("true", "false"):
+        return False, f"Cilium WireGuard configuration telemetry was missing ({config!r})", False, False
+
+    native = t.get("datapath") == "native"
+    if native:
+        # ADR-0023: native routing has no tunnel. The capture must name the physical NICs it read and
+        # count the plaintext pod traffic, or there is nothing to judge.
+        if not capture.get("interfaces"):
+            return False, "N1 underlay interface telemetry was missing", False, False
+        if capture.get("plain_packets") is None:
+            return False, "N1 plaintext packet telemetry was missing", False, False
+
+    if config != "true":
+        if native:
+            baseline_capture = (capture.get("plain_packets", 0) >= t["min_packets"]
+                                and capture.get("wireguard_packets") == 0
+                                and capture.get("marker_visible") is True)
+            impact = baseline_capture and service_ok and policy_ok
+            why = (f"plaintext pod packets {capture.get('plain_packets')} on {capture.get('interfaces')}, WireGuard "
+                   f"{capture.get('wireguard_packets')}, marker visible {capture.get('marker_visible')}; "
+                   f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+                   f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+                   f"policy drops {o.get('policy_drops')}")
+            return True, why, impact, False
+        baseline_capture = (capture.get("vxlan_packets", 0) >= t["min_packets"]
+                            and capture.get("wireguard_packets") == 0
+                            and capture.get("marker_visible") is True)
+        impact = baseline_capture and service_ok and policy_ok
+        why = (f"VXLAN {capture.get('vxlan_packets')} attributed packets "
+               f"({capture.get('vxlan_packets_total', capture.get('vxlan_packets'))} total), WireGuard "
+               f"{capture.get('wireguard_packets')}, marker visible {capture.get('marker_visible')}; "
+               f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+               f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+               f"policy drops {o.get('policy_drops')}")
+        return True, why, impact, False
+
+    wireguard = o.get("wireguard")
+    if not wireguard:
+        return False, "Cilium WireGuard status was missing", False, False
+    peer_evidence = (wireguard.get("client_interfaces") == t["interfaces"]
+                     and wireguard.get("server_interfaces") == t["interfaces"]
+                     and wireguard.get("client_peer_count", 0) >= t["min_peers"]
+                     and wireguard.get("server_peer_count", 0) >= t["min_peers"]
+                     and wireguard.get("peer_keys_match") is True
+                     and wireguard.get("client_routes_server") is True
+                     and wireguard.get("server_routes_client") is True
+                     and wireguard.get("client_handshake") is True
+                     and wireguard.get("server_handshake") is True)
+    if native:
+        # No pod TCP between the two pod addresses may leave on a physical NIC, and the marker must
+        # not be visible there. VXLAN does not exist on this datapath, so its absence proves nothing.
+        encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
+                             and capture.get("plain_packets") == 0
+                             and capture.get("marker_visible") is False)
+    else:
+        encrypted_capture = (capture.get("wireguard_packets", 0) >= t["min_packets"]
+                             and capture.get("vxlan_packets") == 0
+                             and capture.get("marker_visible") is False)
+    healed = service_ok and policy_ok and peer_evidence and encrypted_capture
+    if native:
+        why = (f"WireGuard {capture.get('wireguard_packets')} packets, plaintext pod packets "
+               f"{capture.get('plain_packets')} on {capture.get('interfaces')}, marker visible "
+               f"{capture.get('marker_visible')}; peers match {wireguard.get('peer_keys_match')}, pod routes "
+               f"{wireguard.get('client_routes_server')}/{wireguard.get('server_routes_client')}, handshakes "
+               f"{wireguard.get('client_handshake')}/{wireguard.get('server_handshake')}; "
+               f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+               f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+               f"policy drops {o.get('policy_drops')}")
+        return True, why, True, healed
+    why = (f"WireGuard {capture.get('wireguard_packets')} packets, VXLAN "
+           f"{capture.get('vxlan_packets')} attributed "
+           f"({capture.get('vxlan_packets_total', capture.get('vxlan_packets'))} total), "
+           f"marker visible {capture.get('marker_visible')}; "
+           f"peers match {wireguard.get('peer_keys_match')}, routes "
+           f"{wireguard.get('client_routes_server')}/{wireguard.get('server_routes_client')}, "
+           f"handshakes {wireguard.get('client_handshake')}/{wireguard.get('server_handshake')}; "
+           f"requests {requests.get('samples')} with {requests.get('failures')} failures, "
+           f"p95 {requests.get('p95_ms')} ms; denied successes {denied.get('successes')}, "
+           f"policy drops {o.get('policy_drops')}")
+    return True, why, True, healed
+
+
+def judge_p1(o: dict, t: dict):
+    digest = str(o.get("digest") or "")
+    if not digest.startswith("sha256:") or len(digest) != 71:
+        return False, f"expected artifact digest was missing or malformed ({digest!r})", False, False
+    preparation = o.get("preparation") or {}
+    required_preparation = (
+        "one_digest", "trusted_valid", "unsigned_absent", "invalid_claim_rejected",
+        "untrusted_rejected_by_trust_root", "untrusted_valid_with_own_key",
+    )
+    missing = [name for name in required_preparation if preparation.get(name) is not True]
+    if missing:
+        return False, f"signature preparation evidence missing or false: {', '.join(missing)}", False, False
+    admissions = o.get("admissions") or {}
+
+    def admitted(case: str) -> bool:
+        item = admissions.get(case) or {}
+        return (item.get("returncode") == 0 and item.get("pod_created") is True
+                and le(item.get("elapsed_s"), t["admission_s"])
+                and le(item.get("ready_s"), t["ready_s"])
+                and str(item.get("image_id") or "").endswith("@" + digest))
+
+    def rejected(case: str) -> bool:
+        item = admissions.get(case) or {}
+        reason = str(item.get("reason") or "")
+        attributable = ("p1-trusted-signature" in reason or "P1 requires" in reason
+                        or "digest" in reason.lower() or "image signature" in reason.lower())
+        lowered = reason.lower()
+        # ADR-0021 amendment: a network-policy outage drops packets silently, so the verifier can hang
+        # until the webhook times out, and the API server then names the webhook, not the policy. That
+        # is an attributable denial for the outage case only, and only on a cloud, where the judge has
+        # already required Hubble drops from the admission controller before it gets here.
+        if (case == "verifier_outage" and t.get("min_outage_drops")
+                and "failed calling webhook" in lowered
+                and any(word in lowered for word in ("deadline exceeded", "timeout", "timed out"))):
+            attributable = True
+        return (item.get("returncode") not in (None, 0) and item.get("pod_created") is False
+                and le(item.get("elapsed_s"), t["admission_s"])
+                and bool(reason) and attributable)
+
+    if o.get("policy_present") is not True:
+        cases = ("trusted", "unsigned", "invalid", "untrusted", "tag_only")
+        impact = all(admitted(case) for case in cases)
+        why = ("no P1 policy; admitted signed, unsigned, copied-invalid, untrusted-signer, and tag-only "
+               f"references at {digest}")
+        return True, why, impact, False
+
+    if o.get("policy_ready") is not True:
+        return False, "P1 policy readiness telemetry was missing", False, False
+    if o.get("metrics_available") is not True:
+        return False, "Kyverno admission metrics were missing", False, False
+    if o.get("policy_report_pass") is not True:
+        return False, "the trusted running Pod had no positive P1 PolicyReport", False, False
+    metrics = o.get("metric_delta") or {}
+    passed = metrics.get("pass", 0)
+    rejected_decisions = metrics.get("fail", 0) + metrics.get("error", 0)
+    if passed < t["min_pass_decisions"] or rejected_decisions < t["min_reject_decisions"]:
+        return False, (f"P1 decision telemetry was incomplete (pass {passed}, "
+                       f"fail or error {rejected_decisions})"), False, False
+    min_drops = t.get("min_outage_drops", 0)
+    if min_drops:
+        # ADR-0021: a cloud outage is a network policy, so the denial is only
+        # attributable if Hubble saw the admission controller's egress dropped.
+        # Without drops the policy was not enforced (a pooled connection, or a
+        # slow rollout), which is an error, never a miss and never a pass.
+        drops = (o.get("outage") or {}).get("policy_drops")
+        if drops is None:
+            return False, "the verifier outage had no Hubble drop telemetry", False, False
+        if drops < min_drops:
+            return False, (f"the verifier outage policy produced {drops} Hubble drops, expected at least "
+                           f"{min_drops}; the egress policy was not enforced"), False, False
+    negatives = ("unsigned", "invalid", "untrusted", "tag_only", "verifier_outage")
+    healed = (admitted("trusted") and admitted("recovery")
+              and all(rejected(case) for case in negatives)
+              and le(admissions.get("recovery_s"), t["recovery_s"]))
+    why = (f"trusted and recovered images ran at {digest}; denied "
+           f"{', '.join(negatives)}; policy metrics pass {passed}, fail or error {rejected_decisions}; "
+           f"verifier recovery {admissions.get('recovery_s')}s")
+    return True, why, True, healed
+
+
+def judge_d1(o: dict, t: dict):
+    source = o.get("source") or {}
+    source_ok = (source.get("available") is True and source.get("rows") == t["rows"]
+                 and source.get("min_seq") == 1 and source.get("max_seq") == t["rows"]
+                 and source.get("contiguous") is True and source.get("exact") is True
+                 and bool(source.get("digest")))
+    if not source_ok:
+        return False, f"deterministic source data telemetry was missing or invalid ({source})", False, False
+
+    loss = o.get("loss") or {}
+    if o.get("backup") is None:
+        impact = (o.get("cronjob_present") is False
+                  and loss.get("original_data_absent") is True
+                  and o.get("restore_available") is False)
+        why = "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available"
+        return True, why, impact, False
+
+    backup = o.get("backup") or {}
+    restore = o.get("restore") or {}
+    restored = o.get("restored") or {}
+    invalid = o.get("invalid_restore") or {}
+    resistance = o.get("deletion_resistance") or {}
+    sentinel = o.get("post_backup_sentinel") or {}
+    required = {
+        "backup.job_name": backup.get("job_name"),
+        "backup.job_uid": backup.get("job_uid"),
+        "backup.completed": backup.get("completed"),
+        "backup.completion_s": backup.get("completion_s"),
+        "backup.backup_id": backup.get("backup_id"),
+        "backup.archive_key": backup.get("archive_key"),
+        "backup.archive_sha256": backup.get("archive_sha256"),
+        "backup.manifest_sha256": backup.get("manifest_sha256"),
+        "backup.source_max_seq": backup.get("source_max_seq"),
+        "backup.created_at": backup.get("created_at"),
+        "backup.object_version": backup.get("object_version"),
+        "backup.object_size": backup.get("object_size"),
+        "backup.retention_mode": backup.get("retention_mode"),
+        "backup.retention_days": backup.get("retention_days"),
+        "restore.job_name": restore.get("job_name"),
+        "restore.job_uid": restore.get("job_uid"),
+        "restore.completed": restore.get("completed"),
+        "restore.completion_s": restore.get("completion_s"),
+        "restore.target_namespace": restore.get("target_namespace"),
+        "restore.target_database": restore.get("target_database"),
+        "restore.archive_sha256": restore.get("archive_sha256"),
+        "restored.digest": restored.get("digest"),
+        "rpo_rows": o.get("rpo_rows"),
+        "rpo_seconds": o.get("rpo_seconds"),
+        "rto_s": o.get("rto_s"),
+        "invalid.job_uid": invalid.get("job_uid"),
+        "invalid.failed": invalid.get("failed"),
+        "invalid.application_tables": invalid.get("application_tables"),
+        "delete.writer": resistance.get("writer_delete_denied"),
+        "delete.admin": resistance.get("admin_version_delete_denied"),
+        "delete.archive_readable": resistance.get("archive_readable_after"),
+        "delete.manifest_readable": resistance.get("manifest_readable_after"),
+    }
+    missing = [name for name, value in required.items() if value is None or value == ""]
+    if missing:
+        return False, f"D1 required telemetry missing: {', '.join(missing)}", False, False
+
+    if t.get("admin_attribution"):
+        # ADR-0022 decision 8: on a cloud the administrator is the operator identity. A refusal only
+        # counts as retention if the operator was first shown to hold the delete permission, and an
+        # unrecognised refusal is an error, never a pass. A delete that succeeded stays a miss.
+        if resistance.get("admin_permission_checked") is not True:
+            return False, ("the administrator delete permission was not proven, so a refusal could be a "
+                           f"permission gap ({resistance.get('admin_permission_reason')!r})"), False, False
+        if resistance.get("admin_deleted") is False and resistance.get("admin_refusal_recognised") is not True:
+            return False, ("the administrator version delete was refused for an unrecognised reason: "
+                           f"{resistance.get('admin_reason')!r}"), False, False
+
+    archive_sha = str(backup.get("archive_sha256"))
+    manifest_sha = str(backup.get("manifest_sha256"))
+    checksums_well_formed = (len(archive_sha) == 64 and len(manifest_sha) == 64)
+    restored_ok = (restored.get("available") is True and restored.get("rows") == t["rows"]
+                   and restored.get("min_seq") == 1 and restored.get("max_seq") == t["rows"]
+                   and restored.get("contiguous") is True and restored.get("exact") is True
+                   and restored.get("digest") == source.get("digest"))
+    negative_ok = invalid.get("failed") is True and invalid.get("application_tables") == 0
+    deletion_ok = (resistance.get("writer_delete_denied") is True
+                   and resistance.get("admin_version_delete_denied") is True
+                   and resistance.get("archive_readable_after") is True
+                   and resistance.get("manifest_readable_after") is True)
+    healed = (
+        backup.get("completed") is True
+        and le(backup.get("completion_s"), t["backup_s"])
+        and backup.get("source_max_seq") == t["rows"]
+        and backup.get("retention_mode") == t.get("retention_mode", "COMPLIANCE")
+        and backup.get("retention_days") == t["retention_days"]
+        and checksums_well_formed
+        and sentinel.get("seq") == t["rows"] + 1
+        and sentinel.get("acknowledged") is True
+        and loss.get("original_data_absent") is True
+        and restore.get("completed") is True
+        and le(restore.get("completion_s"), t["restore_s"])
+        and restore.get("target_namespace") == "selfheal-d1-restore"
+        and restore.get("target_database") == "d1"
+        and restore.get("archive_sha256") == archive_sha
+        and restored_ok
+        and o.get("rpo_rows") == t["rpo_rows"]
+        and le(o.get("rto_s"), t["rto_s"])
+        and negative_ok
+        and deletion_ok
+    )
+    why = (f"backup {backup.get('backup_id')} version {backup.get('object_version')} completed in "
+           f"{fmt_s(backup.get('completion_s'))}; restored {restored.get('rows')} exact rows into "
+           f"{restore.get('target_namespace')}/{restore.get('target_database')} in "
+           f"{fmt_s(o.get('rto_s'))}; RPO {o.get('rpo_rows')} row and {fmt_s(o.get('rpo_seconds'))}; "
+           f"truncated restore failed atomically {negative_ok}; writer and WORM deletion denied {deletion_ok}")
+    return True, why, True, healed
+
+
+def judge_o1(o: dict, t: dict):
+    """Judge O1 without converting absent control telemetry into a pass."""
+    rbac = o.get("rbac") or {}
+    if "controller_recovered_s" not in o:
+        impact = (
+            o.get("quota_present") is False
+            and o.get("limit_range_present") is False
+            and o.get("oversized_admitted") is True
+            and rbac.get("get_secret") is True
+            and rbac.get("delete_target") is True
+            and rbac.get("patch_quarantine") is True
+            and o.get("direct_release_allowed") is True
+            and not o.get("evidence_before_release")
+            and o.get("controller_present") is False
+            and o.get("receiver_present") is False
+        )
+        why = ("no namespace budget or default limits; the broad operator could read the synthetic Secret, "
+               "delete or patch the target, and directly release quarantine without evidence, a controller, "
+               "or an alert receiver")
+        return True, why, impact, False
+
+    evidence = o.get("evidence") or {}
+    alert = o.get("alert") or {}
+    required_keys = [
+        "quota_present", "limit_range_present", "oversized_admitted",
+        "direct_release_allowed", "release_request_accepted", "gated_before_evidence",
+        "controller_old_uid", "controller_new_uid", "controller_recovered_s",
+        "quarantine_blocked_before", "evidence_s", "alert_s", "release_s",
+        "release_after_evidence", "connectivity_after_release",
+    ]
+    missing = [name for name in required_keys if name not in o or o.get(name) is None]
+    for name in ("get_secret", "delete_target", "patch_quarantine", "patch_release"):
+        if name not in rbac:
+            missing.append(f"rbac.{name}")
+    for name in ("target_uid", "target_resource_version", "target_image", "captured_at"):
+        if not evidence.get(name):
+            missing.append(f"evidence.{name}")
+    for name in ("kind", "target_uid", "evidence_resource_version"):
+        if not alert.get(name):
+            missing.append(f"alert.{name}")
+    defaults = o.get("default_resources") or {}
+    if not defaults.get("requests") or not defaults.get("limits"):
+        missing.append("default_resources")
+    if missing:
+        return False, f"O1 required telemetry missing: {', '.join(missing)}", False, False
+
+    defaults_ok = (
+        defaults.get("requests") == {"cpu": "50m", "memory": "32Mi"}
+        and defaults.get("limits") == {"cpu": "200m", "memory": "128Mi"}
+    )
+    rbac_ok = (
+        rbac.get("get_secret") is False
+        and rbac.get("delete_target") is False
+        and rbac.get("patch_quarantine") is False
+        and rbac.get("patch_release") is True
+    )
+    sequence_ok = (
+        o.get("gated_before_evidence") is True
+        and o.get("release_after_evidence") is True
+        and alert.get("kind") == "quarantine"
+        and alert.get("target_uid") == evidence.get("target_uid")
+    )
+    healed = (
+        o.get("quota_present") is True
+        and o.get("limit_range_present") is True
+        and defaults_ok
+        and o.get("oversized_admitted") is False
+        and rbac_ok
+        and o.get("direct_release_allowed") is False
+        and o.get("release_request_accepted") is True
+        and o.get("controller_old_uid") != o.get("controller_new_uid")
+        and le(o.get("controller_recovered_s"), t["controller_recover_s"])
+        and o.get("quarantine_blocked_before") is True
+        and le(o.get("evidence_s"), t["evidence_s"])
+        and le(o.get("alert_s"), t["alert_s"])
+        and le(o.get("release_s"), t["release_s"])
+        and sequence_ok
+        and o.get("connectivity_after_release") is True
+    )
+    why = (f"quota and defaults enforced {defaults_ok}; operator least privilege {rbac_ok}; controller replaced "
+           f"in {fmt_s(o.get('controller_recovered_s'))}; evidence {fmt_s(o.get('evidence_s'))}, alert "
+           f"{fmt_s(o.get('alert_s'))}, release {fmt_s(o.get('release_s'))}; evidence-gated sequence "
+           f"{sequence_ok}; connectivity restored {o.get('connectivity_after_release')}")
+    return True, why, True, healed
 
 
 def judge_a4(o: dict, t: dict):
@@ -491,7 +1196,9 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
 
 JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": judge_a5,
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
-          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2}
+          "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
+          "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1,
+          "O1": judge_o1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

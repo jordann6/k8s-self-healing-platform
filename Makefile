@@ -2,6 +2,13 @@
 # on EKS, and the Azure module on AKS.
 #
 #   make up        kind + Cilium + every platform chart + bootstrap (zero spend)
+#   make q1-up     kind + only the controllers and workloads required by Q1
+#   make q2-up     kind + only the controllers and workloads required by Q2
+#   make q3-up     kind + only the controllers and workloads required by Q3
+#   make n1-up     multi-node kind + only the components required by N1
+#   make p1-up     kind + local registry + Kyverno signed-image admission
+#   make d1-up     kind + PostgreSQL + retained local object backup
+#   make o1-up     kind + operational readiness boundary and controller
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
 #   make down      delete the kind cluster
 #
@@ -43,6 +50,11 @@ TALON_VERSION           := 0.5.0    # app 0.3.0 (alpha, pinned; actionner kubern
 SLOTH_IMAGE             := ghcr.io/slok/sloth:v0.13.0
 K6_IMAGE                := grafana/k6:2.3.0
 KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
+KEDA_VERSION            := 2.21.0    # kind and EKS; AKS uses its managed add-on
+VPA_VERSION             := 0.16.0    # app 1.8.1, recommender only, row Q3 on kind, EKS and AKS (ADR-0020)
+RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
+KYVERNO_VERSION         := 3.9.2     # app v1.19.2, row P1 on kind, EKS and AKS (ADR-0021)
+POSTGRES_VERSION        := 17.11-alpine3.24
 
 HELM := helm
 
@@ -57,6 +69,27 @@ help: ## List targets
 .PHONY: up
 up: kind-up platform bootstrap ## Everything: cluster, platform, bootstrap
 
+.PHONY: q1-up
+q1-up: q1-kind-up q1-platform q1-bootstrap ## Focused Q1 cluster without unrelated platform controllers
+
+.PHONY: q2-up
+q2-up: q2-kind-up q2-platform q2-bootstrap ## Focused Q2 cluster without unrelated platform controllers
+
+.PHONY: q3-up
+q3-up: q3-kind-up q3-platform q3-bootstrap ## Focused Q3 cluster without unrelated platform controllers
+
+.PHONY: n1-up
+n1-up: n1-kind-up n1-platform n1-bootstrap ## Focused multi-node N1 WireGuard proof
+
+.PHONY: p1-up
+p1-up: p1-kind-up p1-platform p1-bootstrap ## Focused P1 signed-image admission proof
+
+.PHONY: d1-up
+d1-up: d1-kind-up d1-platform d1-bootstrap ## Focused D1 backup, restore, and deletion-resistance proof
+
+.PHONY: o1-up
+o1-up: o1-kind-up o1-platform o1-bootstrap ## Focused O1 operational-readiness proof
+
 .PHONY: kind-up
 kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the lab images
 	mkdir -p .kube
@@ -67,13 +100,139 @@ kind-up: ## Create the kind cluster, install pinned Cilium + Hubble, load the la
 	cilium/readiness-gate.sh
 	$(MAKE) images
 
+.PHONY: q1-kind-up
+q1-kind-up: ## Create the kind cluster, install Cilium, and load only Q1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) q1-images
+
+.PHONY: q2-kind-up
+q2-kind-up: ## Create the kind cluster, install Cilium, and load only Q2 images
+	mkdir -p .kube
+	kind create cluster --config kind/q2-cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) q2-images
+
+.PHONY: q3-kind-up
+q3-kind-up: ## Create the kind cluster, install Cilium, and load only Q3 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) q3-images
+
+.PHONY: n1-kind-up
+n1-kind-up: ## Create N1's two-worker kind cluster and baseline Cilium datapath
+	mkdir -p .kube
+	kind create cluster --config kind/n1-cluster.yaml --kubeconfig $(KUBECONFIG)
+	kubectl apply -f bootstrap/n1-capture-namespace.yaml
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system \
+		-f cilium/values.yaml -f cilium/n1-baseline.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) n1-images
+
+.PHONY: p1-kind-up
+p1-kind-up: ## Create P1's kind cluster and local OCI registry, then publish one signed artifact
+	scripts/p1-registry.sh up
+	mkdir -p .kube
+	kind create cluster --config kind/p1-cluster.yaml --kubeconfig $(KUBECONFIG)
+	scripts/p1-registry.sh configure
+	$(MAKE) repos
+	$(MAKE) p1-images
+
+.PHONY: d1-kind-up
+d1-kind-up: ## Create the kind cluster, install Cilium, and load only D1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) d1-images
+
+.PHONY: o1-kind-up
+o1-kind-up: ## Create the kind cluster, install Cilium, and load only O1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) o1-images
+
 .PHONY: images
 images: ## Build and load the app (v1, v2) and Git server images
 	docker build -q -t selfheal-app:v1 --build-arg RELEASE=v1 app
 	docker build -q -t selfheal-app:v2 --build-arg RELEASE=v2 app
 	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-qworker:v1 app/qworker
+	docker build -q -t selfheal-d1-tool:v1 app/d1
+	docker build -q -t selfheal-d1-minio:v1 -f app/d1/minio.Dockerfile app/d1
+	docker build -q -t selfheal-o1:v1 app/o1
 	docker pull -q $(K6_IMAGE) >/dev/null
-	kind load docker-image selfheal-app:v1 selfheal-app:v2 selfheal-gitserver:dev $(K6_IMAGE) --name $(KIND_CLUSTER)
+	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
+	docker pull -q postgres:$(POSTGRES_VERSION) >/dev/null
+	kind load docker-image selfheal-app:v1 selfheal-app:v2 selfheal-gitserver:dev selfheal-qworker:v1 \
+		selfheal-d1-tool:v1 selfheal-d1-minio:v1 selfheal-o1:v1 $(K6_IMAGE) $(RABBITMQ_IMAGE) \
+		postgres:$(POSTGRES_VERSION) --name $(KIND_CLUSTER)
+
+.PHONY: q1-images
+q1-images: ## Build and load only the Git server, Q1 worker, and RabbitMQ images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-qworker:v1 app/qworker
+	docker pull -q $(RABBITMQ_IMAGE) >/dev/null
+	kind load docker-image selfheal-gitserver:dev selfheal-qworker:v1 $(RABBITMQ_IMAGE) --name $(KIND_CLUSTER)
+
+.PHONY: q2-images
+q2-images: ## Build and load only the Git server and Q2 workload image
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-q2:v1 app/q2
+	kind load docker-image selfheal-gitserver:dev selfheal-q2:v1 --name $(KIND_CLUSTER)
+
+.PHONY: q3-images
+q3-images: ## Build and load only the Git server and Q3 workload image
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-q3:v1 app/q3
+	kind load docker-image selfheal-gitserver:dev selfheal-q3:v1 --name $(KIND_CLUSTER)
+
+.PHONY: n1-images
+n1-images: ## Build and load only the Git server and N1 workload images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-n1:v1 app/n1
+	docker build -q -t selfheal-n1-capture:v1 app/n1-capture
+	kind load docker-image selfheal-gitserver:dev selfheal-n1:v1 selfheal-n1-capture:v1 --name $(KIND_CLUSTER)
+
+.PHONY: p1-images
+p1-images: ## Build one P1 artifact and prepare trusted and rejected signature states
+	scripts/p1-images.sh
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	kind load docker-image selfheal-gitserver:dev --name $(KIND_CLUSTER)
+
+.PHONY: d1-images
+d1-images: ## Build the D1 tool and load PostgreSQL, MinIO, and Git server images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-d1-tool:v1 app/d1
+	docker build -q -t selfheal-d1-minio:v1 -f app/d1/minio.Dockerfile app/d1
+	docker pull -q postgres:$(POSTGRES_VERSION) >/dev/null
+	kind load docker-image selfheal-gitserver:dev selfheal-d1-tool:v1 selfheal-d1-minio:v1 \
+		postgres:$(POSTGRES_VERSION) --name $(KIND_CLUSTER)
+
+.PHONY: o1-images
+o1-images: ## Build and load the O1 target, controller, receiver, and Git server images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-o1:v1 app/o1
+	kind load docker-image selfheal-gitserver:dev selfheal-o1:v1 --name $(KIND_CLUSTER)
 
 .PHONY: repos
 repos:
@@ -86,12 +245,17 @@ repos:
 	@helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
 	@helm repo add chaos-mesh https://charts.chaos-mesh.org >/dev/null 2>&1 || true
 	@helm repo add falcosecurity https://falcosecurity.github.io/charts >/dev/null 2>&1 || true
+	@helm repo add kedacore https://kedacore.github.io/charts >/dev/null 2>&1 || true
+	@helm repo add autoscalers https://kubernetes.github.io/autoscaler >/dev/null 2>&1 || true
+	@helm repo add kyverno https://kyverno.github.io/kyverno/ >/dev/null 2>&1 || true
 	@helm repo update >/dev/null
 
 .PHONY: platform
 platform: repos ## Install every platform chart (order matters: Prometheus CRDs first)
 	$(HELM) upgrade --install metrics-server metrics-server/metrics-server --version $(METRICS_SERVER_VERSION) \
 		-n kube-system -f platform/metrics-server.yaml --wait
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
 	$(HELM) upgrade --install kps prometheus-community/kube-prometheus-stack --version $(KPS_VERSION) \
 		-n monitoring --create-namespace -f platform/kube-prometheus-stack.yaml --wait --timeout 10m
 	$(HELM) upgrade --install cert-manager jetstack/cert-manager --version $(CERT_MANAGER_VERSION) \
@@ -115,13 +279,87 @@ platform: repos ## Install every platform chart (order matters: Prometheus CRDs 
 	$(HELM) upgrade --install falco falcosecurity/falco --version $(FALCO_VERSION) \
 		-n falco -f platform/falco.yaml --wait --timeout 10m
 
+.PHONY: q1-platform
+q1-platform: repos ## Install only KEDA and Argo CD for the focused Q1 proof
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: q2-platform
+q2-platform: repos ## Install only KEDA and Argo CD for the focused Q2 proof
+	$(HELM) upgrade --install keda kedacore/keda --version $(KEDA_VERSION) \
+		-n keda --create-namespace -f platform/keda.yaml --wait
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: q3-platform
+q3-platform: repos ## Install Metrics Server, VPA recommender, and Argo CD for focused Q3
+	$(HELM) upgrade --install metrics-server metrics-server/metrics-server --version $(METRICS_SERVER_VERSION) \
+		-n kube-system -f platform/metrics-server.yaml --wait
+	$(HELM) upgrade --install vpa autoscalers/vertical-pod-autoscaler --version $(VPA_VERSION) \
+		-n vpa --create-namespace -f platform/vpa.yaml --wait
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: n1-platform
+n1-platform: repos ## Install only Argo CD after Cilium for focused N1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: p1-platform
+p1-platform: repos ## Install Kyverno and Argo CD for focused P1
+	$(HELM) upgrade --install kyverno kyverno/kyverno --version $(KYVERNO_VERSION) \
+		-n kyverno --create-namespace -f platform/kyverno.yaml --wait --timeout 10m
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: d1-platform
+d1-platform: repos ## Install only Argo CD for focused D1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
+.PHONY: o1-platform
+o1-platform: repos ## Install only Argo CD after Cilium for focused O1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: bootstrap
 bootstrap: ## CA, backend key, partner keys, baseline cert, seed Git, Argo CD root app
 	scripts/bootstrap.sh
 
+.PHONY: q1-bootstrap
+q1-bootstrap: ## Namespaces, RabbitMQ credentials, Git seed, and the Q1 Argo CD app
+	FOCUSED_Q1=1 scripts/bootstrap.sh
+
+.PHONY: q2-bootstrap
+q2-bootstrap: ## Namespaces, Git seed, and the Q2 Argo CD app
+	FOCUSED_Q2=1 scripts/bootstrap.sh
+
+.PHONY: q3-bootstrap
+q3-bootstrap: ## Namespaces, Git seed, and the Q3 Argo CD app
+	FOCUSED_Q3=1 scripts/bootstrap.sh
+
+.PHONY: n1-bootstrap
+n1-bootstrap: ## Namespaces, Git seed, and the N1 Argo CD app
+	FOCUSED_N1=1 scripts/bootstrap.sh
+
+.PHONY: p1-bootstrap
+p1-bootstrap: ## Inject P1's public trust root, seed Git, and apply the baseline app
+	FOCUSED_P1=1 scripts/bootstrap.sh
+
+.PHONY: d1-bootstrap
+d1-bootstrap: ## Generate runtime credentials, seed Git, and apply the D1 baseline app
+	FOCUSED_D1=1 scripts/bootstrap.sh
+
+.PHONY: o1-bootstrap
+o1-bootstrap: ## Create the O1 namespace, seed Git, and apply the O1 baseline app
+	FOCUSED_O1=1 scripts/bootstrap.sh
+
 .PHONY: down
 down: ## Delete the kind cluster
 	kind delete cluster --name $(KIND_CLUSTER) --kubeconfig $(KUBECONFIG)
+	scripts/p1-registry.sh down
 
 # --- the experiment ---------------------------------------------------------
 
@@ -154,19 +392,47 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
-	cd scripts && python3 -m unittest -v test_redact_evidence
+	cd app/qworker && python3 -m unittest -v test_worker
+	cd app/q2 && python3 -m unittest -v test_app
+	cd app/q3 && python3 -m unittest -v test_app
+	cd app/n1 && python3 -m unittest -v test_app
+	cd app/p1 && python3 -m unittest -v test_app
+	cd app/d1 && python3 -m unittest -v test_scripts test_d1store
+	cd app/d1 && python3 -m unittest -v test_scripts
+	cd app/o1 && python3 -m unittest -v test_app
+	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry test_argocd_inclusions test_d1_store_guard
 
 .PHONY: check
-check: test eks-check aks-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
+check: test eks-check aks-check d1-store-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
+	kubectl kustomize gitops/q1/baseline >/dev/null
+	kubectl kustomize gitops/q1/hardened >/dev/null
+	kubectl kustomize gitops/q2/baseline >/dev/null
+	kubectl kustomize gitops/q2/hardened >/dev/null
+	scripts/render-q2-profiles.sh
+	kubectl kustomize gitops/q3/baseline >/dev/null
+	kubectl kustomize gitops/q3/hardened >/dev/null
+	scripts/render-q3-profiles.sh
+	kubectl kustomize gitops/n1/baseline >/dev/null
+	kubectl kustomize gitops/n1/hardened >/dev/null
+	scripts/render-n1-profiles.sh
+	kubectl kustomize gitops/p1/baseline >/dev/null
+	kubectl kustomize gitops/p1/hardened >/dev/null
+	scripts/render-p1-profiles.sh
+	kubectl kustomize gitops/d1/baseline >/dev/null
+	kubectl kustomize gitops/d1/hardened >/dev/null
+	scripts/render-d1-profiles.sh
+	kubectl kustomize gitops/o1/baseline >/dev/null
+	kubectl kustomize gitops/o1/hardened >/dev/null
+	scripts/render-o1-profiles.sh
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py scenarios/run.py scenarios/aks_rows.py infra/aws/responder/handler.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------
@@ -185,7 +451,9 @@ CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(s
 	CERT_MANAGER_VERSION=$(strip $(CERT_MANAGER_VERSION)) ESO_VERSION=$(strip $(ESO_VERSION)) \
 	ROLLOUTS_VERSION=$(strip $(ROLLOUTS_VERSION)) RELOADER_VERSION=$(strip $(RELOADER_VERSION)) \
 	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
-	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION))
+	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION)) \
+	KEDA_VERSION=$(strip $(KEDA_VERSION)) VPA_VERSION=$(strip $(VPA_VERSION)) \
+	KYVERNO_VERSION=$(strip $(KYVERNO_VERSION))
 EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
 
 .PHONY: eks-check
@@ -212,16 +480,60 @@ eks-cost: ## Infracost estimate of the full stack (before any live session)
 eks-preflight: ## Read-only checks: accounts, Config recorder, GuardDuty admin, leftovers, quota, IPv4
 	scripts/eks-preflight.sh
 
+# --- D1 WORM stores (ADR-0022). Their own roots, planned and applied by hand, because the
+# S3 COMPLIANCE default and the Azure Locked policy cannot be undone. Read each plan.
+.PHONY: d1-store-aws-plan
+d1-store-aws-plan: eks-preflight ## Plan the S3 Object Lock bucket (own root, COMPLIANCE 1 day) and print the apply command
+	AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=infra/d1-store-aws init -input=false
+	AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=infra/d1-store-aws plan -input=false -out=tfplan -var-file=$(CURDIR)/infra/aws/lab.auto.tfvars
+	@echo; echo "COMPLIANCE retention cannot be undone. Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/d1-store-aws apply $(CURDIR)/infra/d1-store-aws/tfplan"
+	@echo "Then plan the cluster with:  make eks-plan EKS_PLAN_ARGS=-var=d1_store_bucket=<the bucket output>"
+
+.PHONY: d1-store-azure-plan
+d1-store-azure-plan: ## Plan the Blob account (own root and resource group, Locked 1-day version-level policy)
+	terraform -chdir=infra/d1-store-azure init -input=false
+	terraform -chdir=infra/d1-store-azure plan -input=false -out=tfplan -var-file=$(CURDIR)/infra/azure/lab.auto.tfvars
+	@echo; echo "A Locked policy cannot be deleted or shortened. Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/d1-store-azure apply $(CURDIR)/infra/d1-store-azure/tfplan"
+	@echo "Then plan the cluster with:  make aks-plan AKS_PLAN_ARGS=-var=d1_store_account_id=<the account_id output>"
+
+.PHONY: d1-store-destroy-plan
+d1-store-destroy-plan: ## Second step, 24h+ later: refuses before retention ends, then writes the destroy plan (CLOUD=aws|azure)
+	scripts/d1-store-destroy.sh $(CLOUD) plan
+
+.PHONY: d1-store-azure-empty
+d1-store-azure-empty: ## Azure only: delete expired blob versions and the container before the destroy plan (refused before expiry)
+	scripts/d1-store-destroy.sh azure empty
+
+.PHONY: d1-store-check
+d1-store-check: ## Terraform gates for both WORM store roots (no credentials)
+	terraform fmt -check -recursive infra/d1-store-aws infra/d1-store-azure
+	terraform -chdir=infra/d1-store-aws init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/d1-store-aws validate
+	terraform -chdir=infra/d1-store-azure init -backend=false -input=false >/dev/null
+	terraform -chdir=infra/d1-store-azure validate
+	tflint --chdir=infra/d1-store-aws --minimum-failure-severity=warning
+	tflint --chdir=infra/d1-store-azure --minimum-failure-severity=warning
+	checkov -d infra/d1-store-aws --framework terraform --quiet --compact --skip-path .terraform
+	checkov -d infra/d1-store-azure --framework terraform --quiet --compact --skip-path .terraform
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/d1-store-aws/.terraform infra/d1-store-aws
+	trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs infra/d1-store-azure/.terraform infra/d1-store-azure
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/d1-store-aws/*.tf
+	conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy infra/d1-store-azure/*.tf
+
 .PHONY: eks-plan
 eks-plan: eks-preflight ## Write infra/aws/tfplan (API scoped to your IPv4 /32) and print the apply command
 	infra/aws/rotation/build.sh
 	$(TFA) init -input=false
-	$(TFA) plan -input=false -out=tfplan $(MY_IP_CIDRS)
+	$(TFA) plan -input=false -out=tfplan $(MY_IP_CIDRS) $(EKS_PLAN_ARGS)
 	@echo; echo "Read the plan, then run:  AWS_PROFILE=$(MGMT_PROFILE) terraform -chdir=$(CURDIR)/infra/aws apply $(CURDIR)/infra/aws/tfplan"
 
 .PHONY: eks-platform
 eks-platform: ## Kubeconfig, Cilium ENI, Karpenter, platform charts, responder RBAC (after the apply)
 	$(EKS_ENV) $(CHART_VERSIONS) scripts/eks-platform.sh
+
+.PHONY: eks-p1-images
+eks-p1-images: ## Row P1: build one artifact, copy it to five ECR repos, sign and preflight (after the apply)
+	$(EKS_ENV) P1_TARGET=eks scripts/p1-images.sh
 
 .PHONY: eks-images
 eks-images: ## Build linux/amd64 images, push the git SHA tags to ECR, write the generated overlay
@@ -296,7 +608,7 @@ aks-preflight: ## Read-only checks: subscription, guardrails, providers, quota >
 .PHONY: aks-plan
 aks-plan: aks-preflight ## Write infra/azure/tfplan (API, vault and storage scoped to your IPv4) and print the apply command
 	$(TFZ) init -input=false
-	$(TFZ) plan -input=false -out=tfplan $(MY_IP_AKS)
+	$(TFZ) plan -input=false -out=tfplan $(MY_IP_AKS) $(AKS_PLAN_ARGS)
 	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/azure apply $(CURDIR)/infra/azure/tfplan"
 	@echo "Then, right away (nodes are NotReady until Cilium is in):  make aks-up"
 
@@ -307,6 +619,10 @@ aks-images: ## Build linux/amd64 images, push the git SHA tags to ACR, write the
 .PHONY: aks-platform
 aks-platform: repos ## Kubeconfig (kubelogin), Cilium BYOCNI, platform charts (no metrics-server), R2 worker, remote write proof
 	$(AKS_ENV) $(CHART_VERSIONS) scripts/aks-platform.sh
+
+.PHONY: aks-p1-images
+aks-p1-images: ## Row P1: build one artifact, copy it to five ACR repos, sign and preflight (after the apply)
+	P1_TARGET=aks scripts/p1-images.sh
 
 .PHONY: aks-worker
 aks-worker: ## Reapply only the R2 worker and its egress policy, then prove it polls its queue (L15, L16)

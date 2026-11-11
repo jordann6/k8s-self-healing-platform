@@ -1,0 +1,33 @@
+# O1's synthetic Secret and release request are runtime inputs, not desired
+# application state. Argo CD intentionally excludes Secrets and Lease objects.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: o1-synthetic-sensitive
+  namespace: selfheal-o1
+type: Opaque
+stringData:
+  canary: synthetic-only
+---
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: o1-release
+  namespace: selfheal-o1
+  annotations:
+    o1.security/release: "false"
+spec:
+  holderIdentity: awaiting-operator
+  leaseDurationSeconds: 300
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: quarantine-ingress
+  namespace: selfheal-o1
+spec:
+  podSelector:
+    matchLabels:
+      o1.security/quarantined: "true"
+  policyTypes: ["Ingress"]
+  ingress: []

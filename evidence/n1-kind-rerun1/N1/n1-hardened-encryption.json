@@ -1,0 +1,70 @@
+{
+  "selfheal-worker": {
+    "interfaces": [
+      {
+        "listen-port": 51871,
+        "name": "cilium_wg0",
+        "peer-count": 2,
+        "peers": [
+          {
+            "allowed-ips": [
+              "172.18.0.3/32"
+            ],
+            "endpoint": "172.18.0.3:51871",
+            "last-handshake-time": "2026-11-11T01:13:59.633Z",
+            "public-key": "ekEVFDEG/PsnHkgcbcVYoUApxX4difPcfo+Lznj8Vik=",
+            "transfer-rx": 50228,
+            "transfer-tx": 29452
+          },
+          {
+            "allowed-ips": [
+              "172.18.0.4/32"
+            ],
+            "endpoint": "172.18.0.4:51871",
+            "last-handshake-time": "2026-11-11T01:14:12.824Z",
+            "public-key": "7tMsQuP2lgkbwkmjC4cSmwBTqmIaR0J+/FmqzOz//k0=",
+            "transfer-rx": 65316,
+            "transfer-tx": 41804
+          }
+        ],
+        "public-key": "paP+jj6AwQjSiLsBEcpKR5cjsllXfVtmoz0erMIKYzg="
+      }
+    ],
+    "node-encrypt-opt-out-labels": "node-role.kubernetes.io/control-plane",
+    "node-encryption": "Enabled"
+  },
+  "selfheal-worker2": {
+    "interfaces": [
+      {
+        "listen-port": 51871,
+        "name": "cilium_wg0",
+        "peer-count": 2,
+        "peers": [
+          {
+            "allowed-ips": [
+              "172.18.0.2/32"
+            ],
+            "endpoint": "172.18.0.2:51871",
+            "last-handshake-time": "2026-11-11T01:13:59.633Z",
+            "public-key": "paP+jj6AwQjSiLsBEcpKR5cjsllXfVtmoz0erMIKYzg=",
+            "transfer-rx": 29452,
+            "transfer-tx": 50228
+          },
+          {
+            "allowed-ips": [
+              "172.18.0.4/32"
+            ],
+            "endpoint": "172.18.0.4:51871",
+            "last-handshake-time": "2026-11-11T01:14:08.410Z",
+            "public-key": "7tMsQuP2lgkbwkmjC4cSmwBTqmIaR0J+/FmqzOz//k0=",
+            "transfer-rx": 211580,
+            "transfer-tx": 91908
+          }
+        ],
+        "public-key": "ekEVFDEG/PsnHkgcbcVYoUApxX4difPcfo+Lznj8Vik="
+      }
+    ],
+    "node-encrypt-opt-out-labels": "node-role.kubernetes.io/control-plane",
+    "node-encryption": "Enabled"
+  }
+}

@@ -1,0 +1,12 @@
+# Focused P1 cluster. The default kind CNI is sufficient because admission and
+# OCI verification do not depend on Cilium. The registry host is configured by
+# scripts/p1-registry.sh after the cluster joins Docker's kind network.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: selfheal
+containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry]
+      config_path = "/etc/containerd/certs.d"
+nodes:
+  - role: control-plane

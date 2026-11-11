@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: q2-target
+  labels: {app: q2-target}
+spec:
+  selector: {app: q2-target}
+  ports:
+    - {name: http, port: 8080, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: q2-target
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: q2-target}
+  template:
+    metadata:
+      labels: {app: q2-target}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: target
+          image: selfheal-q2
+          args: ["serve"]
+          env:
+            - {name: WORK_SLOTS, value: "1"}
+            - {name: WORK_MS, value: "60"}
+            - {name: ACQUIRE_TIMEOUT_MS, value: "150"}
+          ports:
+            - {name: http, containerPort: 8080}
+          readinessProbe:
+            httpGet: {path: /, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            requests: {cpu: 250m, memory: 32Mi}
+            limits: {memory: 64Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

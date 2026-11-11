@@ -1,0 +1,33 @@
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: q2-target
+spec:
+  scaleTargetRef: {name: q2-target}
+  minReplicaCount: 1
+  maxReplicaCount: 4
+  pollingInterval: 5
+  cooldownPeriod: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      name: q2-target
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          selectPolicy: Max
+          policies:
+            - {type: Pods, value: 4, periodSeconds: 15}
+        scaleDown:
+          stabilizationWindowSeconds: 10
+          policies:
+            - {type: Percent, value: 100, periodSeconds: 15}
+  triggers:
+    - type: metrics-api
+      metricType: Value
+      metadata:
+        targetValue: "1"
+        activationTargetValue: "0"
+        url: http://q2-signal.selfheal.svc.cluster.local:8081/metric
+        format: json
+        valueLocation: demand
+        timeout: "1000"
