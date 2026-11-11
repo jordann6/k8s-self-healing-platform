@@ -125,7 +125,10 @@ def cloud_admin_delete(h: Any, store: dict[str, str], target: str, key: str,
                 "--account-name", store["AZ_ACCOUNT_URL"].split("//", 1)[1].split(".", 1)[0],
                 "--container-name", store["D1_CONTAINER"], "--auth-mode", "login"]
         permission = h.sh([*base, "--name", probe_key], timeout=90)
-        attempt = h.sh([*base, "--name", key, "--version-id", version], timeout=90)
+        # A blob's backup version is its current version, and Azure refuses a delete by
+        # version id on the current version (OperationNotAllowedOnRootBlob, live 2026-11-11).
+        # The administrator attempt is a plain delete of the blob, which retention refuses.
+        attempt = h.sh([*base, "--name", key], timeout=90)
     permission_text = (permission.stderr or permission.stdout)
     attempt_text = (attempt.stderr or attempt.stdout)
     return {

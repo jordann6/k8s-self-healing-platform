@@ -265,7 +265,7 @@ class CloudContract(unittest.TestCase):
         self.assertEqual(job["spec"]["template"]["spec"]["serviceAccountName"], "d1-backup")
         self.assertEqual(job["spec"]["template"]["metadata"]["labels"]["azure.workload.identity/use"], "true")
 
-    def test_admin_attempt_proves_permission_then_targets_the_retained_version(self):
+    def test_admin_attempt_proves_permission_then_targets_the_retained_object(self):
         for target, store, refusal in (
             ("eks", {"S3_BUCKET": "b", "AWS_REGION": "us-east-1"},
              "An error occurred (AccessDenied) ... because object protected by object lock."),
@@ -286,7 +286,13 @@ class CloudContract(unittest.TestCase):
             self.assertEqual(len(calls), 2)
             self.assertIn("permcheck-b1", " ".join(calls[0]))
             self.assertNotIn("v-1", " ".join(calls[0]))
-            self.assertIn("v-1", " ".join(calls[1]))
+            self.assertIn("backups/b1.dump", " ".join(calls[1]))
+            if target == "eks":
+                self.assertIn("v-1", " ".join(calls[1]))
+            else:
+                # az has no version flag and Azure refuses a delete by id on the current version
+                self.assertNotIn("--version-id", " ".join(calls[1]))
+                self.assertNotIn("v-1", " ".join(calls[1]))
             self.assertTrue(result["admin_permission_checked"], target)
             self.assertFalse(result["admin_deleted"], target)
             self.assertTrue(result["admin_refusal_recognised"], target)
