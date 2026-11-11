@@ -94,7 +94,9 @@ class AzBlob:
 
     def put(self, path: str, key: str) -> dict[str, Any]:
         with open(path, "rb") as stream:
-            response = self.container.upload_blob(key, stream, overwrite=False)
+            # ContainerClient.upload_blob returns a BlobClient, only BlobClient.upload_blob
+            # returns the properties dict that carries version_id.
+            response = self.container.get_blob_client(key).upload_blob(stream, overwrite=False)
         return {"versionID": response.get("version_id"), "size": os.path.getsize(path)}
 
     def get(self, key: str, path: str) -> None:
