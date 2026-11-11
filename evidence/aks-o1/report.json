@@ -1,0 +1,151 @@
+{
+  "run_id": "aks-o1",
+  "target": "aks",
+  "started": "2026-11-11T14:44:20.946Z",
+  "rows": [
+    "O1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "o1_node_labelled": "aks-system-13980686-vmss000000",
+    "o1_synced": true
+  },
+  "versions": {
+    "repo_commit": "fa37786aa8006849eedf1b34ab84df7eeb99df83-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealebab1v.azurecr.io/selfheal/qworker:fa37786",
+    "q2-signal": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "q2-target": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealebab1v.azurecr.io/selfheal/q3:fa37786",
+    "n1-server": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-client": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-denied": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealebab1v.azurecr.io/selfheal/app:fa37786-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "O1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no namespace budget or default limits; the broad operator could read the synthetic Secret, delete or patch the target, and directly release quarantine without evidence, a controller, or an alert receiver",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "quota and defaults enforced True; operator least privilege True; controller replaced in 3s; evidence 0s, alert 2s, release 2s; evidence-gated sequence True; connectivity restored True",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "O1": {
+      "baseline": {
+        "t0": 1794408291.340628,
+        "quota_present": false,
+        "limit_range_present": false,
+        "default_resources": {},
+        "oversized_admitted": true,
+        "oversized_reason": "{\n    \"apiVersion\": \"v1\",\n    \"kind\": \"Pod\",\n    \"metadata\": {\n        \"creationTimestamp\": \"2026-11-11T14:44:54Z\",\n        \"generation\": 1,\n        \"name\": \"o1-oversized-baseline\",\n        \"namespace\": \"selfheal-o1\",\n        \"uid\": \"<azure-guid>\"\n    },\n    \"spec\": {\n        \"containers\": [\n            {\n                \"image\": \"acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786\",\n                \"imagePullPolicy\": \"IfNotPresent\",\n                \"name\": \"probe\",\n        ",
+        "rbac": {
+          "get_secret": true,
+          "delete_target": true,
+          "patch_quarantine": true,
+          "patch_release": true
+        },
+        "direct_release_allowed": true,
+        "evidence_before_release": {},
+        "quarantined_after_direct_attempt": false,
+        "controller_present": false,
+        "receiver_present": false,
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794408366.3827991,
+        "quota_present": true,
+        "limit_range_present": true,
+        "default_resources": {
+          "limits": {
+            "cpu": "200m",
+            "memory": "128Mi"
+          },
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi"
+          }
+        },
+        "oversized_admitted": false,
+        "oversized_reason": "Error from server (Forbidden): error when creating \"STDIN\": pods \"o1-oversized-hardened\" is forbidden: exceeded quota: o1-budget, requested: limits.cpu=9,requests.cpu=9, used: limits.cpu=400m,requests.cpu=100m, limited: limits.cpu=4,requests.cpu=2",
+        "rbac": {
+          "get_secret": false,
+          "delete_target": false,
+          "patch_quarantine": false,
+          "patch_release": true
+        },
+        "direct_release_allowed": false,
+        "evidence_before_release": {},
+        "release_request_accepted": true,
+        "release_request_at": 1794408373.45371,
+        "gated_before_evidence": true,
+        "controller_old_uid": "<azure-guid>",
+        "controller_new_uid": "<azure-guid>",
+        "controller_recovered_s": 2.98,
+        "quarantine_blocked_before": true,
+        "incident_at": 1794408390.955186,
+        "evidence": {
+          "captured_at": "2026-11-11T14:46:31Z",
+          "target_image": "acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786",
+          "target_resource_version": "18318",
+          "target_uid": "<azure-guid>"
+        },
+        "evidence_s": 0.045,
+        "alert": {
+          "captured_at": "2026-11-11T14:46:31Z",
+          "evidence_resource_version": "18320",
+          "kind": "quarantine",
+          "target_uid": "<azure-guid>"
+        },
+        "alert_s": 1.866,
+        "released_at": 1794408393.421906,
+        "release_s": 2.422,
+        "release_after_evidence": true,
+        "connectivity_after_release": true,
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T14:46:39.027Z",
+  "pass": true
+}

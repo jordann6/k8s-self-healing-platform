@@ -1,0 +1,56 @@
+[
+  {
+    "at": 1794409023.311605,
+    "metrics_timestamp": "2026-11-11T14:56:50Z",
+    "window": "1m4.643s",
+    "cpu": "151724378n",
+    "memory": "111340Ki",
+    "cpu_m": 151.724,
+    "memory_mib": 108.73
+  },
+  {
+    "at": 1794409081.097779,
+    "metrics_timestamp": "2026-11-11T14:57:51Z",
+    "window": "1m0.934s",
+    "cpu": "148159680n",
+    "memory": "111336Ki",
+    "cpu_m": 148.16,
+    "memory_mib": 108.727
+  },
+  {
+    "at": 1794409148.308554,
+    "metrics_timestamp": "2026-11-11T14:58:48Z",
+    "window": "57.256s",
+    "cpu": "154433456n",
+    "memory": "111336Ki",
+    "cpu_m": 154.433,
+    "memory_mib": 108.727
+  },
+  {
+    "at": 1794409204.406889,
+    "metrics_timestamp": "2026-11-11T14:59:58Z",
+    "window": "1m10.237s",
+    "cpu": "155170309n",
+    "memory": "111336Ki",
+    "cpu_m": 155.17,
+    "memory_mib": 108.727
+  },
+  {
+    "at": 1794409271.995818,
+    "metrics_timestamp": "2026-11-11T15:00:54Z",
+    "window": "56.004s",
+    "cpu": "147536247n",
+    "memory": "111340Ki",
+    "cpu_m": 147.536,
+    "memory_mib": 108.73
+  },
+  {
+    "at": 1794409328.212884,
+    "metrics_timestamp": "2026-11-11T15:01:46Z",
+    "window": "51.311s",
+    "cpu": "162618697n",
+    "memory": "111336Ki",
+    "cpu_m": 162.619,
+    "memory_mib": 108.727
+  }
+]
