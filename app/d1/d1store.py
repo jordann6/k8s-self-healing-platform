@@ -57,7 +57,10 @@ class S3:
 
     def put(self, path: str, key: str) -> dict[str, Any]:
         with open(path, "rb") as stream:
-            response = self.client.put_object(Bucket=self.bucket, Key=key, Body=stream)
+            # The organization's require-s3-encryption SCP denies any PutObject without an explicit
+            # x-amz-server-side-encryption header; the bucket default does not satisfy it (EKS 2026-11-10).
+            response = self.client.put_object(Bucket=self.bucket, Key=key, Body=stream,
+                                              ServerSideEncryption="AES256")
         return {"versionID": response.get("VersionId"), "size": os.path.getsize(path)}
 
     def get(self, key: str, path: str) -> None:

@@ -98,5 +98,21 @@ class Dispatch(unittest.TestCase):
                 d1store.backend()
 
 
+class S3Put(unittest.TestCase):
+    def test_put_sends_the_encryption_header_the_org_scp_requires(self):
+        import os
+        import tempfile
+        with tempfile.NamedTemporaryFile() as handle:
+            handle.write(b"x")
+            handle.flush()
+            store = d1store.S3.__new__(d1store.S3)
+            store.client = mock.Mock()
+            store.client.put_object.return_value = {"VersionId": "v1"}
+            store.bucket = "b"
+            result = store.put(handle.name, "k")
+        self.assertEqual(store.client.put_object.call_args.kwargs["ServerSideEncryption"], "AES256")
+        self.assertEqual(result, {"versionID": "v1", "size": 1})
+
+
 if __name__ == "__main__":
     unittest.main()
