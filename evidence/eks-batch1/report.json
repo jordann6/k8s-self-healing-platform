@@ -1,0 +1,560 @@
+{
+  "run_id": "eks-batch1",
+  "target": "eks",
+  "started": "2026-11-11T03:07:54.494Z",
+  "rows": [
+    "O1",
+    "Q3",
+    "P1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "api_ready": true,
+    "kube-system/karpenter": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "2bb4ee9992c0f3a0e26a515d57cd1388cbfa6f6e",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/qworker:2bb4ee9",
+    "q2-signal": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "q2-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q3:2bb4ee9",
+    "n1-server": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-client": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-denied": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.36.5-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2bb4ee9-v1",
+    "workload_ami": [
+      "ami-069787c4f4d0583ff"
+    ]
+  },
+  "results": {
+    "O1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no namespace budget or default limits; the broad operator could read the synthetic Secret, delete or patch the target, and directly release quarantine without evidence, a controller, or an alert receiver",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: TimeoutError: timed out after 60s waiting for O1 controller replacement",
+        "thresholds": {
+          "controller_recover_s": 60,
+          "evidence_s": 30,
+          "alert_s": 30,
+          "release_s": 30
+        },
+        "pass": false
+      }
+    },
+    "Q3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "6 samples, CPU p90 186.805m, memory p90 108.672MiB; no VPA recommendation; requests 50m/32Mi",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0,
+          "sample_window_s": 240,
+          "baseline_window_s": 120
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "6 samples, CPU p90 184.124m, memory p90 108.672MiB; recommendation 224m/144645763 at 4s, ratios 1.22/1.27; bounded True, requests unchanged True, pod unchanged True, restart delta 0",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0,
+          "sample_window_s": 240,
+          "baseline_window_s": 120
+        },
+        "pass": true
+      }
+    },
+    "P1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no P1 policy; admitted signed, unsigned, copied-invalid, untrusted-signer, and tag-only references at sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5,
+          "min_outage_drops": 1
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "trusted and recovered images ran at sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa; denied unsigned, invalid, untrusted, tag_only, verifier_outage; policy metrics pass 2.0, fail or error 5.0; verifier recovery 16.589s",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5,
+          "min_outage_drops": 1
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "O1": {
+      "baseline": {
+        "t0": 1794366587.011242,
+        "quota_present": false,
+        "limit_range_present": false,
+        "default_resources": {},
+        "oversized_admitted": true,
+        "oversized_reason": "{\n    \"apiVersion\": \"v1\",\n    \"kind\": \"Pod\",\n    \"metadata\": {\n        \"creationTimestamp\": \"2026-11-11T03:09:53Z\",\n        \"generation\": 1,\n        \"name\": \"o1-oversized-baseline\",\n        \"namespace\": \"selfheal-o1\",\n        \"uid\": \"6ac06e66-dcae-4990-8f63-3d3138060602\"\n    },\n    \"spec\": {\n        \"containers\": [\n            {\n                \"image\": \"<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/o1:2bb4ee9\",\n                \"imagePullPolicy\": \"IfNotPresent\",\n                \"name\": \"",
+        "rbac": {
+          "get_secret": true,
+          "delete_target": true,
+          "patch_quarantine": true,
+          "patch_release": true
+        },
+        "direct_release_allowed": true,
+        "evidence_before_release": {},
+        "quarantined_after_direct_attempt": false,
+        "controller_present": false,
+        "receiver_present": false,
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "TimeoutError: timed out after 60s waiting for O1 controller replacement",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1883, in main\n    obs = runner(row)(lab, profile, d)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/run.py\", line 1293, in <lambda>\n    \"O1\": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d)}\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/o1_row.py\", line 196, in run\n    new_pod = h.wait_for(replacement, 60, step=1, what=\"O1 controller replacement\")\n              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/run.py\", line 170, in wait_for\n    raise TimeoutError(f\"timed out after {timeout:.0f}s waiting for {what}\")\nTimeoutError: timed out after 60s waiting for O1 controller replacement\n"
+      }
+    },
+    "Q3": {
+      "baseline": {
+        "t0": 1794366636.573676,
+        "metrics_available": true,
+        "vpa_present": false,
+        "update_mode": null,
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-68459d8fbb-mvz5t",
+          "node": "ip-10-30-1-187.ec2.internal",
+          "uid": "3892b312-4552-4f3a-92e3-642621b7a8da",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-68459d8fbb-mvz5t",
+          "node": "ip-10-30-1-187.ec2.internal",
+          "uid": "3892b312-4552-4f3a-92e3-642621b7a8da",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 186.805,
+          "cpu_max_m": 186.805,
+          "memory_p90_mib": 108.672,
+          "memory_max_mib": 108.672,
+          "sample_spacing_s": 17.0
+        },
+        "collection_window_s": 120,
+        "metrics_server": {
+          "replicas": 1,
+          "resolution_args": [
+            "--metric-resolution=15s",
+            "--metric-resolution=15s"
+          ]
+        },
+        "recommendation": null,
+        "recommendation_s": null,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794367296.881126,
+        "metrics_available": true,
+        "vpa_present": true,
+        "update_mode": "Off",
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-68459d8fbb-mvz5t",
+          "node": "ip-10-30-1-187.ec2.internal",
+          "uid": "3892b312-4552-4f3a-92e3-642621b7a8da",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-68459d8fbb-mvz5t",
+          "node": "ip-10-30-1-187.ec2.internal",
+          "uid": "3892b312-4552-4f3a-92e3-642621b7a8da",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 184.124,
+          "cpu_max_m": 184.124,
+          "memory_p90_mib": 108.672,
+          "memory_max_mib": 108.672,
+          "sample_spacing_s": 15.0
+        },
+        "collection_window_s": 240,
+        "metrics_server": {
+          "replicas": 1,
+          "resolution_args": [
+            "--metric-resolution=15s",
+            "--metric-resolution=15s"
+          ]
+        },
+        "recommendation": {
+          "container": "target",
+          "lowerBound": {
+            "cpu": "198m",
+            "memory": "128037012",
+            "cpu_m": 198.0,
+            "memory_mib": 122.106
+          },
+          "target": {
+            "cpu": "224m",
+            "memory": "144645763",
+            "cpu_m": 224.0,
+            "memory_mib": 137.945
+          },
+          "uncappedTarget": {
+            "cpu": "224m",
+            "memory": "144645763",
+            "cpu_m": 224.0,
+            "memory_mib": 137.945
+          },
+          "upperBound": {
+            "cpu": "1",
+            "memory": "256Mi",
+            "cpu_m": 1000.0,
+            "memory_mib": 256.0
+          }
+        },
+        "recommendation_s": 4.1,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      }
+    },
+    "P1": {
+      "baseline": {
+        "t0": 1794366750.903117,
+        "policy_present": false,
+        "policy_ready": false,
+        "digest": "sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 2.048,
+            "reason": "pod/p1-baseline-trusted created",
+            "pod_created": true,
+            "ready_s": 13.464,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-trusted@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "unsigned": {
+            "returncode": 0,
+            "elapsed_s": 2.03,
+            "reason": "pod/p1-baseline-unsigned created",
+            "pod_created": true,
+            "ready_s": 11.469,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-trusted@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "invalid": {
+            "returncode": 0,
+            "elapsed_s": 2.042,
+            "reason": "pod/p1-baseline-invalid created",
+            "pod_created": true,
+            "ready_s": 13.504,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "untrusted": {
+            "returncode": 0,
+            "elapsed_s": 2.009,
+            "reason": "pod/p1-baseline-untrusted created",
+            "pod_created": true,
+            "ready_s": 11.503,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "tag_only": {
+            "returncode": 0,
+            "elapsed_s": 2.053,
+            "reason": "pod/p1-baseline-tag created",
+            "pod_created": true,
+            "ready_s": 13.663,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          }
+        },
+        "metrics_available": true,
+        "metric_delta": {},
+        "policy_report_pass": false,
+        "trusted_admission_s": 2.048,
+        "recovery_s": null,
+        "outage": null,
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794367413.833548,
+        "policy_present": true,
+        "policy_ready": true,
+        "digest": "sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 3.217,
+            "reason": "pod/p1-hardened-trusted created",
+            "pod_created": true,
+            "ready_s": 14.67,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-trusted@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "unsigned": {
+            "returncode": 1,
+            "elapsed_s": 3.092,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "invalid": {
+            "returncode": 1,
+            "elapsed_s": 3.014,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "untrusted": {
+            "returncode": 1,
+            "elapsed_s": 3.326,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "tag_only": {
+            "returncode": 1,
+            "elapsed_s": 2.052,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: image <lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-trusted:v1 does not have a digest",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "verifier_outage": {
+            "returncode": 1,
+            "elapsed_s": 17.127,
+            "reason": "Error from server (InternalError): error when creating \"STDIN\": Internal error occurred: failed calling webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\": failed to call webhook: Post \"https://kyverno-svc.kyverno.svc:443/ivpol/validate/p1-trusted-signature?timeout=15s\": context deadline exceeded",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "recovery": {
+            "returncode": 0,
+            "elapsed_s": 2.887,
+            "reason": "pod/p1-hardened-recovery created",
+            "pod_created": true,
+            "ready_s": 14.413,
+            "image_id": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/p1-recovery@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "recovery_s": 16.589
+        },
+        "metrics_available": true,
+        "metric_delta": {
+          "fail": 4.0,
+          "error": 1.0,
+          "pass": 2.0
+        },
+        "policy_report_pass": true,
+        "trusted_admission_s": 3.217,
+        "recovery_s": 16.589,
+        "outage": {
+          "mode": "cilium-egress-allow-list",
+          "settle_s": 10,
+          "admission_pods": [
+            "kyverno-admission-controller-5fff5d5957-cdjln"
+          ],
+          "policy_drops": 220,
+          "all_policy_drops": 220,
+          "drop_samples": [
+            {
+              "direction": "EGRESS",
+              "destination": "98.95.165.5",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "98.95.165.5",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.213.79.114",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.213.79.114",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.216.202.239",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.216.202.239",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.216.202.239",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.216.202.239",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.213.61.252",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "44.213.61.252",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            }
+          ]
+        },
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T03:25:16.324Z",
+  "pass": false
+}
