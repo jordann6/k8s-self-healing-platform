@@ -1642,8 +1642,17 @@ def apply_o1_profile(profile: str) -> None:
     """Switch O1 and reset its runtime evidence and release state."""
     log(f"profile -> {profile} (O1 only)")
     app_path = f"o1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/o1/{profile}"
-    k("-n", "argocd", "patch", "application", "selfheal-o1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # On a cloud the root app self-heals its children, so patching only selfheal-o1 is reverted
+        # within seconds (EKS 2026-11-10: baseline flipped back to hardened after 3s). Move the root.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-o1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-o1")
     wait_for(lambda: app_state("selfheal-o1")["path"] == app_path, 120, step=3,
              what="O1 app path")
