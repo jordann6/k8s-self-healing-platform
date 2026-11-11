@@ -1577,8 +1577,16 @@ def apply_n1_profile(profile: str) -> None:
                        "--timeout=20s", timeout=25).returncode == 0,
              300, step=5, what=f"Cilium {profile} rollout")
     app_path = f"n1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/n1/{profile}"
-    k("-n", "argocd", "patch", "application", "selfheal-n1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # Same as O1: a cloud root app self-heals its children, so move the root, not only the child.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-n1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
     refresh("selfheal-n1")
     wait_for(lambda: app_state("selfheal-n1")["path"] == app_path, 120, step=3,
              what="N1 app path")
