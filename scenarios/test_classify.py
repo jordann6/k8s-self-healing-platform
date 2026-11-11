@@ -8,6 +8,7 @@ import unittest
 
 from eks_rows import rotation_finished
 from judge import THRESHOLDS, classify, overall, verdict
+import run
 
 T = THRESHOLDS["kind"]
 
@@ -137,6 +138,671 @@ class Thresholds(unittest.TestCase):
     def test_half_reverted_drift_is_miss(self):
         o = {"injected": True, "policy_restored_s": 5, "edit_reverted_s": None}
         self.assertEqual(verdict("S3", "hardened", o, "impact")["status"], "miss")
+
+
+def q1(**kw):
+    o = {"published": 240, "n_target": 240, "distinct_done": 240, "expected_done": 240,
+         "unexpected_done": 0, "duplicates": 7,
+         "profile_start_replicas": 0, "max_replicas": 8, "end_replicas": 0, "scaled_up_s": 6.0,
+         "drained_s": 40.0, "scaled_to_zero_s": 70.0, "killed_pod": "qworker-abc",
+         "unacked_at_kill": 1, "workers_at_kill": 1, "metrics_source_ok": True}
+    o.update(kw)
+    return o
+
+
+class Q1BusyWorkerAttribution(unittest.TestCase):
+    """The kill victim is the pod the broker says holds an unacked message."""
+
+    PODS = [{"metadata": {"name": f"qworker-{i}"}, "status": {"podIP": f"10.0.0.{i}"}} for i in (1, 2, 3)]
+
+    def run_with(self, chans, conns, rc=0, split=True):
+        import json
+        import subprocess
+        out = json.dumps(chans) + ("\n@@SPLIT@@\n" if split else "") + json.dumps(conns)
+        orig = run.k
+        run.k = lambda *a, **kw: subprocess.CompletedProcess(a, rc, out, "")
+        try:
+            return run.q1_busy_workers(self.PODS)
+        finally:
+            run.k = orig
+
+    def test_picks_the_pod_that_holds_an_unacked_message_among_many(self):
+        conns = [{"pid": f"<c{i}>", "peer_host": f"10.0.0.{i}"} for i in (1, 2, 3)]
+        chans = [{"connection": "<c1>", "messages_unacknowledged": 0},
+                 {"connection": "<c2>", "messages_unacknowledged": 1},
+                 {"connection": "<c3>", "messages_unacknowledged": 0}]
+        self.assertEqual(self.run_with(chans, conns), {"qworker-2": 1})
+
+    def test_real_rabbitmq_shape_decodes_ipv4_mapped_peer_words(self):
+        # Captured from RabbitMQ 3.13 on EKS: pids are "#PID<...>" strings and
+        # peer_host is eight 16-bit words (eks-20261110-123247 crashed on this).
+        pods = [{"metadata": {"name": "qworker-a"}, "status": {"podIP": "10.30.19.80"}}]
+        conns = [{"pid": "#PID<13322.1083.0>", "peer_host": [0, 0, 0, 0, 0, 65535, 2590, 4944]},
+                 {"pid": "#PID<13322.1217.0>", "peer_host": [0, 0, 0, 0, 0, 65535, 2590, 4105]}]
+        chans = [{"connection": "#PID<13322.1083.0>", "messages_unacknowledged": 1},
+                 {"connection": "#PID<13322.1217.0>", "messages_unacknowledged": 1}]
+        import json
+        import subprocess
+        orig = run.k
+        run.k = lambda *a, **kw: subprocess.CompletedProcess(
+            a, 0, json.dumps(chans) + "\n@@SPLIT@@\n" + json.dumps(conns), "")
+        try:
+            self.assertEqual(run.q1_busy_workers(pods), {"qworker-a": 1})
+        finally:
+            run.k = orig
+
+    def test_peer_ip_rejects_unrecognised_shapes(self):
+        self.assertEqual(run.q1_peer_ip([0, 0, 0, 0, 0, 65535, 2590, 4944]), "10.30.19.80")
+        self.assertEqual(run.q1_peer_ip("10.0.0.7"), "10.0.0.7")
+        self.assertIsNone(run.q1_peer_ip([1, 2, 3]))
+        self.assertIsNone(run.q1_peer_ip(None))
+
+    def test_unknown_peer_such_as_the_producer_is_never_a_victim(self):
+        conns = [{"pid": "<p>", "peer_host": "10.9.9.9"}]
+        self.assertEqual(self.run_with([{"connection": "<p>", "messages_unacknowledged": 1}], conns), {})
+
+    def test_telemetry_gap_is_empty_never_a_guess(self):
+        self.assertEqual(self.run_with([], [], rc=1), {})
+        self.assertEqual(self.run_with([], [], split=False), {})
+
+
+class Q1QueueScaling(unittest.TestCase):
+    def test_scale_from_zero_drain_and_return_heals(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(), "impact")["status"], "healed")
+
+    def test_one_lost_message_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(distinct_done=239), "impact")["status"], "miss")
+
+    def test_wrong_ids_cannot_hide_missing_work(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(expected_done=239, unexpected_done=1), "impact")["status"], "miss")
+
+    def test_short_backlog_is_error(self):
+        v = verdict("Q1", "hardened", q1(published=200), "impact")
+        self.assertEqual(v["status"], "error")
+        self.assertIn("backlog under test was not established", v["reason"])
+
+    def test_unreadable_done_queue_is_error(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(distinct_done=None), "impact")["status"], "error")
+
+    def test_keda_metric_source_down_is_error_not_a_pass(self):
+        v = verdict("Q1", "hardened", q1(metrics_source_ok=False), "impact")
+        self.assertEqual(v["status"], "error")
+        self.assertIn("cannot be attributed", v["reason"])
+
+    def test_no_scale_out_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(max_replicas=0, scaled_up_s=None), "impact")["status"], "miss")
+
+    def test_kill_without_an_in_flight_message_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(unacked_at_kill=0), "impact")["status"], "miss")
+        self.assertEqual(verdict("Q1", "hardened", q1(killed_pod=None), "impact")["status"], "miss")
+
+    def test_kill_of_a_broker_attributed_busy_worker_among_many_heals(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(workers_at_kill=3), "impact")["status"], "healed")
+
+    def test_slow_drain_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=T["Q1"]["drain_s"] + 1), "impact")["status"], "miss")
+
+    def test_never_back_to_zero_is_a_miss(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(end_replicas=2, scaled_to_zero_s=None), "impact")["status"], "miss")
+
+    def test_zero_window_starts_after_drain(self):
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=110, scaled_to_zero_s=140), "impact")["status"], "healed")
+        self.assertEqual(verdict("Q1", "hardened", q1(drained_s=10, scaled_to_zero_s=131), "impact")["status"], "miss")
+
+    def test_baseline_never_idles_to_zero_is_impact(self):
+        self.assertEqual(verdict("Q1", "baseline", q1(end_replicas=2, scaled_to_zero_s=None), None)["status"], "impact")
+
+
+class Q1FocusedPreflight(unittest.TestCase):
+    def test_q1_only_uses_queue_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertIn(("gitops", "deploy", "gitserver"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+        self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
+
+    def test_eks_q1_uses_upstream_keda_namespace(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "eks"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("kube-system", "deploy", "keda-operator"), resources)
+
+    def test_aks_q1_uses_managed_keda_namespace(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "aks"
+            resources = set(run.precondition_resources(["Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "deploy", "keda-operator"), resources)
+        self.assertIn(("kube-system", "deploy", "keda-admission-webhooks"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+
+    def test_mixed_kind_run_keeps_full_preflight(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["A1", "Q1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("falco", "daemonset", "falco"), resources)
+        self.assertIn(("monitoring", "deploy", "kps-operator"), resources)
+
+
+class Q2FocusedPreflight(unittest.TestCase):
+    def test_q2_only_uses_scaling_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q2"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertIn(("gitops", "deploy", "gitserver"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+        self.assertNotIn(("monitoring", "deploy", "kps-operator"), resources)
+
+
+class Q2CloudPreflight(unittest.TestCase):
+    def resources(self, target):
+        old = run.TARGET
+        try:
+            run.TARGET = target
+            return set(run.precondition_resources(["Q2"]))
+        finally:
+            run.TARGET = old
+
+    def test_eks_uses_upstream_keda_namespace(self):
+        self.assertIn(("keda", "deploy", "keda-operator"), self.resources("eks"))
+
+    def test_aks_uses_managed_keda_namespace(self):
+        resources = self.resources("aks")
+        self.assertIn(("kube-system", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+
+    def test_q2_is_focused_on_every_target(self):
+        old = run.TARGET
+        try:
+            for target in ("kind", "eks", "aks"):
+                run.TARGET = target
+                self.assertTrue(run.q2_only(["Q2"]))
+        finally:
+            run.TARGET = old
+
+    def test_both_clouds_list_q2(self):
+        self.assertIn("Q2", run.ROWS_BY_TARGET["eks"])
+        self.assertIn("Q2", run.ROWS_BY_TARGET["aks"])
+
+
+class Q3FocusedPreflight(unittest.TestCase):
+    def test_q3_only_uses_metrics_and_recommender_dependencies(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["Q3"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("kube-system", "deploy", "metrics-server"), resources)
+        self.assertIn(("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("falco", "daemonset", "falco"), resources)
+
+
+class N1FocusedPreflight(unittest.TestCase):
+    def test_n1_only_uses_cilium_hubble_and_gitops(self):
+        old = run.TARGET
+        try:
+            run.TARGET = "kind"
+            resources = set(run.precondition_resources(["N1"]))
+        finally:
+            run.TARGET = old
+        self.assertIn(("kube-system", "daemonset", "cilium"), resources)
+        self.assertIn(("kube-system", "deploy", "hubble-relay"), resources)
+        self.assertIn(("argocd", "statefulset", "argocd-application-controller"), resources)
+        self.assertNotIn(("keda", "deploy", "keda-operator"), resources)
+        self.assertNotIn(("kube-system", "deploy", "metrics-server"), resources)
+
+
+def q2(**kw):
+    conditions = {
+        "scaledobject_conditions": {"Ready": {"status": "False", "reason": "ScalerError"}},
+        "hpa_conditions": {"ScalingActive": {"status": "False", "reason": "FailedGetExternalMetric"}},
+    }
+    limited = {
+        "actual_replicas": 4, "ready_replicas": 4, "max_replicas": 4,
+        "hpa_conditions": {"ScalingLimited": {"status": "True", "reason": "TooManyReplicas"}},
+    }
+    pending = {"desired_replicas": 4, "actual_replicas": 1, "pending": [
+        {"pod": "q2-target-x", "reason": "Unschedulable",
+         "message": "0/1 nodes are available: 1 Insufficient cpu."}]}
+    o = {
+        "metric_source_available_before": True,
+        "metric_outage_observed": True,
+        "conditions_present": True,
+        "metric_error_state": conditions,
+        "metric_failure_detected_s": 8.0,
+        "fallback_condition_observed": True,
+        "fallback_replicas_s": 18.0,
+        "metric_recovered_s": 7.0,
+        "outage_requests": {"samples": 300, "failures": 0, "failure_rate": 0.0, "p95_ms": 120.0},
+        "ceiling": {"demand": 12, "state": limited},
+        "capacity": {"pending_state": pending, "recovered_s": 12.0,
+                     "recovery_requests": {"samples": 300, "failures": 0,
+                                           "failure_rate": 0.0, "p95_ms": 110.0}},
+        "scale_down_s": 35.0,
+        "end_state": {"ready_replicas": 1},
+    }
+    o.update(kw)
+    return o
+
+
+class Q2CloudVerdict(unittest.TestCase):
+    def stable(self, **kw):
+        inv = {"nodes": ["a", "b", "c"], "nodeclaims": []}
+        o = q2()
+        o["capacity"]["node_stability"] = {"before": inv, "during": inv, "after": inv, "unchanged": True}
+        o["capacity"].update(kw)
+        return o
+
+    def test_cloud_pass_with_unchanged_nodes(self):
+        v = verdict("Q2", "hardened", self.stable(), "impact", target="eks")
+        self.assertEqual(v["status"], "healed")
+
+    def test_new_node_during_pending_window_is_an_error(self):
+        o = self.stable()
+        o["capacity"]["node_stability"]["unchanged"] = False
+        self.assertEqual(verdict("Q2", "hardened", o, "impact", target="aks")["status"], "error")
+
+    def test_missing_inventory_is_an_error_on_cloud(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact", target="eks")["status"], "error")
+
+    def test_kind_needs_no_inventory(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact")["status"], "healed")
+
+    def test_cloud_fallback_allows_sixty_seconds_but_not_more(self):
+        self.assertEqual(verdict("Q2", "hardened", self.stable_with(fallback_replicas_s=59), "impact",
+                                 target="eks")["status"], "healed")
+        self.assertEqual(verdict("Q2", "hardened", self.stable_with(fallback_replicas_s=61), "impact",
+                                 target="eks")["status"], "miss")
+
+    def stable_with(self, **kw):
+        o = self.stable()
+        o.update(kw)
+        return o
+
+
+class Q2ScalingFailure(unittest.TestCase):
+    def test_hardened_fallback_ceilings_and_recovery_heal(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(), "impact")["status"], "healed")
+
+    def test_baseline_user_impact_is_measured(self):
+        obs = q2(fallback_condition_observed=False, fallback_replicas_s=None,
+                 outage_requests={"samples": 300, "failures": 90,
+                                  "failure_rate": 0.3, "p95_ms": 700.0})
+        self.assertEqual(verdict("Q2", "baseline", obs, None)["status"], "impact")
+
+    def test_missing_metric_outage_is_an_error(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(metric_outage_observed=False), "impact")["status"], "error")
+
+    def test_missing_autoscaler_conditions_is_an_error(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(metric_error_state={}), "impact")["status"], "error")
+
+    def test_replica_max_without_scaling_limited_is_a_miss(self):
+        obs = q2()
+        obs["ceiling"] = {"demand": 12, "state": {"actual_replicas": 4, "max_replicas": 4,
+                                                   "hpa_conditions": {"ScalingLimited": {"status": "False"}}}}
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "miss")
+
+    def test_pending_without_scheduler_reason_is_an_error(self):
+        obs = q2()
+        obs["capacity"]["pending_state"]["pending"][0]["message"] = None
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_no_pending_pod_is_an_error(self):
+        obs = q2()
+        obs["capacity"]["pending_state"]["pending"] = []
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_thin_request_telemetry_is_an_error(self):
+        obs = q2(outage_requests={"samples": 0, "failures": 0, "failure_rate": None, "p95_ms": None})
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "error")
+
+    def test_slow_fallback_is_a_miss(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(fallback_replicas_s=31), "impact")["status"], "miss")
+
+    def test_slow_capacity_recovery_is_a_miss(self):
+        obs = q2()
+        obs["capacity"]["recovered_s"] = 61
+        self.assertEqual(verdict("Q2", "hardened", obs, "impact")["status"], "miss")
+
+    def test_never_scales_down_is_a_miss(self):
+        self.assertEqual(verdict("Q2", "hardened", q2(scale_down_s=None), "impact")["status"], "miss")
+
+
+def q3(**kw):
+    state = {"pod_count": 1, "pod": "q3-target-x", "uid": "uid-1", "restart_count": 0,
+             "ready": True, "requests": {"cpu": "50m", "memory": "32Mi",
+                                            "cpu_m": 50, "memory_mib": 32}}
+    recommendation = {
+        "container": "target",
+        "lowerBound": {"cpu": "100m", "memory": "80Mi", "cpu_m": 100, "memory_mib": 80},
+        "target": {"cpu": "190m", "memory": "100Mi", "cpu_m": 190, "memory_mib": 100},
+        "uncappedTarget": {"cpu": "190m", "memory": "100Mi", "cpu_m": 190, "memory_mib": 100},
+        "upperBound": {"cpu": "400m", "memory": "200Mi", "cpu_m": 400, "memory_mib": 200},
+    }
+    o = {"metrics_available": True, "vpa_present": True, "update_mode": "Off",
+         "hpa_present": False, "initial_state": state, "final_state": dict(state),
+         "usage": {"samples": 8, "cpu_p90_m": 200, "memory_p90_mib": 96,
+                   "cpu_max_m": 210, "memory_max_mib": 97},
+         "recommendation": recommendation, "recommendation_s": 90,
+         "requests_unchanged": True, "pod_uid_unchanged": True, "restart_delta": 0}
+    o.update(kw)
+    return o
+
+
+class Q3VerticalSizing(unittest.TestCase):
+    def test_baseline_pressure_without_recommendation_is_impact(self):
+        obs = q3(vpa_present=False, update_mode=None, recommendation=None, recommendation_s=None)
+        self.assertEqual(verdict("Q3", "baseline", obs, None)["status"], "impact")
+
+    def test_hardened_bounded_recommendation_heals_without_mutation(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(), "impact")["status"], "healed")
+
+    def test_missing_metrics_is_an_error(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(metrics_available=False), "impact")["status"], "error")
+
+    def test_thin_metrics_is_an_error(self):
+        obs = q3()
+        obs["usage"] = {**obs["usage"], "samples": 5}
+        self.assertEqual(verdict("Q3", "hardened", obs, "impact")["status"], "error")
+
+    def test_missing_recommendation_is_an_error(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(recommendation=None), "impact")["status"], "error")
+
+    def test_hpa_confounds_the_result(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(hpa_present=True), "impact")["status"], "error")
+
+    def test_workload_mutation_is_a_miss(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(pod_uid_unchanged=False), "impact")["status"], "miss")
+        self.assertEqual(verdict("Q3", "hardened", q3(restart_delta=1), "impact")["status"], "miss")
+
+    def test_unrelated_recommendation_is_a_miss(self):
+        obs = q3()
+        obs["recommendation"]["target"] = {"cpu": "500m", "memory": "220Mi",
+                                               "cpu_m": 500, "memory_mib": 220}
+        self.assertEqual(verdict("Q3", "hardened", obs, "impact")["status"], "miss")
+
+    def test_slow_recommendation_is_a_miss(self):
+        self.assertEqual(verdict("Q3", "hardened", q3(recommendation_s=241), "impact")["status"], "miss")
+
+
+def n1(**kw):
+    o = {
+        "placement": {"cross_node": True},
+        "capture": {"bytes": 5000, "vxlan_packets": 0, "wireguard_packets": 20,
+                    "marker_visible": False,
+                    "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}},
+        "denied": {"samples": 5, "successes": 0, "failures": 5, "p95_ms": None},
+        "hubble_available": True,
+        "policy_drops": 5,
+        "wireguard_config": "true",
+        "wireguard": {"client_interfaces": 1, "server_interfaces": 1,
+                      "client_peer_count": 2, "server_peer_count": 2,
+                      "peer_keys_match": True, "client_routes_server": True,
+                      "server_routes_client": True, "client_handshake": True,
+                      "server_handshake": True},
+    }
+    o.update(kw)
+    return o
+
+
+class N1WireGuard(unittest.TestCase):
+    def test_visible_baseline_is_impact(self):
+        obs = n1(wireguard_config="false", wireguard={},
+                 capture={"bytes": 5000, "vxlan_packets": 20, "wireguard_packets": 0,
+                          "marker_visible": True,
+                          "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}})
+        self.assertEqual(verdict("N1", "baseline", obs, None)["status"], "impact")
+
+    def test_encrypted_cross_node_path_heals(self):
+        self.assertEqual(verdict("N1", "hardened", n1(), "impact")["status"], "healed")
+
+    def test_missing_capture_is_error(self):
+        obs = n1(capture={})
+        self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "error")
+
+    def test_missing_hubble_is_error(self):
+        self.assertEqual(verdict("N1", "hardened", n1(hubble_available=False), "impact")["status"], "error")
+
+    def test_missing_config_telemetry_is_error(self):
+        self.assertEqual(verdict("N1", "hardened", n1(wireguard_config=None), "impact")["status"], "error")
+
+    def test_plaintext_marker_in_hardened_capture_is_miss(self):
+        obs = n1()
+        obs["capture"] = {**obs["capture"], "marker_visible": True}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_missing_peer_route_or_handshake_is_miss(self):
+        for field in ("peer_keys_match", "client_routes_server", "server_routes_client",
+                      "client_handshake", "server_handshake"):
+            obs = n1()
+            obs["wireguard"] = {**obs["wireguard"], field: False}
+            with self.subTest(field=field):
+                self.assertEqual(verdict("N1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_denial_without_policy_drop_is_miss(self):
+        self.assertEqual(verdict("N1", "hardened", n1(policy_drops=0), "impact")["status"], "miss")
+
+
+def n1_native(**kw):
+    """An EKS observation (ADR-0023): no VXLAN, plaintext pod packets on named physical NICs."""
+    o = n1()
+    o["capture"] = {"bytes": 9000, "interfaces": ["ens5", "ens6"], "vxlan_packets": 0,
+                    "wireguard_packets": 20, "plain_packets": 0, "marker_visible": False,
+                    "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}}
+    o.update(kw)
+    return o
+
+
+class N1NativeRouting(unittest.TestCase):
+    def baseline(self, **capture):
+        base = {"bytes": 9000, "interfaces": ["ens5"], "vxlan_packets": 0, "wireguard_packets": 0,
+                "plain_packets": 20, "marker_visible": True,
+                "probe": {"samples": 20, "successes": 20, "failures": 0, "p95_ms": 20}}
+        base.update(capture)
+        return n1(wireguard_config="false", wireguard={}, capture=base)
+
+    def test_thresholds_equal_kind_except_the_named_datapath(self):
+        kind = THRESHOLDS["kind"]["N1"]
+        self.assertEqual(THRESHOLDS["aks"]["N1"], kind)
+        self.assertEqual({k: v for k, v in THRESHOLDS["eks"]["N1"].items() if kind.get(k) != v},
+                         {"datapath": "native"})
+
+    def test_eks_baseline_with_plaintext_on_the_nics_is_impact_without_any_vxlan(self):
+        self.assertEqual(verdict("N1", "baseline", self.baseline(), None, "eks")["status"], "impact")
+
+    def test_eks_baseline_that_shows_no_plaintext_is_not_impact(self):
+        obs = self.baseline(plain_packets=0, marker_visible=False)
+        self.assertNotEqual(verdict("N1", "baseline", obs, None, "eks")["status"], "impact")
+
+    def test_eks_hardened_wireguard_with_no_plaintext_heals(self):
+        self.assertEqual(verdict("N1", "hardened", n1_native(), "impact", "eks")["status"], "healed")
+
+    def test_pod_tcp_still_on_the_nic_is_a_miss(self):
+        obs = n1_native()
+        obs["capture"] = {**obs["capture"], "plain_packets": 3}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_a_visible_marker_is_a_miss(self):
+        obs = n1_native()
+        obs["capture"] = {**obs["capture"], "marker_visible": True}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_peers_with_no_pod_route_are_a_miss(self):
+        obs = n1_native()
+        obs["wireguard"] = {**obs["wireguard"], "client_routes_server": False}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_no_interface_telemetry_is_an_error(self):
+        for phase, obs in (("hardened", n1_native()), ("baseline", self.baseline())):
+            obs["capture"] = {k: v for k, v in obs["capture"].items() if k != "interfaces"}
+            self.assertEqual(verdict("N1", phase, obs, "impact", "eks")["status"], "error", phase)
+
+    def test_missing_plaintext_telemetry_is_an_error_not_a_pass(self):
+        obs = n1_native()
+        obs["capture"] = {k: v for k, v in obs["capture"].items() if k != "plain_packets"}
+        self.assertEqual(verdict("N1", "hardened", obs, "impact", "eks")["status"], "error")
+
+    def test_aks_keeps_the_kind_tunnel_contract(self):
+        self.assertEqual(verdict("N1", "hardened", n1(), "impact", "aks")["status"], "healed")
+
+    def test_eks_states_its_own_hypothesis(self):
+        from judge import hypothesis
+        self.assertIn("ENI IPAM", hypothesis("N1", "eks"))
+        self.assertNotIn("VXLAN", hypothesis("N1", "eks"))
+        self.assertNotEqual(hypothesis("N1", "eks"), hypothesis("N1", "kind"))
+
+
+def p1_admitted(digest):
+    return {"returncode": 0, "pod_created": True, "elapsed_s": 1.0, "ready_s": 4.0,
+            "image_id": f"docker-pullable://selfheal-p1-registry:5000/p1/artifact@{digest}"}
+
+
+def p1_rejected(reason="p1-trusted-signature image signature verification failed"):
+    return {"returncode": 1, "pod_created": False, "elapsed_s": 1.0, "ready_s": None,
+            "image_id": None, "reason": reason}
+
+
+def p1(policy_present=True, **kw):
+    digest = "sha256:" + "a" * 64
+    admissions = {"trusted": p1_admitted(digest), "recovery": p1_admitted(digest),
+                  "recovery_s": 5.0}
+    admissions.update({case: p1_rejected() for case in
+                       ("unsigned", "invalid", "untrusted", "tag_only", "verifier_outage")})
+    o = {
+        "digest": digest,
+        "preparation": {name: True for name in (
+            "one_digest", "trusted_valid", "unsigned_absent", "invalid_claim_rejected",
+            "untrusted_rejected_by_trust_root", "untrusted_valid_with_own_key")},
+        "policy_present": policy_present,
+        "policy_ready": policy_present,
+        "metrics_available": True,
+        "policy_report_pass": True,
+        "metric_delta": {"pass": 2, "fail": 5},
+        "admissions": admissions,
+    }
+    o.update(kw)
+    return o
+
+
+class P1SignedImageAdmission(unittest.TestCase):
+    def test_unprotected_baseline_is_impact(self):
+        obs = p1(policy_present=False)
+        obs["admissions"] = {case: p1_admitted(obs["digest"]) for case in
+                             ("trusted", "unsigned", "invalid", "untrusted", "tag_only")}
+        self.assertEqual(verdict("P1", "baseline", obs, None)["status"], "impact")
+
+    def test_complete_hardened_proof_heals(self):
+        self.assertEqual(verdict("P1", "hardened", p1(), "impact")["status"], "healed")
+
+    def test_missing_metrics_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(metrics_available=False), "impact")["status"], "error")
+
+    def test_missing_policy_report_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(policy_report_pass=False), "impact")["status"], "error")
+
+    def test_malformed_digest_is_error(self):
+        self.assertEqual(verdict("P1", "hardened", p1(digest="sha256:bad"), "impact")["status"], "error")
+
+    def test_false_signature_preflight_is_error(self):
+        obs = p1()
+        obs["preparation"] = {**obs["preparation"], "invalid_claim_rejected": False}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "error")
+
+    def test_admitted_unsigned_image_is_a_miss(self):
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "unsigned": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "miss")
+
+    def test_wrong_runtime_digest_is_a_miss(self):
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "trusted": p1_admitted("sha256:" + "b" * 64)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact")["status"], "miss")
+
+
+class P1CloudOutage(unittest.TestCase):
+    """ADR-0021: the cloud outage is an egress policy, attributed through Hubble drops."""
+
+    @staticmethod
+    def cloud(drops, **kw):
+        return p1(outage={"mode": "cilium-egress-allow-list", "policy_drops": drops}, **kw)
+
+    def test_thresholds_equal_kind_except_the_attribution_floor(self):
+        kind = THRESHOLDS["kind"]["P1"]
+        self.assertEqual(kind["min_outage_drops"], 0)
+        for target in ("eks", "aks"):
+            cloud = THRESHOLDS[target]["P1"]
+            self.assertEqual({k: v for k, v in cloud.items() if kind[k] != v}, {"min_outage_drops": 1})
+
+    def test_denied_outage_with_drops_heals_on_both_clouds(self):
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", self.cloud(3), "impact", target)["status"], "healed")
+
+    def test_missing_drop_telemetry_is_error(self):
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", p1(), "impact", target)["status"], "error")
+            self.assertEqual(verdict("P1", "hardened", p1(outage={"mode": "x"}), "impact", target)["status"], "error")
+
+    def test_outage_without_drops_is_error_even_if_denied(self):
+        self.assertEqual(verdict("P1", "hardened", self.cloud(0), "impact", "eks")["status"], "error")
+
+    def test_outage_without_drops_is_error_not_a_miss_when_admitted(self):
+        obs = self.cloud(0)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "eks")["status"], "error")
+
+    def test_admitted_outage_with_drops_is_a_miss(self):
+        obs = self.cloud(4)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_admitted(obs["digest"])}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "aks")["status"], "miss")
+
+    def test_webhook_timeout_is_an_attributable_outage_denial_on_a_cloud(self):
+        timeout = ('Internal error occurred: failed calling webhook "ivpol.validate.kyverno.svc-fail": '
+                   'failed to call webhook: context deadline exceeded')
+        obs = self.cloud(3)
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_rejected(timeout)}
+        for target in ("eks", "aks"):
+            self.assertEqual(verdict("P1", "hardened", obs, "impact", target)["status"], "healed")
+
+    def test_webhook_timeout_is_not_accepted_for_the_other_negatives(self):
+        timeout = 'failed calling webhook "ivpol.validate.kyverno.svc-fail": context deadline exceeded'
+        obs = self.cloud(3)
+        obs["admissions"] = {**obs["admissions"], "unsigned": p1_rejected(timeout)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "eks")["status"], "miss")
+
+    def test_webhook_timeout_is_not_accepted_on_kind(self):
+        timeout = 'failed calling webhook "ivpol.validate.kyverno.svc-fail": context deadline exceeded'
+        obs = p1()
+        obs["admissions"] = {**obs["admissions"], "verifier_outage": p1_rejected(timeout)}
+        self.assertEqual(verdict("P1", "hardened", obs, "impact", "kind")["status"], "miss")
+
+    def test_kind_outage_needs_no_hubble(self):
+        self.assertEqual(verdict("P1", "hardened", p1(), "impact", "kind")["status"], "healed")
 
 
 class AbortLine(unittest.TestCase):
@@ -343,10 +1009,38 @@ class R2NativeResponse(unittest.TestCase):
 
 
 class EksThresholds(unittest.TestCase):
-    def test_every_row_has_a_judge_threshold_and_hypothesis(self):
+    def test_every_judge_has_a_hypothesis(self):
         from judge import HYPOTHESES, JUDGES
-        self.assertEqual(set(THRESHOLDS["eks"]), set(JUDGES))
         self.assertEqual(set(HYPOTHESES), set(JUDGES))
+
+    def test_every_eks_threshold_row_has_a_judge(self):
+        # EKS runs the cloud superset. Later Phase 4 rows still remain kind only,
+        # so JUDGES is a
+        # superset of the eks rows, not equal to it.
+        from judge import JUDGES
+        self.assertTrue(set(THRESHOLDS["eks"]) <= set(JUDGES))
+
+    def test_q1_has_cloud_parity_without_relaxed_thresholds(self):
+        for target in ("kind", "eks", "aks"):
+            self.assertEqual(THRESHOLDS[target]["Q1"], THRESHOLDS["kind"]["Q1"])
+
+    def test_q3_cloud_thresholds_differ_only_where_adr_0020_says(self):
+        kind = THRESHOLDS["kind"]["Q3"]
+        self.assertEqual(THRESHOLDS["eks"]["Q3"], kind)
+        aks = THRESHOLDS["aks"]["Q3"]
+        self.assertEqual({k: v for k, v in aks.items() if kind[k] != v},
+                         {"sample_window_s": 420, "baseline_window_s": 420})
+
+    def test_q2_cloud_thresholds_differ_only_where_adr_0017_says(self):
+        kind = THRESHOLDS["kind"]["Q2"]
+        for target in ("eks", "aks"):
+            cloud = THRESHOLDS[target]["Q2"]
+            changed = {k for k in set(kind) | set(cloud) if kind.get(k) != cloud.get(k)}
+            self.assertEqual(changed, {"fallback_s", "capacity_recover_s", "scale_down_s", "node_autoscaler"})
+            self.assertEqual((cloud["fallback_s"], cloud["capacity_recover_s"], cloud["scale_down_s"]),
+                             (60, 90, 120))
+            for key in ("detect_s", "metric_recover_s", "p95_ms", "error_rate"):
+                self.assertEqual(cloud[key], kind[key])
 
     def test_a3_latency_bar_is_not_relaxed_on_eks(self):
         self.assertEqual(THRESHOLDS["eks"]["A3"]["p95_ms"], THRESHOLDS["kind"]["A3"]["p95_ms"])
@@ -572,14 +1266,14 @@ class Void(unittest.TestCase):
 class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
-        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "R2"}
+        rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"}
         self.assertEqual(set(THRESHOLDS["aks"]), rows)
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:
             self.assertTrue(hypothesis(r, "aks"))
 
     def test_shared_rows_keep_their_numbers(self):
-        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"):
+        for r in ("A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "O1"):
             self.assertEqual(THRESHOLDS["aks"][r], THRESHOLDS["kind"][r], r)
 
     def test_aks_hypotheses_name_the_aks_numbers(self):
@@ -589,6 +1283,19 @@ class AksThresholds(unittest.TestCase):
         self.assertIn("1200s", hypothesis("S4", "aks"))
         self.assertIn("300s of the alert", hypothesis("R2", "aks"))
         self.assertIn("300s", hypothesis("A4", "eks"))
+
+    def test_q2_hypothesis_reads_the_target_thresholds(self):
+        from judge import hypothesis
+        kind = hypothesis("Q2", "kind")
+        self.assertIn("fallback reaches three replicas within 30s", kind)
+        self.assertIn("recovers within 60s", kind)
+        self.assertIn("back to one within 90s", kind)
+        for target in ("eks", "aks"):
+            text = hypothesis("Q2", target)
+            self.assertNotIn("{", text)
+            self.assertIn("fallback reaches three replicas within 60s", text)
+            self.assertIn("recovers within 90s", text)
+            self.assertIn("back to one within 120s", text)
 
 
 if __name__ == "__main__":

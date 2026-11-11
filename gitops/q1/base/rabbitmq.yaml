@@ -1,0 +1,82 @@
+# Row Q1's message broker: a single-node RabbitMQ, identical in both profiles
+# (it is the queue, not a healing control, so it never differs between the
+# runs). The fixed baseline workers declare the three durable queues before
+# the runner switches to the hardened profile. The broker stays running across
+# that switch, so KEDA can read the work queue while replicas are at zero.
+#
+# The selfheal namespace enforces the restricted Pod Security profile. This
+# upstream image complies through its securityContext: a non-root user, no
+# privilege escalation, all capabilities dropped, the RuntimeDefault seccomp
+# profile. readOnlyRootFilesystem is not set here (unlike the lab's own
+# images): the RabbitMQ entrypoint writes its generated rabbitmq.conf and the
+# Erlang cookie under paths across the image, and a writable rootfs for a
+# third-party image is the honest, low-risk choice. State is an emptyDir: the
+# lab is created and destroyed per session and nothing here is durable data.
+#
+# The RabbitMQ Secret is created by bootstrap.sh, not committed and not GitOps
+# managed, like lab-ca.
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  labels: {app: rabbitmq}
+spec:
+  selector: {app: rabbitmq}
+  ports:
+    - {name: amqp, port: 5672, targetPort: amqp}
+    - {name: management, port: 15672, targetPort: management}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: rabbitmq}
+  template:
+    metadata:
+      labels: {app: rabbitmq}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.13.7-management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom: {secretKeyRef: {name: rabbitmq, key: username}}
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom: {secretKeyRef: {name: rabbitmq, key: password}}
+          ports:
+            - {name: amqp, containerPort: 5672}
+            - {name: management, containerPort: 15672}
+          readinessProbe:
+            exec: {command: ["rabbitmq-diagnostics", "-q", "check_running"]}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+          livenessProbe:
+            exec: {command: ["rabbitmq-diagnostics", "-q", "ping"]}
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 15
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/rabbitmq}
+      volumes:
+        - name: data
+          emptyDir: {}

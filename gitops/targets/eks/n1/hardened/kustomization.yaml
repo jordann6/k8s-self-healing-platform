@@ -1,0 +1,9 @@
+# N1 on EKS: the kind profile with the registry images (ADR-0023). The client and
+# server are pinned by the selfheal.lab/n1-slot labels the runner puts on two system nodes,
+# and the capture pod follows the server node, so nothing here is node specific.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../n1/hardened
+components:
+  - ../../generated

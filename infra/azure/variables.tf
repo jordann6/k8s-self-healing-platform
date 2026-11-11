@@ -16,9 +16,9 @@ variable "cluster_name" {
 }
 
 variable "kubernetes_version" {
-  description = "Same minor as the EKS run."
+  description = "Same minor as the EKS run. ADR-0018 decision A runs the remaining rows on 1.36."
   type        = string
-  default     = "1.34"
+  default     = "1.36"
 }
 
 variable "environment" {

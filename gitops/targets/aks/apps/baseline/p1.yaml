@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-p1
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git://gitserver.gitops.svc.cluster.local/lab.git
+    targetRevision: main
+    path: targets/aks/p1/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal-p1
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

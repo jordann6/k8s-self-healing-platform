@@ -1,0 +1,1364 @@
+[
+  {
+    "time": "2026-11-11T15:33:09.085663352Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56204,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:09.085680452Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56204,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:10.087425787Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56208,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:10.087443087Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56208,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:10.870729401Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56220,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:10.870748701Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56220,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:11.088939921Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56226,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:11.088978421Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 56226,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:12.090145552Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 42986,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:12.090161552Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 42986,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:13.092831261Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 42998,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T15:33:13.092845062Z",
+    "uuid": "<azure-guid>",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ae:40:41:f6:78:e6",
+      "destination": "b6:ff:f3:bf:b8:e1"
+    },
+    "IP": {
+      "source": "10.244.3.103",
+      "destination": "10.244.2.128",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 42998,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 52745,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-7c44d6c8b9-c9fwp"
+    },
+    "destination": {
+      "ID": 224,
+      "identity": 63662,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-6979b776b9-pxjks",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "aks-system-13980686-vmss000001",
+    "node_labels": [
+      "agentpool=system",
+      "beta.kubernetes.io/arch=amd64",
+      "beta.kubernetes.io/instance-type=Standard_D2s_v3",
+      "beta.kubernetes.io/os=linux",
+      "failure-domain.beta.kubernetes.io/region=eastus2",
+      "failure-domain.beta.kubernetes.io/zone=0",
+      "kubernetes.azure.com/agentpool=system",
+      "kubernetes.azure.com/ca-hash=",
+      "kubernetes.azure.com/cluster=rg-selfheal-lab-nodes",
+      "kubernetes.azure.com/consolidated-additional-properties=<azure-guid>",
+      "kubernetes.azure.com/kubelet-identity-client-id=<azure-guid>",
+      "kubernetes.azure.com/kubelet-serving-ca=cluster",
+      "kubernetes.azure.com/localdns-state=disabled",
+      "kubernetes.azure.com/mode=system",
+      "kubernetes.azure.com/network-policy=none",
+      "kubernetes.azure.com/node-image-version=AKSUbuntu-2404gen2containerd-202610.30.1",
+      "kubernetes.azure.com/nodepool-type=VirtualMachineScaleSets",
+      "kubernetes.azure.com/os-sku-effective=Ubuntu2404",
+      "kubernetes.azure.com/os-sku-requested=Ubuntu",
+      "kubernetes.azure.com/os-sku=Ubuntu",
+      "kubernetes.azure.com/priority=regular",
+      "kubernetes.azure.com/role=agent",
+      "kubernetes.azure.com/sku-cpu=2",
+      "kubernetes.azure.com/sku-memory=8192",
+      "kubernetes.azure.com/storageprofile=managed",
+      "kubernetes.azure.com/storagetier=Premium_LRS",
+      "kubernetes.io/arch=amd64",
+      "kubernetes.io/hostname=aks-system-13980686-vmss000001",
+      "kubernetes.io/os=linux",
+      "node.kubernetes.io/instance-type=Standard_D2s_v3",
+      "selfheal.lab/n1-slot=server",
+      "selfheal.lab/nodes=system",
+      "storageprofile=managed",
+      "storagetier=Premium_LRS",
+      "topology.disk.csi.azure.com/zone=",
+      "topology.kubernetes.io/region=eastus2",
+      "topology.kubernetes.io/zone=0"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  }
+]

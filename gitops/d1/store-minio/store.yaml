@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: d1-store-bootstrap
+  namespace: selfheal-d1-store
+data:
+  policy.json: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetBucketLocation",
+            "s3:GetBucketObjectLockConfiguration",
+            "s3:ListBucket",
+            "s3:ListBucketVersions"
+          ],
+          "Resource": ["arn:aws:s3:::d1-backups"]
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:GetObject",
+            "s3:GetObjectVersion",
+            "s3:PutObject"
+          ],
+          "Resource": ["arn:aws:s3:::d1-backups/*"]
+        }
+      ]
+    }
+  configure.sh: |
+    #!/bin/sh
+    set -eu
+    export MC_CONFIG_DIR=/tmp/.mc
+    echo D1_STORE_ALIAS_WAIT
+    until mc alias set store http://minio.selfheal-d1-store.svc.cluster.local:9000 \
+      "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+      sleep 2
+    done
+    echo D1_STORE_ALIAS_READY
+    mc mb --ignore-existing --with-lock store/d1-backups
+    echo D1_STORE_BUCKET_READY
+    mc retention set --default COMPLIANCE 1d store/d1-backups
+    echo D1_STORE_RETENTION_READY
+    mc admin policy create store d1-backup-writer /config/policy.json
+    echo D1_STORE_POLICY_READY
+    mc admin user add store "$BACKUP_ACCESS_KEY" "$BACKUP_SECRET_KEY"
+    mc admin policy attach store d1-backup-writer --user "$BACKUP_ACCESS_KEY"
+    echo D1_STORE_WRITER_READY
+    mc version info store/d1-backups
+    mc retention info --default store/d1-backups
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio
+  namespace: selfheal-d1-store
+spec:
+  selector: {app: d1-minio}
+  ports:
+    - {name: s3, port: 9000, targetPort: s3}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: d1-minio
+  namespace: selfheal-d1-store
+spec:
+  serviceName: minio
+  replicas: 1
+  selector:
+    matchLabels: {app: d1-minio}
+  template:
+    metadata:
+      labels: {app: d1-minio}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: minio
+          image: selfheal-d1-minio:v1
+          args: [server, /data, --console-address, ":9001"]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom: {secretKeyRef: {name: d1-minio-root, key: access-key}}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: d1-minio-root, key: secret-key}}
+          ports:
+            - {name: s3, containerPort: 9000}
+          readinessProbe:
+            httpGet: {path: /minio/health/ready, port: s3}
+            periodSeconds: 2
+            timeoutSeconds: 2
+            failureThreshold: 30
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {cpu: 500m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 1Gi}}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: d1-store-bootstrap
+  namespace: selfheal-d1-store
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels: {app: d1-store-bootstrap}
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: configure
+          image: selfheal-d1-tool:v1
+          command: [/bin/sh, /config/configure.sh]
+          env:
+            - name: MINIO_ROOT_USER
+              valueFrom: {secretKeyRef: {name: d1-minio-root, key: access-key}}
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom: {secretKeyRef: {name: d1-minio-root, key: secret-key}}
+            - name: BACKUP_ACCESS_KEY
+              valueFrom: {secretKeyRef: {name: d1-backup-store, key: access-key}}
+            - name: BACKUP_SECRET_KEY
+              valueFrom: {secretKeyRef: {name: d1-backup-store, key: secret-key}}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {cpu: 100m, memory: 256Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: config, mountPath: /config, readOnly: true}
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - name: config
+          configMap:
+            name: d1-store-bootstrap
+            defaultMode: 0555
+        - name: tmp
+          emptyDir: {sizeLimit: 16Mi}

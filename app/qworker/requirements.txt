@@ -1,0 +1,5 @@
+# Hash-pinned so every build (and CI) installs the same wheel: pika is the only
+# non-stdlib dependency in the lab, the AMQP client row Q1's worker consumes
+# with. Pure-python wheel (py3-none-any), read from PyPI 2026-11-07.
+pika==1.4.4 \
+    --hash=sha256:48de960c97a93b55db06b8be4c53eb977c9c8a2754c57cdae9097abcbd70ce04

@@ -1,0 +1,4 @@
+D1_BACKUP_COMPLETE {"backup_id":"d1-backup-1794410462-8bc97","archive_key":"backups/d1-backup-1794410462-8bc97.dump","archive_sha256":"e198eb0b09eff4cf836eb6bf4b27a67722e53972c775b8e5853c208dc728d2f0","source_max_seq":100,"created_at":"2026-11-11T15:21:05Z"}
+D1_MANIFEST_SHA256 316398bc36766100efbbc65f5957186ec213d78d21f1ed8d226d74aa3c45db26
+D1_ARCHIVE_STAT {"versionID": "2026-11-11T15:21:06.6307678Z", "size": 6389, "mode": "Locked", "retainUntilDate": "2026-11-12T15:21:06Z"}
+D1_RETENTION_INFO Object locking 'Locked' is configured for 1DAYS

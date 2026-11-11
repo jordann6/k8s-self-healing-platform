@@ -1,0 +1,827 @@
+[
+  {
+    "time": "2026-11-11T01:14:22.573211417Z",
+    "uuid": "7ece40d8-63f9-4afa-bf0a-8f85e36ff577",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 59216,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:22.573400875Z",
+    "uuid": "56b4f82b-0300-402b-baef-71f685fcbde2",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 59216,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:23.575133584Z",
+    "uuid": "8c595dd8-c4b0-4e28-a0c6-07bd66858640",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 51970,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:23.575167001Z",
+    "uuid": "9f24b57b-b7df-4dce-88e0-5f76b2f99664",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 51970,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:24.579006043Z",
+    "uuid": "211a6d63-1098-4b79-ab05-c017b118cb65",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 51986,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:24.579047460Z",
+    "uuid": "4286a803-e09a-407b-abd1-65f246968945",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 51986,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:25.583047460Z",
+    "uuid": "7671a8e4-409b-4685-b62b-bffce799cd4e",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 52000,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:25.583113252Z",
+    "uuid": "71720d0f-ebdb-41b9-821d-08d2b436c4f5",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 52000,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:26.589617835Z",
+    "uuid": "a36ee5e6-81e7-4acd-a841-a57fdff564f3",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 52014,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 5
+    },
+    "traffic_direction": "INGRESS",
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  },
+  {
+    "time": "2026-11-11T01:14:26.589647502Z",
+    "uuid": "203a3278-1487-44fc-8a63-63907535af24",
+    "emitter": {
+      "name": "Hubble",
+      "version": "1.20.4+gbeb276d2"
+    },
+    "verdict": "DROPPED",
+    "drop_reason": 133,
+    "ethernet": {
+      "source": "ee:53:48:9f:db:90",
+      "destination": "86:fa:32:1a:ab:12"
+    },
+    "IP": {
+      "source": "10.244.1.44",
+      "destination": "10.244.2.210",
+      "ipVersion": "IPv4"
+    },
+    "l4": {
+      "TCP": {
+        "source_port": 52014,
+        "destination_port": 8084,
+        "flags": {
+          "SYN": true
+        }
+      }
+    },
+    "source": {
+      "identity": 14735,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "k8s:app=n1-denied",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-denied-6db558bdd-x7sn2"
+    },
+    "destination": {
+      "ID": 3684,
+      "identity": 26115,
+      "cluster_name": "default",
+      "namespace": "selfheal",
+      "labels": [
+        "gen:io.cilium.k8s.named-ports=http.TCP.8084",
+        "k8s:app=n1-server",
+        "k8s:io.cilium.k8s.namespace.labels.kubernetes.io/metadata.name=selfheal",
+        "k8s:io.cilium.k8s.namespace.labels.pod-security.kubernetes.io/enforce=restricted",
+        "k8s:io.cilium.k8s.policy.cluster=default",
+        "k8s:io.cilium.k8s.policy.serviceaccount=default",
+        "k8s:io.kubernetes.pod.namespace=selfheal"
+      ],
+      "pod_name": "n1-server-d744db97f-jtxwf",
+      "workloads": [
+        {
+          "name": "n1-server",
+          "kind": "Deployment"
+        }
+      ]
+    },
+    "Type": "L3_L4",
+    "node_name": "selfheal-worker2",
+    "node_labels": [
+      "beta.kubernetes.io/arch=arm64",
+      "beta.kubernetes.io/os=linux",
+      "kubernetes.io/arch=arm64",
+      "kubernetes.io/hostname=selfheal-worker2",
+      "kubernetes.io/os=linux",
+      "selfheal.lab/n1-slot=server"
+    ],
+    "event_type": {
+      "type": 1,
+      "sub_type": 133
+    },
+    "traffic_direction": "INGRESS",
+    "file": {
+      "name": "bpf_lxc.c",
+      "line": 2401
+    },
+    "drop_reason_desc": "POLICY_DENIED",
+    "Summary": "TCP Flags: SYN"
+  }
+]

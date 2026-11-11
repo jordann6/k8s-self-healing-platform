@@ -1,0 +1,204 @@
+{
+  "run_id": "eks-d1b",
+  "target": "eks",
+  "started": "2026-11-11T03:56:55.438Z",
+  "rows": [
+    "D1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "d1_synced": true
+  },
+  "versions": {
+    "repo_commit": "eaa5d2b84e008f8a60b64a9504c9be85d44402eb",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/qworker:2bb4ee9",
+    "q2-signal": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "q2-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q3:2bb4ee9",
+    "n1-server": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-client": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-denied": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "o1-controller": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/o1:2bb4ee9",
+    "o1-alert-receiver": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/o1:2bb4ee9",
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.36.5-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2bb4ee9-v1",
+    "workload_ami": [
+      "ami-069787c4f4d0583ff"
+    ]
+  },
+  "results": {
+    "D1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "backup d1-backup-1794369609-kdgzv version iyyjH4WzQp045rhkSLMpl.KxHJekacI7 completed in 14s; restored 100 exact rows into selfheal-d1-restore/d1 in 43s; RPO 1 row and 14s; truncated restore failed atomically True; writer and WORM deletion denied True",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "D1": {
+      "baseline": {
+        "t0": 1794369496.4589639,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "cronjob_present": false,
+        "backup": null,
+        "loss": {
+          "started_at": "2026-11-11T03:58:26.341Z",
+          "elapsed_s": 53.637,
+          "source_reprovision_s": 45.734,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore_available": false,
+        "window": "deterministic source creation through unprotected source PVC replacement",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794369602.2537751,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "backup": {
+          "backup_id": "d1-backup-1794369609-kdgzv",
+          "archive_key": "backups/d1-backup-1794369609-kdgzv.dump",
+          "archive_sha256": "48242b3f8345d2b143e4b3588445816b030b1319be81477cf81ef8234634e1f2",
+          "source_max_seq": 100,
+          "created_at": "2026-11-11T04:00:13Z",
+          "manifest_sha256": "51ae1daaeb5e31e42d66f3a87eddf312f6aea0018b330493130408f9b833e5ed",
+          "object_version": "iyyjH4WzQp045rhkSLMpl.KxHJekacI7",
+          "object_size": 6396,
+          "retain_until": "2026-11-12T04:00:14Z",
+          "retention_mode": "COMPLIANCE",
+          "retention_days": 1,
+          "job_name": "d1-backup-1794369609",
+          "job_uid": "8f8242ad-36aa-43f4-8537-b72cd3c6cea9",
+          "completed": true,
+          "completion_s": 14.403,
+          "started_at": "2026-11-11T04:00:09.201Z"
+        },
+        "backup_s": 14.403,
+        "post_backup_sentinel": {
+          "seq": 101,
+          "acknowledged": true,
+          "at": "2026-11-11T04:00:26.854Z"
+        },
+        "loss": {
+          "started_at": "2026-11-11T04:00:28.697Z",
+          "elapsed_s": 26.688,
+          "source_reprovision_s": 20.353,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "ERROR:  relation \"records\" does not exist\nLINE 1: ...q || '|' || payload || '|' || payload_sha256 FROM records OR...\n                                                             ^\ncommand terminated with exit code 3"
+          }
+        },
+        "restore": {
+          "target_db": "d1",
+          "archive_sha256": "48242b3f8345d2b143e4b3588445816b030b1319be81477cf81ef8234634e1f2",
+          "job_name": "d1-restore-1794369655",
+          "job_uid": "5a1e7e03-910d-47b7-a229-f251619d5e01",
+          "completed": true,
+          "completion_s": 9.32,
+          "target_namespace": "selfheal-d1-restore",
+          "target_database": "d1"
+        },
+        "restored": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "rpo_rows": 1,
+        "rpo_seconds": 13.855,
+        "rto_s": 42.89,
+        "invalid_restore": {
+          "job_name": "d1-invalid-1794369671",
+          "job_uid": "3c08bd17-766a-4075-a807-900ff56a8840",
+          "failed": true,
+          "completion_s": 6.631,
+          "reason": "NOTICE:  database \"d1_invalid\" does not exist, skipping\npg_restore: error: could not read from input file: end of file",
+          "application_tables": 0
+        },
+        "deletion_resistance": {
+          "writer_delete_denied": true,
+          "writer_reason": "AccessDenied: An error occurred (AccessDenied) when calling the DeleteObject operation: User: arn:aws:sts::<lab-account>:assumed-role/selfheal-d1-backup/eks-selfheal-d1-writer--31abc486-d3bd-4984-854b-227ecc7b2fbd is not authorized to perform: s3:DeleteObject on resource: \"arn:aws:s3:::selfheal-d1-worm-<lab-account>/backups/d1-backup-1794369609-kdgzv.dump\" because no identity-based policy allows the s3:DeleteObject action",
+          "admin_version_delete_denied": true,
+          "admin_reason": "An error occurred (AccessDenied) when calling the DeleteObject operation: Access Denied because object protected by object lock.",
+          "admin_permission_checked": true,
+          "admin_permission_reason": "{\n    \"DeleteMarker\": true,\n    \"VersionId\": \"SVZkI8WAe7OnLWNXB0xx2TWLkDumgB_f\"\n}",
+          "admin_deleted": false,
+          "admin_refusal_recognised": true,
+          "archive_readable_after": true,
+          "manifest_readable_after": true,
+          "verified_checksums": {
+            "archive_sha256": "48242b3f8345d2b143e4b3588445816b030b1319be81477cf81ef8234634e1f2",
+            "manifest_sha256": "51ae1daaeb5e31e42d66f3a87eddf312f6aea0018b330493130408f9b833e5ed"
+          }
+        },
+        "window": "backup completion through source PVC replacement, fresh-target restore, integrity, invalid restore, and delete denial",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T04:02:01.600Z",
+  "pass": true
+}

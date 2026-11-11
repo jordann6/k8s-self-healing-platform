@@ -1,0 +1,170 @@
+{
+  "run_id": "aks-run2-a3",
+  "target": "aks",
+  "started": "2026-11-07T02:21:46.309Z",
+  "rows": [
+    "A3"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "24516a3df5eea109b5f0ab305e4811895a941c47",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "kubernetes": "v1.34.12",
+    "web_image": "acrselfhealxmzuyg.azurecr.io/selfheal/app:24516a3-v1",
+    "node_images": [
+      "AKSUbuntu-2204gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "A3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "sustain window p95 2142.0 ms, errors 30.65%, replicas 3 -> 3",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "sustain window p95 281.1 ms, errors 0.00%, replicas 3 -> 8",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "A3": {
+      "baseline": {
+        "t0": 1794018230.47951,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 2142.0,
+        "error_rate": 0.3065,
+        "min_replicas": 3,
+        "max_replicas": 3,
+        "scaled_s": null,
+        "aborted": false,
+        "samples": 323,
+        "expected": 323.11046957969666,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.212,
+          "p95_ms": 2046.0,
+          "n": 500
+        },
+        "k6": {
+          "sustain_p95_ms": 1214.3132069999995,
+          "sustain_failed_rate": 0.23957458718164007,
+          "dropped_iterations": 40
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1794018330.5603771,
+          "until": 1794018395.182471,
+          "n": 323,
+          "errors": 99,
+          "error_rate": 0.3065,
+          "p95_ms": 2142.0,
+          "error_kinds": {
+            "URLError": 99
+          },
+          "first_error": 1794018330.637102,
+          "last_error": 1794018386.6371193,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-6b4446b7bd-j6krz",
+            "web-6b4446b7bd-nxcjd",
+            "web-6b4446b7bd-q57bp"
+          ],
+          "expected": 323.11046957969666
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794018624.5076811,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 281.1,
+        "error_rate": 0.0,
+        "min_replicas": 3,
+        "max_replicas": 8,
+        "scaled_s": 37.3,
+        "aborted": false,
+        "samples": 327,
+        "expected": 326.5288043022156,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.0,
+          "p95_ms": 788.7,
+          "n": 500
+        },
+        "k6": {
+          "sustain_p95_ms": 324.9448,
+          "sustain_failed_rate": 0,
+          "dropped_iterations": 6
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1794018724.5885482,
+          "until": 1794018789.894309,
+          "n": 327,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 281.1,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-675ccf58b-4jgqd",
+            "web-675ccf58b-54h92",
+            "web-675ccf58b-5hdgd",
+            "web-675ccf58b-dkq78",
+            "web-675ccf58b-lgjxh",
+            "web-675ccf58b-nxn54",
+            "web-675ccf58b-srgz6",
+            "web-675ccf58b-z4zxr"
+          ],
+          "expected": 326.5288043022156
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-07T02:34:13.871Z",
+  "pass": true
+}

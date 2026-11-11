@@ -1,0 +1,133 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: n1-server
+  namespace: selfheal
+spec:
+  selector: {app: n1-server}
+  ports:
+    - {name: http, port: 8084, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n1-server
+  namespace: selfheal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: n1-server}
+  template:
+    metadata:
+      labels: {app: n1-server}
+    spec:
+      nodeSelector: {selfheal.lab/n1-slot: server}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: selfheal-n1
+          args: [serve]
+          ports: [{name: http, containerPort: 8084}]
+          readinessProbe: {httpGet: {path: /health, port: http}, periodSeconds: 3}
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {memory: 64Mi}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n1-client
+  namespace: selfheal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: n1-client}
+  template:
+    metadata:
+      labels: {app: n1-client}
+    spec:
+      nodeSelector: {selfheal.lab/n1-slot: client}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: selfheal-n1
+          args: [hold]
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {memory: 64Mi}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n1-denied
+  namespace: selfheal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: n1-denied}
+  template:
+    metadata:
+      labels: {app: n1-denied}
+    spec:
+      nodeSelector: {selfheal.lab/n1-slot: client}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: app
+          image: selfheal-n1
+          args: [hold]
+          resources: {requests: {cpu: 10m, memory: 24Mi}, limits: {memory: 64Mi}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n1-capture
+  namespace: selfheal-n1-capture
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: n1-capture}
+  template:
+    metadata:
+      labels: {app: n1-capture}
+    spec:
+      nodeSelector: {selfheal.lab/n1-slot: server}
+      hostNetwork: true
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      containers:
+        - name: capture
+          image: selfheal-n1-capture:v1
+          resources: {requests: {cpu: 5m, memory: 16Mi}, limits: {memory: 64Mi}}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+              add: [NET_RAW]
+            seccompProfile: {type: RuntimeDefault}

@@ -1,0 +1,22 @@
+# Row Q1 (kind only). A second Application under the kind apps/ dir, so the
+# cloud overlays (targets/<cloud>/apps) never see it: Q1 is Phase 3 kind-first,
+# the cloud ports are Phase 4. Baseline syncs commits but reverts nothing, like
+# the web workload's baseline.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-q1
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: git://gitserver.gitops.svc.cluster.local/lab.git
+    targetRevision: main
+    path: q1/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false

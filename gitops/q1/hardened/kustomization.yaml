@@ -1,0 +1,14 @@
+# Hardened Q1: the same broker and worker with KEDA scaling it from zero on
+# queue depth. scaledobject.yaml and triggerauth.yaml are the whole difference
+# from the baseline.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+  - worker.yaml
+  - scaledobject.yaml
+  - triggerauth.yaml
+images:
+  - name: selfheal-qworker
+    newTag: v1

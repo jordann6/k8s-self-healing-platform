@@ -1,0 +1,10 @@
+# Hardened adds only the recommendation-only VPA object.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+  - vpa.yaml
+images:
+  - name: selfheal-q3
+    newTag: v1

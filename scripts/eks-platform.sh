@@ -15,9 +15,10 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 : "${MGMT_PROFILE:?set MGMT_PROFILE}" "${LAB_PROFILE:?set LAB_PROFILE}" "${KUBECONFIG:?run through make}"
-: "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${KPS_VERSION:?}"
+: "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${VPA_VERSION:?}" "${KYVERNO_VERSION:?}" "${KPS_VERSION:?}"
 : "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}" "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}"
 : "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}" "${TALON_VERSION:?}" "${FALCO_VERSION:?}"
+: "${KEDA_VERSION:?}"
 
 out() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -raw "$1"; }
 outj() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -json "$1"; }
@@ -96,6 +97,35 @@ install() { # release chart version namespace [extra helm args...]
 }
 # shellcheck disable=SC2046
 install metrics-server metrics-server/metrics-server "$METRICS_SERVER_VERSION" kube-system $(values metrics-server)
+# Row Q3 (ADR-0020): the upstream chart, recommender only. Nothing here can change a workload.
+# shellcheck disable=SC2046
+install vpa autoscalers/vertical-pod-autoscaler "$VPA_VERSION" vpa $(values vpa)
+# Row D1 (ADR-0022): the gp3 class the EBS CSI add-on serves. The class is harmless without the
+# driver, the add-on itself exists only when the EKS root was planned with d1_store_bucket.
+kubectl apply -f "$root/platform/eks/storageclass-gp3.yaml" >/dev/null
+# Row P1 (ADR-0021): Kyverno with IRSA for its admission and reports controllers,
+# the documented path for the `amazon` registry credential provider. The role
+# ARN is a Terraform output, so the values are written to a temp file, never Git.
+kyverno_values="$(mktemp)"
+trap 'rm -f "$kps_values" "$kyverno_values"' EXIT
+role_arn="$(out kyverno_registry_role_arn)"
+cat >"$kyverno_values" <<EOV
+admissionController:
+  rbac:
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: $role_arn
+reportsController:
+  rbac:
+    serviceAccount:
+      annotations:
+        eks.amazonaws.com/role-arn: $role_arn
+EOV
+install kyverno kyverno/kyverno "$KYVERNO_VERSION" kyverno -f "$root/platform/kyverno-cloud.yaml" -f "$kyverno_values"
+# EKS has no managed KEDA add-on. Q1 and Q2 use the pinned upstream chart,
+# matching AWS's documented EKS installation model.
+# shellcheck disable=SC2046
+install keda kedacore/keda "$KEDA_VERSION" keda $(values keda)
 install kps prometheus-community/kube-prometheus-stack "$KPS_VERSION" monitoring \
 	-f "$root/platform/kube-prometheus-stack.yaml" -f "$kps_values"
 # shellcheck disable=SC2046

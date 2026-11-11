@@ -197,12 +197,17 @@ plugin ships in the image. No Azure Managed Grafana (ADR-0007 row 12).
 
 ### Teardown: three steps, fails closed
 
-1. `make aks-predestroy`: Argo CD apps, the lab app and its PDB, evidence
-   snapshots. Terraform deletes the workload node pool before the cluster, and
-   a node pool delete honours PDBs unless told not to (`az aks nodepool delete
-   --ignore-pdb`: "Delete an existing nodepool without considering Pod
-   Disruption Budget"), so minAvailable 2 would stall the destroy. Any other
-   PDB on a workload-pool pod that allows no disruption stops the script.
+1. `make aks-predestroy`: Argo CD apps, the lab app, autoscalers (KEDA, HPA),
+   every PDB that selects a workload-pool pod, a cordon and pod delete of the
+   pool, evidence snapshots. Terraform deletes the workload node pool before
+   the cluster and the pool delete honours PDBs (this CLI has no `--ignore-pdb`
+   on `az aks nodepool delete`), so a PDB or a respawning pod stalls it. The
+   11/7 destroy hung about 45 minutes this way, and kubectl went Forbidden
+   once Terraform removed the operator role assignment, so nothing in-cluster
+   could be fixed. Fixes: the script empties the pool before the destroy and
+   fails if pods remain, and the pool `depends_on` the operator roles so it is
+   destroyed first. Recovery if it still stalls: `az group delete` on
+   `rg-selfheal-lab-nodes`, then `az aks delete`, then re-plan and apply.
    Cilium stays: in overlay mode it owns no Azure resources.
 2. The destroy plan, applied by the operator. The provider refuses to delete
    a group that still holds something Terraform did not create.

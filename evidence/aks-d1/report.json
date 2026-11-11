@@ -1,0 +1,115 @@
+{
+  "run_id": "aks-d1",
+  "target": "aks",
+  "started": "2026-11-11T15:05:01.092Z",
+  "rows": [
+    "D1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "d1_synced": true
+  },
+  "versions": {
+    "repo_commit": "fa37786aa8006849eedf1b34ab84df7eeb99df83-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealebab1v.azurecr.io/selfheal/qworker:fa37786",
+    "q2-signal": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "q2-target": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealebab1v.azurecr.io/selfheal/q3:fa37786",
+    "n1-server": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-client": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-denied": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "o1-controller": "acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786",
+    "o1-alert-receiver": "acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786",
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealebab1v.azurecr.io/selfheal/app:fa37786-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "D1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no backup recovery point; source PVC replacement removed the deterministic data and no restore was available",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true,
+          "retention_mode": "Locked"
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "error",
+        "reason": "runner exception: RuntimeError: D1 Job d1-backup-1794409632 unexpectedly failed: AttributeError: 'BlobClient' object has no attribute 'get'\n",
+        "thresholds": {
+          "backup_s": 120,
+          "restore_s": 120,
+          "rto_s": 180,
+          "rpo_rows": 1,
+          "rows": 100,
+          "retention_days": 1,
+          "admin_attribution": true,
+          "retention_mode": "Locked"
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "D1": {
+      "baseline": {
+        "t0": 1794409546.202987,
+        "source": {
+          "available": true,
+          "rows": 100,
+          "min_seq": 1,
+          "max_seq": 100,
+          "contiguous": true,
+          "digest": "17296335b71e14ffd119266811b752836a0ac642ef3720b261f7f126ad77e04a",
+          "exact": true
+        },
+        "cronjob_present": false,
+        "backup": null,
+        "loss": {
+          "started_at": "2026-11-11T15:05:50.390Z",
+          "elapsed_s": 39.047,
+          "source_reprovision_s": 35.198,
+          "original_data_absent": true,
+          "after": {
+            "available": false,
+            "reason": "psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  the database system is starting up\ncommand terminated with exit code 2"
+          }
+        },
+        "restore_available": false,
+        "window": "deterministic source creation through unprotected source PVC replacement",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "exception": "RuntimeError: D1 Job d1-backup-1794409632 unexpectedly failed: AttributeError: 'BlobClient' object has no attribute 'get'\n",
+        "traceback": "Traceback (most recent call last):\n  File \"<repo>/scenarios/run.py\", line 1908, in main\n    obs = runner(row)(lab, profile, d)\n          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/run.py\", line 1292, in <lambda>\n    \"D1\": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d),\n                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/d1_row.py\", line 417, in run\n    backup_job, backup_logs, backup_s = _wait_job(h, SOURCE_NS, backup_name, 125, True)\n                                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"<repo>/scenarios/d1_row.py\", line 211, in _wait_job\n    raise RuntimeError(f\"D1 Job {name} unexpectedly {state}: {logs[-500:]}\")\nRuntimeError: D1 Job d1-backup-1794409632 unexpectedly failed: AttributeError: 'BlobClient' object has no attribute 'get'\n\n"
+      }
+    }
+  },
+  "finished": "2026-11-11T15:07:26.400Z",
+  "pass": false
+}

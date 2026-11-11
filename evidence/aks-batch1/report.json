@@ -1,0 +1,502 @@
+{
+  "run_id": "aks-batch1",
+  "target": "aks",
+  "started": "2026-11-11T14:47:32.610Z",
+  "rows": [
+    "Q3",
+    "P1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "responder/r2-worker": true,
+    "kube-system/metrics-server": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "fa37786aa8006849eedf1b34ab84df7eeb99df83-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealebab1v.azurecr.io/selfheal/qworker:fa37786",
+    "q2-signal": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "q2-target": "acrselfhealebab1v.azurecr.io/selfheal/q2:fa37786",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealebab1v.azurecr.io/selfheal/q3:fa37786",
+    "n1-server": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-client": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "n1-denied": "acrselfhealebab1v.azurecr.io/selfheal/n1:fa37786",
+    "o1-controller": "acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786",
+    "o1-alert-receiver": "acrselfhealebab1v.azurecr.io/selfheal/o1:fa37786",
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealebab1v.azurecr.io/selfheal/app:fa37786-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "Q3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "6 samples, CPU p90 169.964m, memory p90 108.73MiB; no VPA recommendation; requests 50m/32Mi",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0,
+          "sample_window_s": 420,
+          "baseline_window_s": 420
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "6 samples, CPU p90 162.619m, memory p90 108.73MiB; recommendation 203m/144645763 at 2s, ratios 1.25/1.27; bounded True, requests unchanged True, pod unchanged True, restart delta 0",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0,
+          "sample_window_s": 420,
+          "baseline_window_s": 420
+        },
+        "pass": true
+      }
+    },
+    "P1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "no P1 policy; admitted signed, unsigned, copied-invalid, untrusted-signer, and tag-only references at sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5,
+          "min_outage_drops": 1
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "trusted and recovered images ran at sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa; denied unsigned, invalid, untrusted, tag_only, verifier_outage; policy metrics pass 2.0, fail or error 5.0; verifier recovery 16.156s",
+        "thresholds": {
+          "admission_s": 20,
+          "ready_s": 120,
+          "recovery_s": 60,
+          "min_pass_decisions": 2,
+          "min_reject_decisions": 5,
+          "min_outage_drops": 1
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "Q3": {
+      "baseline": {
+        "t0": 1794408561.3360078,
+        "metrics_available": true,
+        "vpa_present": false,
+        "update_mode": null,
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-686fbc847b-84bb7",
+          "node": "aks-system-13980686-vmss000000",
+          "uid": "<azure-guid>",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-686fbc847b-84bb7",
+          "node": "aks-system-13980686-vmss000000",
+          "uid": "<azure-guid>",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 169.964,
+          "cpu_max_m": 169.964,
+          "memory_p90_mib": 108.73,
+          "memory_max_mib": 108.73,
+          "sample_spacing_s": 65.0
+        },
+        "collection_window_s": 420,
+        "metrics_server": {
+          "replicas": 2,
+          "resolution_args": []
+        },
+        "recommendation": null,
+        "recommendation_s": null,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794409021.5269399,
+        "metrics_available": true,
+        "vpa_present": true,
+        "update_mode": "Off",
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-686fbc847b-84bb7",
+          "node": "aks-system-13980686-vmss000000",
+          "uid": "<azure-guid>",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-686fbc847b-84bb7",
+          "node": "aks-system-13980686-vmss000000",
+          "uid": "<azure-guid>",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 162.619,
+          "cpu_max_m": 162.619,
+          "memory_p90_mib": 108.73,
+          "memory_max_mib": 108.73,
+          "sample_spacing_s": 57.0
+        },
+        "collection_window_s": 420,
+        "metrics_server": {
+          "replicas": 2,
+          "resolution_args": []
+        },
+        "recommendation": {
+          "container": "target",
+          "lowerBound": {
+            "cpu": "155m",
+            "memory": "123942158",
+            "cpu_m": 155.0,
+            "memory_mib": 118.2
+          },
+          "target": {
+            "cpu": "203m",
+            "memory": "144645763",
+            "cpu_m": 203.0,
+            "memory_mib": 137.945
+          },
+          "uncappedTarget": {
+            "cpu": "203m",
+            "memory": "144645763",
+            "cpu_m": 203.0,
+            "memory_mib": 137.945
+          },
+          "upperBound": {
+            "cpu": "1",
+            "memory": "256Mi",
+            "cpu_m": 1000.0,
+            "memory_mib": 256.0
+          }
+        },
+        "recommendation_s": 2.3,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      }
+    },
+    "P1": {
+      "baseline": {
+        "t0": 1794408745.760978,
+        "policy_present": false,
+        "policy_ready": false,
+        "digest": "sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 1.438,
+            "reason": "pod/p1-baseline-trusted created",
+            "pod_created": true,
+            "ready_s": 13.304,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/trusted@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "unsigned": {
+            "returncode": 0,
+            "elapsed_s": 1.099,
+            "reason": "pod/p1-baseline-unsigned created",
+            "pod_created": true,
+            "ready_s": 13.253,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/unsigned@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "invalid": {
+            "returncode": 0,
+            "elapsed_s": 1.24,
+            "reason": "pod/p1-baseline-invalid created",
+            "pod_created": true,
+            "ready_s": 11.653,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "untrusted": {
+            "returncode": 0,
+            "elapsed_s": 1.143,
+            "reason": "pod/p1-baseline-untrusted created",
+            "pod_created": true,
+            "ready_s": 16.133,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "tag_only": {
+            "returncode": 0,
+            "elapsed_s": 1.087,
+            "reason": "pod/p1-baseline-tag created",
+            "pod_created": true,
+            "ready_s": 19.168,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          }
+        },
+        "metrics_available": true,
+        "metric_delta": {},
+        "policy_report_pass": false,
+        "trusted_admission_s": 1.438,
+        "recovery_s": null,
+        "outage": null,
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794409350.36734,
+        "policy_present": true,
+        "policy_ready": true,
+        "digest": "sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa",
+        "preparation": {
+          "one_digest": true,
+          "trusted_valid": true,
+          "unsigned_absent": true,
+          "invalid_claim_rejected": true,
+          "untrusted_rejected_by_trust_root": true,
+          "untrusted_valid_with_own_key": true,
+          "verification_returncodes": {
+            "trusted_with_trusted_key": 0,
+            "unsigned_with_trusted_key": 10,
+            "invalid_with_trusted_key": 12,
+            "untrusted_with_trusted_key": 12,
+            "untrusted_with_own_key": 0
+          }
+        },
+        "admissions": {
+          "trusted": {
+            "returncode": 0,
+            "elapsed_s": 2.56,
+            "reason": "pod/p1-hardened-trusted created",
+            "pod_created": true,
+            "ready_s": 14.35,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "unsigned": {
+            "returncode": 1,
+            "elapsed_s": 1.762,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "invalid": {
+            "returncode": 1,
+            "elapsed_s": 2.185,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "untrusted": {
+            "returncode": 1,
+            "elapsed_s": 1.863,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: P1 requires a valid signature from the trusted local lab key",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "tag_only": {
+            "returncode": 1,
+            "elapsed_s": 1.103,
+            "reason": "Error from server: error when creating \"STDIN\": admission webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\" denied the request: Policy p1-trusted-signature failed: image acrselfhealebab1v.azurecr.io/selfheal/p1/trusted:v1 does not have a digest",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "verifier_outage": {
+            "returncode": 1,
+            "elapsed_s": 16.098,
+            "reason": "Error from server (InternalError): error when creating \"STDIN\": Internal error occurred: failed calling webhook \"ivpol.validate.kyverno.svc-fail-finegrained-p1-trusted-signature\": failed to call webhook: Post \"https://kyverno-svc.kyverno.svc:443/ivpol/validate/p1-trusted-signature?timeout=15s\": context deadline exceeded",
+            "pod_created": false,
+            "ready_s": null,
+            "image_id": null
+          },
+          "recovery": {
+            "returncode": 0,
+            "elapsed_s": 2.559,
+            "reason": "pod/p1-hardened-recovery created",
+            "pod_created": true,
+            "ready_s": 14.506,
+            "image_id": "acrselfhealebab1v.azurecr.io/selfheal/p1/invalid@sha256:c1a798de25a13a04124b3d2400420107b2e1d790a0684ee833354ae7c19325fa"
+          },
+          "recovery_s": 16.156
+        },
+        "metrics_available": true,
+        "metric_delta": {
+          "fail": 4.0,
+          "error": 1.0,
+          "pass": 2.0
+        },
+        "policy_report_pass": true,
+        "trusted_admission_s": 2.56,
+        "recovery_s": 16.156,
+        "outage": {
+          "mode": "cilium-egress-allow-list",
+          "settle_s": 10,
+          "admission_pods": [
+            "kyverno-admission-controller-d9d67c6c5-f7gh9"
+          ],
+          "policy_drops": 22,
+          "all_policy_drops": 22,
+          "drop_samples": [
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            },
+            {
+              "direction": "EGRESS",
+              "destination": "20.190.151.133",
+              "port": 443,
+              "reason": "POLICY_DENIED"
+            }
+          ]
+        },
+        "window": "admission requests, verifier outage, registry restoration, and runtime digest check",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T15:03:55.878Z",
+  "pass": true
+}

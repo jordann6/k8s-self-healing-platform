@@ -1,0 +1,4 @@
+encryption:
+  enabled: true
+  type: wireguard
+  nodeEncryption: true

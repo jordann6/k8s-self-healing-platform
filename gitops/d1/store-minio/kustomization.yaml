@@ -1,0 +1,6 @@
+# The kind object store (MinIO). Only the kind profiles include this; the cloud
+# profiles use S3 Object Lock and Blob version-level immutability (ADR-0022).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - store.yaml

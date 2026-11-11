@@ -1,0 +1,13 @@
+# The AMQP connection string KEDA's rabbitmq scaler reads the queue depth with.
+# It comes from the `rabbitmq` secret (bootstrap.sh generates it with
+# openssl rand; nothing is committed). The trailing slash is the default vhost
+# "/", the one the broker and worker use.
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: q1-rabbitmq-auth
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: rabbitmq
+      key: host

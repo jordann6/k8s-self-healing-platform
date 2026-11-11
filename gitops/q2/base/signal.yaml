@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: q2-signal
+  labels: {app: q2-signal}
+spec:
+  selector: {app: q2-signal}
+  ports:
+    - {name: http, port: 8081, targetPort: http}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: q2-signal
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: q2-signal}
+  template:
+    metadata:
+      labels: {app: q2-signal}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: signal
+          image: selfheal-q2
+          args: ["signal"]
+          ports:
+            - {name: http, containerPort: 8081}
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 5
+            timeoutSeconds: 2
+          resources:
+            requests: {cpu: 10m, memory: 16Mi}
+            limits: {memory: 32Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}

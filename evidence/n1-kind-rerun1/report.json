@@ -1,0 +1,248 @@
+{
+  "run_id": "n1-kind-rerun1",
+  "target": "kind",
+  "started": "2026-11-11T01:12:59.722Z",
+  "rows": [
+    "N1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "kube-system/hubble-relay": true,
+    "selfheal/n1-server": true,
+    "selfheal/n1-client": true,
+    "selfheal/n1-denied": true,
+    "n1_synced": true
+  },
+  "versions": {
+    "repo_commit": "a003d52bab57bc5532f5be2b460d6319f3fa2819",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": "selfheal-n1:v1",
+    "n1-client": "selfheal-n1:v1",
+    "n1-denied": "selfheal-n1:v1",
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "N1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "VXLAN 242 attributed packets (260 total), WireGuard 0, marker visible True; requests 20 with 0 failures, p95 3.332 ms; denied successes 0, policy drops 10",
+        "thresholds": {
+          "min_requests": 20,
+          "max_failures": 0,
+          "p95_ms": 300,
+          "min_denied": 5,
+          "denied_successes": 0,
+          "min_policy_drops": 1,
+          "min_packets": 5,
+          "interfaces": 1,
+          "min_peers": 1
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "WireGuard 426 packets, VXLAN 0 attributed (0 total), marker visible False; peers match True, routes True/True, handshakes True/True; requests 20 with 0 failures, p95 1.877 ms; denied successes 0, policy drops 10",
+        "thresholds": {
+          "min_requests": 20,
+          "max_failures": 0,
+          "p95_ms": 300,
+          "min_denied": 5,
+          "denied_successes": 0,
+          "min_policy_drops": 1,
+          "min_packets": 5,
+          "interfaces": 1,
+          "min_peers": 1
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "N1": {
+      "baseline": {
+        "t0": 1794359611.054303,
+        "placement": {
+          "client": {
+            "count": 1,
+            "name": "n1-client-5798f85fb4-5qbqk",
+            "uid": "ecdc1944-aa42-4de0-aa9f-980f34d7fba7",
+            "node": "selfheal-worker",
+            "ip": "10.244.1.73"
+          },
+          "denied": {
+            "count": 1,
+            "name": "n1-denied-6db558bdd-x7sn2",
+            "uid": "6a49509a-5b23-474f-ac94-9066da45e7b6",
+            "node": "selfheal-worker",
+            "ip": "10.244.1.44"
+          },
+          "server": {
+            "count": 1,
+            "name": "n1-server-d744db97f-jtxwf",
+            "uid": "a0f423ff-67f1-4cf7-ac50-0202050b1a0d",
+            "node": "selfheal-worker2",
+            "ip": "10.244.2.210"
+          },
+          "capture": {
+            "count": 1,
+            "name": "n1-capture-7b4dbd4b78-zn7g2",
+            "uid": "6606d379-8cea-4f8c-8939-7f960be4567d",
+            "node": "selfheal-worker2",
+            "ip": "172.18.0.3"
+          },
+          "cross_node": true
+        },
+        "marker": "n1-baseline-8c3b9909725f818d",
+        "capture": {
+          "vxlan_packets": 242,
+          "vxlan_packets_total": 260,
+          "wireguard_packets": 0,
+          "plain_packets": 242,
+          "marker_visible": true,
+          "bytes": 105198,
+          "probe": {
+            "samples": 20,
+            "successes": 20,
+            "failures": 0,
+            "p95_ms": 3.332
+          },
+          "interfaces": [
+            "eth0"
+          ]
+        },
+        "denied": {
+          "samples": 5,
+          "successes": 0,
+          "failures": 5,
+          "p95_ms": null
+        },
+        "hubble_available": true,
+        "policy_drops": 10,
+        "wireguard_config": "false",
+        "wireguard": {
+          "client_interfaces": 0,
+          "server_interfaces": 0,
+          "client_peer_count": 0,
+          "server_peer_count": 0,
+          "peer_keys_match": false,
+          "client_routes_server": false,
+          "server_routes_client": false,
+          "client_handshake": false,
+          "server_handshake": false
+        },
+        "node_internal_ips": {
+          "selfheal-worker": "172.18.0.2",
+          "selfheal-worker2": "172.18.0.3"
+        },
+        "datapath": "tunnel",
+        "slot_nodes": null,
+        "window": "cross-node requests under worker eth0 capture, followed by policy-denied attempts",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794359653.825763,
+        "placement": {
+          "client": {
+            "count": 1,
+            "name": "n1-client-5798f85fb4-5qbqk",
+            "uid": "ecdc1944-aa42-4de0-aa9f-980f34d7fba7",
+            "node": "selfheal-worker",
+            "ip": "10.244.1.73"
+          },
+          "denied": {
+            "count": 1,
+            "name": "n1-denied-6db558bdd-x7sn2",
+            "uid": "6a49509a-5b23-474f-ac94-9066da45e7b6",
+            "node": "selfheal-worker",
+            "ip": "10.244.1.44"
+          },
+          "server": {
+            "count": 1,
+            "name": "n1-server-d744db97f-jtxwf",
+            "uid": "a0f423ff-67f1-4cf7-ac50-0202050b1a0d",
+            "node": "selfheal-worker2",
+            "ip": "10.244.2.210"
+          },
+          "capture": {
+            "count": 1,
+            "name": "n1-capture-7b4dbd4b78-zn7g2",
+            "uid": "6606d379-8cea-4f8c-8939-7f960be4567d",
+            "node": "selfheal-worker2",
+            "ip": "172.18.0.3"
+          },
+          "cross_node": true
+        },
+        "marker": "n1-hardened-6807495a1967425c",
+        "capture": {
+          "vxlan_packets": 0,
+          "vxlan_packets_total": 0,
+          "wireguard_packets": 426,
+          "plain_packets": 0,
+          "marker_visible": false,
+          "bytes": 59219,
+          "probe": {
+            "samples": 20,
+            "successes": 20,
+            "failures": 0,
+            "p95_ms": 1.877
+          },
+          "interfaces": [
+            "eth0"
+          ]
+        },
+        "denied": {
+          "samples": 5,
+          "successes": 0,
+          "failures": 5,
+          "p95_ms": null
+        },
+        "hubble_available": true,
+        "policy_drops": 10,
+        "wireguard_config": "true",
+        "wireguard": {
+          "client_interfaces": 1,
+          "server_interfaces": 1,
+          "client_peer_count": 2,
+          "server_peer_count": 2,
+          "peer_keys_match": true,
+          "client_routes_server": true,
+          "server_routes_client": true,
+          "client_handshake": true,
+          "server_handshake": true
+        },
+        "node_internal_ips": {
+          "selfheal-worker": "172.18.0.2",
+          "selfheal-worker2": "172.18.0.3"
+        },
+        "datapath": "tunnel",
+        "slot_nodes": null,
+        "window": "cross-node requests under worker eth0 capture, followed by policy-denied attempts",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T01:14:28.869Z",
+  "pass": true
+}

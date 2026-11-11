@@ -1,0 +1,672 @@
+### monitor on cilium-kmrg6 at 22:19:29
+Listening for events on 2 CPUs with 64x4096 of shared memory
+Press Ctrl-C to quit
+time=2026-11-11T04:19:33.529019382Z level=info msg="Initializing dissection cache..."
+Policy verdict log: flow 0xd925c403 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58300 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x97b50794 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55192 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x8b8e94bc local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57200 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xa99c24d7 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:58356 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xbf47544 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57208 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3b05c58e local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54422 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xc63ef147 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34656 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x2aacfa59 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36526 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x101f6da9 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35964 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2e8ede4d local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34662 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xf19b6acf local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37140 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x9db6d2e7 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35970 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x58f44028 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35976 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xf3339ceb local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36536 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x5058a2ca local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35980 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xbc8ebe50 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41086 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xae448ce2 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54490 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x7a369ffc local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:60236 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x7f2937fb local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41102 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xc299f717 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58396 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x780d722c local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:60238 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2722c3f0 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54498 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x6987c6c7 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:60244 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x9abc84cb local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34766 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xdce29dff local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58882 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xb0f51fe5 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:32812 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xcafe5026 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36602 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x6f9210b6 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:48778 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xca5030e8 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34774 -> 10.30.30.131:8080 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 836, ifindex 153, file bpf_lxc.c:2697, , identity world->9651: fe80::18f2:79ff:fe31:5711 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x9a0d7e51 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36618 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2b2529d5 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36624 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x8254a6f8 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58884 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x5a577585 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:32816 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xcd75bb90 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:32914 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x308d9df5 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36580 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x6ead5559 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35574 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x24d54320 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42326 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x8a13b50 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:32930 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x460006b8 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35590 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x19e6f6c0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35594 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x87ae617b local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36594 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x17d853e6 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35596 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x6701892a local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45150 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xb31e6229 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46290 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x7907f282 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:40814 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xdbfcd59 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40046 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x1d484b9b local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45156 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x44e9644b local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:34652 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xd6d180bf local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40062 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x65fd59b5 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46302 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xb713375d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40064 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x27eb39a1 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41544 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xa7887311 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49934 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x8fe017d0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46962 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2347bd61 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41554 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x51c4ccb9 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46084 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x69a5d11 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46970 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x4df024d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46972 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x6b9b3310 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49948 -> 10.30.23.160:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 2106, ifindex 157, file bpf_lxc.c:2697, , identity world->health: fe80::f82a:adff:fe6e:fa07 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xd7ad0313 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44612 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x68080e2 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59620 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xcaeca8c0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57012 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x199d83f2 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53974 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x6b49b9bc local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44614 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe93fe810 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57020 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x4f641b1a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46154 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x9364107d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57022 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xf1433734 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59626 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x33034fe3 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57034 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x82dc2f4e local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:42744 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe6c19988 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41966 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x38b144c0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39942 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xe2f28e7a local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:60050 -> 10.30.29.77:8084 tcp SYN
+time=2026-11-11T04:20:53.158622168Z level=warn msg="connection closed" subsys=cilium-dbg error=EOF
+command terminated with exit code 137
+### monitor on cilium-k72gg at 22:21:03
+Press Ctrl-C to quit
+time=2026-11-11T04:21:08.023843489Z level=info msg="Initializing dissection cache..."
+Policy verdict log: flow 0xf3f7312 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51230 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x6479841e local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:39252 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xaf206fd9 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59880 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe70863a3 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36546 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x9e1917af local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55068 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x48dfa178 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42624 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xf6bdc688 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59888 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xd41e2868 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55082 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x9d0a5a36 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55094 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x15623c4b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:48784 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xbb4b6480 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36550 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xa905e17c local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55110 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x7ae4baee local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57350 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xfa4b6a3f local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:43646 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x8f01ce18 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:55170 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x63e0785 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41462 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x530ce281 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57356 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x3a29f4f3 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55332 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xea7abea2 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:55172 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x16954418 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41474 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5a02094c local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:55174 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xab947296 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:55180 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7c6a195a local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:43650 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x8a0b9a4a local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41490 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2e239d85 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45170 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x28d8c67 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36846 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x802c92d1 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:47366 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x7f151d59 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57604 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xc1adc660 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45176 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x64165935 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:47370 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 2677, ifindex 159, file bpf_lxc.c:2697, , identity world->health: fe80::3038:40ff:fe01:c6d4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x37244793 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34602 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x42c145ec local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34608 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xeed583a3 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:47386 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xbacea210 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36848 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x38c8e756 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34610 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xdabb1dd0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34620 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5213d74a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34634 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xe0deae8e local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:42656 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x77e5be8e local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37984 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x3fcf3d17 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44220 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xdb341ad6 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37560 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x98551951 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37576 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa8458b15 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37588 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8c2a6aa0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37592 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xb0ce9bc5 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37606 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa153d0f2 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37608 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xba210dd6 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37622 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa3728355 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37626 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x37e03002 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37628 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf3bd24e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37636 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x41196f77 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37642 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x15826b8f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37648 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8631d39f local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:42658 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x2fb04b83 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37660 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7cb7a857 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35436 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x99d43aff local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37674 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd3e7786e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37678 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x1fa00a91 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37680 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5c1e85f4 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37690 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x558eb85c local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44230 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xbeb4e1e3 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37700 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x17435c10 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37714 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xc65c266f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37722 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x21847c5 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37724 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xee789026 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37730 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x76840d36 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37740 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x46daeaac local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37748 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x2b78a4b8 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44236 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5bba1b33 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37750 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x9d97cd48 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37754 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x3bb7387c local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37992 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x8438702f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37768 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xc88a5183 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44240 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xfbbf15c4 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53778 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x5be1ed55 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56742 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xf5b7e864 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46598 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8cb4df58 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46614 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x26a731da local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46616 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xe75f5c63 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38972 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3bce7ff3 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53784 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x7b01caa0 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49464 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x35e92d76 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46628 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf9def2d1 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46644 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x11136f33 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46654 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x58ac073f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46660 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x22cd898f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46664 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x3b0fda8c local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46670 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x6de0c6cd local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46686 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xbf6e6d1a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46700 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf00d715e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46712 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: :: -> ff02::1:ffbc:45e4 icmp NeighborSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: :: -> ff02::1:ff40:3ec8 icmp NeighborSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: :: -> ff02::1:ffea:9b25 icmp NeighborSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: :: -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: :: -> ff02::16 icmp 143(0)
+Policy verdict log: flow 0x9be687d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38976 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::16 icmp 143(0)
+Policy verdict log: flow 0x6b4b7a66 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46718 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x2b002853 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46724 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::16 icmp 143(0)
+Policy verdict log: flow 0xda2c0ea2 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46734 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x2440fe94 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56744 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x615f4947 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46748 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xc18cde5 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38986 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x41150b7b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46756 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x20bae1f5 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46758 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x56ced82a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:46764 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5adace34 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50586 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xe1f242e7 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50592 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xbc1c8632 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34732 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe206ae58 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41988 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x78af4b58 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50608 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd0597fea local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50610 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xe4b642df local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59578 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2f141ddf local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50622 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x38332e9c local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50630 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x242e87ec local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50638 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xfe779bb8 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50646 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x6e76d454 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46390 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xeb4e59fd local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34748 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x4d95d25b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50652 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x2e030de5 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50666 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf7f20242 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59580 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 348, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.18.164:56809 -> 10.30.10.189:53 udp
+Policy verdict log: flow 0x0 local EP ID 348, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.18.164:36936 -> 10.30.10.189:53 udp
+Policy verdict log: flow 0x0 local EP ID 348, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.18.164:50071 -> 10.30.24.237:53 udp
+Policy verdict log: flow 0x0 local EP ID 348, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.18.164:34905 -> 10.30.10.189:53 udp
+Policy verdict log: flow 0x0 local EP ID 348, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.18.164:34310 -> 10.30.24.237:53 udp
+Policy verdict log: flow 0x1bd5024b local EP ID 348, remote ID 41601, proto 6, egress, action allow, auth: disabled, match all, 10.30.18.164:57342 -> 10.30.22.171:5672 tcp SYN
+Policy verdict log: flow 0x1bd5024b local EP ID 170, remote ID 13690, proto 6, ingress, action allow, auth: disabled, match all, 10.30.18.164:57342 -> 10.30.22.171:5672 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 1349, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.27.63:36272 -> 10.30.24.237:53 udp
+Policy verdict log: flow 0x0 local EP ID 1349, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.27.63:49183 -> 10.30.10.189:53 udp
+Policy verdict log: flow 0x0 local EP ID 1349, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.27.63:37600 -> 10.30.24.237:53 udp
+Policy verdict log: flow 0x0 local EP ID 1349, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.27.63:46575 -> 10.30.10.189:53 udp
+Policy verdict log: flow 0x0 local EP ID 1349, remote ID 45893, proto 17, egress, action allow, auth: disabled, match all, 10.30.27.63:43874 -> 10.30.24.237:53 udp
+Policy verdict log: flow 0xf3476241 local EP ID 1349, remote ID 41601, proto 6, egress, action allow, auth: disabled, match all, 10.30.27.63:55150 -> 10.30.22.171:5672 tcp SYN
+Policy verdict log: flow 0xf3476241 local EP ID 170, remote ID 13690, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.63:55150 -> 10.30.22.171:5672 tcp SYN
+Policy verdict log: flow 0xfab92abd local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50674 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8b85d837 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50678 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x83a6b86a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50686 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8a7a8d72 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50696 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x158dc362 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50704 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf75235e1 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59586 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 2677, ifindex 159, file bpf_lxc.c:2697, , identity world->health: fe80::3038:40ff:fe01:c6d4 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x2b0e393b local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42004 -> 10.30.23.160:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x9231b31a local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55346 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x88c8ba9f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50712 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x83d23929 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50718 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd790302f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50722 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xda183138 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50728 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x6ea824d3 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:50734 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x64a064a local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58382 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xedfdedfd local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58390 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xc573d91d local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45750 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xfd92fd92 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58402 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x98269826 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58406 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x84208420 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58408 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x4f484f48 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58410 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2afc2afc local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58414 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x16251625 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58426 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xe9a3e9a3 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58436 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xb0ceb0ce local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58452 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xc97cc97c local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58462 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd913d913 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58474 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xbca7bca7 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58478 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x55ffc94c local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:34414 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x9c789c78 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58484 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2ea22ea2 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58492 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xa8d3a8d3 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58506 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x26d026d0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58518 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x36bf36bf local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58530 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x84658465 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58538 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xdd08dd08 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:58554 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xea6aec25 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58048 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x7f2fb008 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:33006 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x139d8431 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:33010 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x32234b7 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53168 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xebd65d49 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45762 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe14368b4 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:33018 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7b4aaaa5 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41766 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x3e506da0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58056 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd6bdc63d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58072 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x566408d0 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:34418 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xc9fbc073 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41774 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xe8947bd local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58076 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x4450445 local EP ID 508, remote ID 31250, proto 6, ingress, action allow, auth: disabled, match all, 10.30.2.47:55522 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xaa99aa99 local EP ID 508, remote ID 31250, proto 6, ingress, action allow, auth: disabled, match all, 10.30.2.47:55524 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xb69fb69f local EP ID 508, remote ID 31250, proto 6, ingress, action allow, auth: disabled, match all, 10.30.2.47:55530 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xeff2eff2 local EP ID 508, remote ID 31250, proto 6, ingress, action allow, auth: disabled, match all, 10.30.2.47:55546 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xf5a7f5a7 local EP ID 508, remote ID 31250, proto 6, ingress, action allow, auth: disabled, match all, 10.30.2.47:55558 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd0343351 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57364 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x8dc8a2cc local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46690 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x38312ffe local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:60398 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x908b11c4 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:60410 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xcae2cd7e local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:37582 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xcc411111 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:60416 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x62eb8bd8 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57378 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x95d86fba local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55616 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x7c21a9ac local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44724 -> 10.30.28.254:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x209a0fb7 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:37588 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5d56a213 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:60428 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x16fe6571 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:46704 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xa399a7e9 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44726 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xbea86c0f local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:37598 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x19d7cee7 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57256 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x8088e34 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53868 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x10142f30 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58028 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2e862a2a local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:50458 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xed4f5046 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57268 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x14c681d2 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:50746 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xc158bf7d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58040 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5a696a9d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58052 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3138cf23 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53884 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xc60b05ae local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:50754 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xe194da2f local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:33924 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x28e254ff local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:33438 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x80441c07 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41610 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xe61064e6 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58850 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x2ecd7ed9 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:33928 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x6a170ed9 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:36284 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x15feff0b local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41616 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5dfe3f1b local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41622 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3c5a916b local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:33450 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xb94dff58 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:36300 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xfd70a489 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41632 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x87b9a37 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:40302 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe49156b1 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41890 -> 10.30.23.160:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xb9f67ad8 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45608 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x53003551 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:40312 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x82d6b241 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54806 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xf70635bf local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:33342 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xb22fe1a local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45616 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x4395503a local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41902 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xd9dbf443 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:33358 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x9999f467 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45626 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2aebfab3 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:42232 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x5b70d4db local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42954 -> 10.30.23.160:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x8d326a87 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:48696 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x176bf5ca local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40578 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x224d1d07 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:42248 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x2a293f0 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:58100 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x9c35f5e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:34358 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xbf657ac6 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:48708 -> 10.30.29.77:8084 tcp SYN
+command terminated with exit code 124
+### monitor on cilium-k72gg at 22:23:08
+Listening for events on 2 CPUs with 64x4096 of shared memory
+Press Ctrl-C to quit
+time=2026-11-11T04:23:10.886487598Z level=info msg="Initializing dissection cache..."
+Policy verdict log: flow 0xec4dd7b6 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52508 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xa72c2229 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53250 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x684f8841 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55822 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x91bdd160 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52512 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xdfc2ef1e local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51900 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xea0d91dc local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34264 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x26f5a9dc local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55824 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x213b129e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56710 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x49cc33fd local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55836 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 2677, ifindex 159, file bpf_lxc.c:2697, , identity world->health: fe80::3038:40ff:fe01:c6d4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x1eb6c974 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53264 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x4f5ef685 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34274 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xd78ddf45 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55848 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd471d80d local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56718 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd1de573d local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56864 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe20d0291 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:43052 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x95205fcd local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:48194 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x5e2d2509 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40114 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xcb09b9d3 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56880 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xdf98b952 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53678 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xc439b1d7 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:48208 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x33b765f0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37314 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa137be25 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:43056 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x91428a5f local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53684 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xa7cce38d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:48224 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xe529b615 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:32936 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x6d972a03 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44532 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x5dee5261 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34096 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x983f804 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44814 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x4e43727 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:32950 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xa8b1a308 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:45300 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xd62121c9 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34112 -> 10.30.29.77:8084 tcp SYN
+command terminated with exit code 137
+### monitor on cilium-rgxs6 at 22:23:44
+Listening for events on 2 CPUs with 64x4096 of shared memory
+Press Ctrl-C to quit
+time=2026-11-11T04:23:47.018228945Z level=info msg="Initializing dissection cache..."
+Policy verdict log: flow 0xcd5fdbfb local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53864 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xaed77c7a local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37102 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x875922f0 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:46016 -> 10.30.28.254:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 45, file bpf_lxc.c:1832, , identity 35610->unknown: fe80::ccbe:77ff:fe8e:8304 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 163, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::b87f:33ff:fe40:3ec8 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x7391e6b0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53866 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x323e1193 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:36724 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xe20282a3 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59292 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xe86bd5a9 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40208 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x6806c7d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56214 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x4b68d0c local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:50308 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xcca6fa4a local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59306 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xadce36ea local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59416 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x1e7fef20 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56222 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xa9cdf7a3 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:36732 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x82787e64 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:40216 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xb6d7f639 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59422 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x8122f208 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56228 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 348, ifindex 161, file bpf_lxc.c:2697, , identity world->13690: fe80::4c02:87ff:feea:9b25 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x6705fa6b local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55920 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x3741e56 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51584 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xed5b158 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54424 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xa76fb8d5 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55924 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x12de1bda local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49738 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xa3bf2e59 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52766 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x16ed0aa8 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54428 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3b88dc5b local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54432 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3a4dac51 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51590 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x5c9ab905 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52782 -> 10.30.28.254:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 161, file bpf_lxc.c:1832, , identity 13690->unknown: fe80::f44f:96ff:fee0:31ff -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x9d704761 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56996 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x2fc517e8 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56928 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x97493fb4 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49766 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xfc112c6f local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:32988 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x7ebabbe6 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57008 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x1594a55c local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41148 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x4a7eacd8 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49774 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 818, ifindex 166, file bpf_lxc.c:2697, , identity world->health: fe80::68d5:6ff:fe70:c61d -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x5ed0dab0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49782 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x8bcb3026 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56940 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x1f9985e1 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41164 -> 10.30.28.254:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 1349, ifindex 163, file bpf_lxc.c:2697, , identity world->13690: fe80::bc42:16ff:febc:45e4 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x743c725b local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49786 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x37ee7a9f local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:60264 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x6d1e4498 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37226 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x3aa0814e local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52218 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd624f582 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:50222 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x36553096 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:60268 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x8f17b3a8 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59906 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x4de7db8d local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:43224 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa582b937 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52224 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xae1e8344 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37240 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x3eebaf4f local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59918 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x8561621d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:52234 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd4b9b5cd local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54014 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x79259dd7 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58870 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x8bba73ca local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55018 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xf9eb870c local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54028 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x9ad9e126 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57670 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x9230047f local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:38410 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xff89fc27 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55026 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xdc33f0a0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57286 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa8bd6209 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57294 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x90f72732 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57302 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x4e2da595 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:55036 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xcc431198 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:58876 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x189d9b local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:38420 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x4b3dd8c0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57306 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x4ff9988b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57320 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x955e10bc local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57336 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd708db1c local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:57344 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7e3de8fb local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37040 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x945e67c9 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37056 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xbae9d2aa local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37060 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xd49f50ed local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37072 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xee5eadf local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37080 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x4e400521 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37086 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5e0245ad local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:39916 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x37d5bb38 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37660 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x1c9b035c local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41614 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x70e81730 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37094 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x92459fcd local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37108 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x9b29e330 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37110 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xb76cd6aa local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37124 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xc3c07d50 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37128 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7c5b3055 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37132 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x2cb98413 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37146 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x322bfc76 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37160 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5f6c121b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37162 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5b963182 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37174 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x9ceeeb62 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37182 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xbaf150d7 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37190 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8b1fdb84 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37202 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xb025dcb1 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37212 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf91cabb4 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:53864 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x27459d01 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:39918 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x5df66fe3 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53952 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x2cbe802d local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41622 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 818, ifindex 166, file bpf_lxc.c:2697, , identity world->health: fe80::68d5:6ff:fe70:c61d -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x6a55e78e local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41638 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x963f2043 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:37668 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xf4a21664 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:53954 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xc86b8c51 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37224 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x780f0804 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:41652 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xba7b468 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49342 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xd4efa73f local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56510 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x33e6a3d0 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37206 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x1cc522e local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:43222 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x79540fa0 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:49344 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xcfe7611c local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55986 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xc111ff88 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:40406 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0xbeff4c9 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37210 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x47cdf2f8 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37226 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa1da0907 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37228 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xe67deb18 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:43224 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x18e4d232 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37244 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xba4b2d86 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37250 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8e2c9120 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37258 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x587fbb4b local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37262 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x6990e3e9 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37266 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 170, remote ID 25219, proto 6, ingress, action allow, auth: disabled, match all, 10.30.13.232:44726 -> 10.30.22.171:5672 tcp SYN
+Policy verdict log: flow 0x25a02ed8 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37276 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x93fca232 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37284 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf8dc894f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:37300 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x5ac8d3f8 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56516 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x7a515b28 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:40418 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x185bca61 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:43228 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x66015c67 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39436 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf9ae0726 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39446 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf0b3f325 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:50626 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xfc002fe2 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59314 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x2d1fd593 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39448 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xcb37612e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39462 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x47e6ea8b local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57274 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xcf8d0b59 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39478 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x22c4a085 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39486 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x3d1638ff local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:52836 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xc0fc5e35 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:50634 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xf159b8c6 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34148 -> 10.30.28.254:8082 tcp SYN
+Policy verdict log: flow 0x4658c323 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39496 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x45876304 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57276 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51560 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51576 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51592 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51596 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51604 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51618 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51620 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51630 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51644 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51650 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51666 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51676 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51692 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51700 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51716 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51718 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51728 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51740 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51744 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 29814, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.1.9:51746 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x1186ca13 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39510 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x4551d256 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39512 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: :: -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: :: -> ff02::1:ffbd:fcf1 icmp NeighborSolicitation
+Policy verdict log: flow 0x32f37bfe local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39526 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x50349374 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57280 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xb3e55858 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39534 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xc42f6e30 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39546 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xb191b1df local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:59324 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x88eb5a67 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39554 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8334b7a2 local EP ID 1702, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:34156 -> 10.30.28.254:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::16 icmp 143(0)
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::16 icmp 143(0)
+Policy verdict log: flow 0xe846042f local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:39556 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::16 icmp 143(0)
+Policy verdict log: flow 0xe1082963 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49336 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xa6c10ce4 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49348 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xac0f30 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54632 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xea14e654 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44762 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x12a1aff9 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:57368 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3187fea2 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49354 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x622997e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49370 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x76809b25 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49372 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x3f43df34 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49388 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x36328654 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49398 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8b24115 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49414 -> 10.30.23.160:8081 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::2 icmp RouterSolicitation
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xb143839e local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49418 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x15bfd757 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:54648 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x9509aeac local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:33162 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xda43460d local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49430 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x3e391073 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57378 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x47bcd659 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49444 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x78fe7c0a local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49450 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xf5ade215 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49454 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x7aced233 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57388 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x1392cb59 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:49460 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 31250, proto 6, ingress, action deny, auth: disabled, match none, 10.30.2.47:55808 -> 10.30.29.77:8084 tcp SYN
+xx drop (Policy denied) flow 0x0 to endpoint 508, ifindex 124, file bpf_lxc.c:2468, , identity 31250->16962: 10.30.2.47:55808 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 31250, proto 6, ingress, action deny, auth: disabled, match none, 10.30.2.47:55810 -> 10.30.29.77:8084 tcp SYN
+xx drop (Policy denied) flow 0x0 to endpoint 508, ifindex 124, file bpf_lxc.c:2468, , identity 31250->16962: 10.30.2.47:55810 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x1fcfdda9 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:44768 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 31250, proto 6, ingress, action deny, auth: disabled, match none, 10.30.2.47:55820 -> 10.30.29.77:8084 tcp SYN
+xx drop (Policy denied) flow 0x0 to endpoint 508, ifindex 124, file bpf_lxc.c:2468, , identity 31250->16962: 10.30.2.47:55820 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xb7539cdf local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:57402 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 31250, proto 6, ingress, action deny, auth: disabled, match none, 10.30.2.47:41950 -> 10.30.29.77:8084 tcp SYN
+xx drop (Policy denied) flow 0x0 to endpoint 508, ifindex 124, file bpf_lxc.c:2468, , identity 31250->16962: 10.30.2.47:41950 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x752287ea local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:38088 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x94068111 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38798 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x0 local EP ID 508, remote ID 31250, proto 6, ingress, action deny, auth: disabled, match none, 10.30.2.47:41960 -> 10.30.29.77:8084 tcp SYN
+xx drop (Policy denied) flow 0x0 to endpoint 508, ifindex 124, file bpf_lxc.c:2468, , identity 31250->16962: 10.30.2.47:41960 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xd59e260f local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49074 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xe535a754 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:45886 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xaab8bf2d local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:36582 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xe8a81823 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:38102 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xb03470a0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49076 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x18fc17ca local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38808 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x430b3a39 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:49082 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x52ce3aa5 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56420 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xca88e809 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51336 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xb0463b0c local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54338 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xcbaf090f local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:55782 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xbb02d2ae local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:56434 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x881674f local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54354 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x5fae32e5 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:54364 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xf3013489 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51340 -> 10.30.23.160:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0xce05a4f1 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59696 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x4aa8632 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38270 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xf4b1ed24 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35742 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x2c5a61d0 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:59698 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x478d1e66 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51518 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xfc886b35 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:35758 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xbfad4db9 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:38246 -> 10.30.23.160:8081 tcp SYN
+command terminated with exit code 124
+### monitor on cilium-rgxs6 at 22:25:49
+Listening for events on 2 CPUs with 64x4096 of shared memory
+Press Ctrl-C to quit
+time=2026-11-11T04:25:53.01949996Z level=info msg="Initializing dissection cache..."
+Policy verdict log: flow 0x75886196 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42928 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3a39a87b local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:56916 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0xb8f1b30c local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:35272 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x5c6ab30a local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42944 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x45580006 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:41862 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x30908f0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:42948 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x43746bdd local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44902 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x7f87800c local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:52942 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x65ec42f local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38848 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xd4787915 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:44912 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0xa19dd67b local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:48538 -> 10.30.23.147:8082 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 0, ifindex 168, file bpf_lxc.c:1832, , identity 9651->unknown: fe80::5046:d4ff:febd:fcf1 -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x88250fab local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38860 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xc35305d9 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:38874 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x3718920c local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:52948 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0xeac1a958 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:52038 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x34756bd8 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:51080 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x5b1c5dd8 local EP ID 1981, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:52420 -> 10.30.23.160:8084 tcp SYN
+Policy verdict log: flow 0x9d6d02c5 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51646 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0x75c1437 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56890 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x540d9ee8 local EP ID 2353, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:45910 -> 10.30.23.147:8082 tcp SYN
+Policy verdict log: flow 0x8283729 local EP ID 3975, remote ID host, proto 6, ingress, action allow, auth: disabled, match all, 10.30.27.5:51082 -> 10.30.30.131:8080 tcp SYN
+Policy verdict log: flow 0x80070170 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51652 -> 10.30.29.77:8084 tcp SYN
+Policy verdict log: flow 0xcf94f8cb local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56892 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0xdb1231d9 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56900 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x29f6c967 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56914 -> 10.30.23.160:8081 tcp SYN
+Policy verdict log: flow 0x8ce56dc0 local EP ID 508, remote ID host, proto 6, ingress, action allow, auth: disabled, match L3-Only, 10.30.27.5:51654 -> 10.30.29.77:8084 tcp SYN
+xx drop (Unsupported L3 protocol) flow 0x0 to endpoint 598, ifindex 168, file bpf_lxc.c:2697, , identity world->9651: fe80::404b:f5ff:fe75:8dd -> ff02::2 icmp RouterSolicitation
+Policy verdict log: flow 0x549d1dc1 local EP ID 1981, remote ID 50431, proto 6, ingress, action allow, auth: disabled, match L3-L4, 10.30.23.147:56920 -> 10.30.23.160:8081 tcp SYN

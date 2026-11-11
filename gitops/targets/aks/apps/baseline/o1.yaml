@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: selfheal-o1
+  namespace: argocd
+spec:
+  project: default
+  ignoreDifferences:
+    - group: ""
+      kind: Pod
+      name: o1-target
+      jsonPointers:
+        - /metadata/annotations/o1.security~1incident
+    - group: ""
+      kind: ConfigMap
+      name: o1-evidence
+      jsonPointers:
+        - /data
+    - group: coordination.k8s.io
+      kind: Lease
+      name: o1-release
+      jsonPointers:
+        - /metadata/annotations/o1.security~1release
+        - /spec/holderIdentity
+  source:
+    repoURL: git://gitserver.gitops.svc.cluster.local/lab.git
+    targetRevision: main
+    path: targets/aks/o1/baseline
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: selfheal-o1
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - RespectIgnoreDifferences=true

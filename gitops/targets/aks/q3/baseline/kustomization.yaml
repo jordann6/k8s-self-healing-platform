@@ -1,0 +1,8 @@
+# Q3 on AKS: the kind profile with the registry image (ADR-0020).
+# The workload is not pinned: nothing in the row depends on a node or a warm cache.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../q3/baseline
+components:
+  - ../../generated

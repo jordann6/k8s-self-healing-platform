@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+  - rbac.yaml
+patches:
+  - target: {kind: ConfigMap, name: o1-profile}
+    patch: |-
+      - op: add
+        path: /data/profile
+        value: baseline

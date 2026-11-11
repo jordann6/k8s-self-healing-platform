@@ -1,0 +1,11 @@
+# Hardened Q2 adds only the metric-failure fallback. All other workload and
+# autoscaler settings stay identical to the baseline.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: selfheal
+resources:
+  - ../base
+  - scaledobject.yaml
+images:
+  - name: selfheal-q2
+    newTag: v1

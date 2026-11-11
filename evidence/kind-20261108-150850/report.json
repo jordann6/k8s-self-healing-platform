@@ -1,0 +1,202 @@
+{
+  "run_id": "kind-20261108-150850",
+  "target": "kind",
+  "started": "2026-11-08T21:08:54.427Z",
+  "rows": [
+    "Q3"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "kube-system/metrics-server": true,
+    "vpa/vpa-vertical-pod-autoscaler-recommender": true,
+    "selfheal/q3-target": true,
+    "q3_synced": true
+  },
+  "versions": {
+    "repo_commit": "d193139e25d3f53812ce971b19000ebb4ccda227-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "selfheal-q3:v1",
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "Q3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "6 samples, CPU p90 242.326m, memory p90 108.566MiB; no VPA recommendation; requests 50m/32Mi",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "6 samples, CPU p90 200.807m, memory p90 108.562MiB; recommendation 247m/144645763 at 41s, ratios 1.23/1.27; bounded True, requests unchanged True, pod unchanged True, restart delta 0",
+        "thresholds": {
+          "recommend_s": 240,
+          "min_samples": 6,
+          "cpu_pressure_m": 100,
+          "memory_pressure_mib": 64,
+          "cpu_ratio_min": 0.7,
+          "cpu_ratio_max": 2.0,
+          "memory_ratio_min": 0.9,
+          "memory_ratio_max": 2.0,
+          "restarts": 0
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "Q3": {
+      "baseline": {
+        "t0": 1794172140.6633532,
+        "metrics_available": true,
+        "vpa_present": false,
+        "update_mode": null,
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-55487488c6-gq9j4",
+          "uid": "ae967e5c-6709-4588-bf52-e341cc60751b",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-55487488c6-gq9j4",
+          "uid": "ae967e5c-6709-4588-bf52-e341cc60751b",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 242.326,
+          "cpu_max_m": 242.326,
+          "memory_p90_mib": 108.566,
+          "memory_max_mib": 108.566
+        },
+        "recommendation": null,
+        "recommendation_s": null,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794172216.5635352,
+        "metrics_available": true,
+        "vpa_present": true,
+        "update_mode": "Off",
+        "hpa_present": false,
+        "initial_state": {
+          "pod_count": 1,
+          "pod": "q3-target-55487488c6-gq9j4",
+          "uid": "ae967e5c-6709-4588-bf52-e341cc60751b",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "final_state": {
+          "pod_count": 1,
+          "pod": "q3-target-55487488c6-gq9j4",
+          "uid": "ae967e5c-6709-4588-bf52-e341cc60751b",
+          "restart_count": 0,
+          "ready": true,
+          "requests": {
+            "cpu": "50m",
+            "memory": "32Mi",
+            "cpu_m": 50.0,
+            "memory_mib": 32.0
+          }
+        },
+        "usage": {
+          "samples": 6,
+          "cpu_p90_m": 200.807,
+          "cpu_max_m": 200.807,
+          "memory_p90_mib": 108.562,
+          "memory_max_mib": 108.562
+        },
+        "recommendation": {
+          "container": "target",
+          "lowerBound": {
+            "cpu": "39m",
+            "memory": "23336048",
+            "cpu_m": 39.0,
+            "memory_mib": 22.255
+          },
+          "target": {
+            "cpu": "247m",
+            "memory": "144645763",
+            "cpu_m": 247.0,
+            "memory_mib": 137.945
+          },
+          "uncappedTarget": {
+            "cpu": "247m",
+            "memory": "144645763",
+            "cpu_m": 247.0,
+            "memory_mib": 137.945
+          },
+          "upperBound": {
+            "cpu": "1",
+            "memory": "256Mi",
+            "cpu_m": 1000.0,
+            "memory_mib": 256.0
+          }
+        },
+        "recommendation_s": 41.4,
+        "requests_unchanged": true,
+        "pod_uid_unchanged": true,
+        "restart_delta": 0,
+        "window": "resource Metrics API samples and VPA status recommendation",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-08T21:11:49.638Z",
+  "pass": true
+}

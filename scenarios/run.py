@@ -24,6 +24,7 @@ Stdlib only. Needs kubectl, helm, cilium, hubble and openssl on PATH.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
 import gzip
 import json
@@ -45,6 +46,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from judge import THRESHOLDS, hypothesis, overall, verdict  # noqa: E402
 import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
+import q2_row  # noqa: E402
+import q3_row  # noqa: E402
+import n1_row  # noqa: E402
+import p1_row  # noqa: E402
+import d1_row  # noqa: E402
+import o1_row  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
@@ -54,11 +61,13 @@ TARGET = "kind"
 CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks"}
 NS = "selfheal"
 ROWS_BY_TARGET = {
-    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1"],
+    # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
+    # the original rows exercise.
+    "kind": ["A1", "A2", "A3", "A5", "S1", "S2", "S3", "R1", "Q1", "Q2", "Q3", "N1", "P1", "D1", "O1"],
     # R2 last: it quarantines a node, which the runner then replaces.
-    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "R2"],
+    "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
-    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "R2"],
+    "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
 }
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
@@ -82,6 +91,13 @@ ACTIONS = {
     "S2": "cert-manager renews; the app hot-reloads the mounted pair",
     "S3": "Argo CD self-heal re-applies Git",
     "R1": "Falco -> Falcosidekick -> Talon labels the pod; quarantine CiliumNetworkPolicy isolates it",
+    "Q1": "KEDA scales the worker from zero on queue depth and back to zero; manual-ack redelivery keeps a killed worker from losing work",
+    **q2_row.ACTIONS,
+    **q3_row.ACTIONS,
+    **n1_row.ACTIONS,
+    **p1_row.ACTIONS,
+    **d1_row.ACTIONS,
+    **o1_row.ACTIONS,
     **eks_rows.ACTIONS,
 }
 
@@ -949,7 +965,7 @@ def falco_event(pod_name: str, since: float) -> dict | None:
     return None
 
 
-def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
+def hubble_policy_drops(pod_name: str, since: float, namespace: str | None = None) -> list[dict]:
     """Policy drops for the pod since `since`. A failed query raises (it is
     never "no drops"); an empty answer is retried briefly, because the relay
     collects flows from every node."""
@@ -957,7 +973,7 @@ def hubble_policy_drops(pod_name: str, since: float) -> list[dict]:
     for attempt in range(3):
         if HubbleRelay.current:
             HubbleRelay.current.ensure()
-        p = sh(["hubble", "observe", "--pod", f"{NS}/{pod_name}", "--verdict", "DROPPED", "--since",
+        p = sh(["hubble", "observe", "--pod", f"{namespace or NS}/{pod_name}", "--verdict", "DROPPED", "--since",
                 dt.datetime.fromtimestamp(since - 2, dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "-o", "json"],
                timeout=60)
         if p.returncode != 0:
@@ -1065,11 +1081,224 @@ def row_r1(lab: Lab, profile: str, d: Path) -> dict:
             "window": "T0 to end", "impact": st}
 
 
-RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3, "R1": row_r1}
+# --------------------------------------------------------------------------- #
+# Q1: KEDA queue-driven scaling of a RabbitMQ worker, no lost work.
+# The worker and broker are a separate Argo CD app (selfheal-q1); the runner
+# drives the broker through rabbitmqctl (exec) and publishes/collects through
+# one-shot Jobs that run the qworker image, so run.py stays stdlib-only.
+# --------------------------------------------------------------------------- #
+
+Q1_IMAGE = "selfheal-qworker:v1"
+Q2_IMAGE = "selfheal-q2:v1"
+
+
+def q1_depth(queue: str = "work") -> dict | None:
+    p = k("-n", NS, "exec", "deploy/rabbitmq", "-c", "rabbitmq", "--", "rabbitmqctl", "list_queues",
+          "name", "messages_ready", "messages_unacknowledged", "--formatter", "json", timeout=40)
+    if p.returncode != 0:
+        return None
+    try:
+        rows = json.loads(p.stdout)
+    except json.JSONDecodeError:
+        return None
+    for r in rows:
+        if r.get("name") == queue:
+            return {"ready": r.get("messages_ready", 0), "unacked": r.get("messages_unacknowledged", 0)}
+    return None  # a missing queue is missing telemetry, never an empty queue
+
+
+def q1_peer_ip(peer) -> str | None:
+    """RabbitMQ 3.13 prints peer_host as eight 16-bit words, an IPv4-mapped IPv6
+    address such as [0,0,0,0,0,65535,2590,4944] for 10.30.19.80. Accept a dotted
+    string too. Anything else is missing telemetry."""
+    if isinstance(peer, str):
+        return peer or None
+    if isinstance(peer, list) and len(peer) == 8 and all(isinstance(w, int) for w in peer) \
+            and peer[:6] == [0, 0, 0, 0, 0, 65535]:
+        hi, lo = peer[6], peer[7]
+        return f"{hi >> 8}.{hi & 255}.{lo >> 8}.{lo & 255}"
+    return None
+
+
+def q1_busy_workers(running: list[dict]) -> dict[str, int]:
+    """Map worker pod name -> messages it holds unacked, per the broker.
+
+    Prefetch is 1, so a channel with an unacked message is a worker mid-work.
+    The channel's connection peer address is the pod IP, so the victim is
+    attributed by the broker itself at any replica count, not by guessing
+    from the queue total. Any telemetry gap returns {} (never a guess)."""
+    script = ("rabbitmqctl list_channels connection messages_unacknowledged --formatter json; "
+              "echo @@SPLIT@@; rabbitmqctl list_connections pid peer_host --formatter json")
+    p = k("-n", NS, "exec", "deploy/rabbitmq", "-c", "rabbitmq", "--", "sh", "-c", script, timeout=60)
+    if p.returncode != 0 or "@@SPLIT@@" not in p.stdout:
+        return {}
+    try:
+        chans_raw, conns_raw = p.stdout.split("@@SPLIT@@", 1)
+        chans, conns = json.loads(chans_raw), json.loads(conns_raw)
+    except json.JSONDecodeError:
+        return {}
+    ip_of = {c.get("pid"): q1_peer_ip(c.get("peer_host")) for c in conns}
+    pod_of = {pod["status"].get("podIP"): pod["metadata"]["name"] for pod in running if pod["status"].get("podIP")}
+    busy: dict[str, int] = {}
+    for ch in chans:
+        n = ch.get("messages_unacknowledged", 0) or 0
+        ip = ip_of.get(ch.get("connection"))
+        pod = pod_of.get(ip) if ip else None
+        if n >= 1 and pod:
+            busy[pod] = busy.get(pod, 0) + n
+    return busy
+
+
+def q1_running() -> list[dict]:
+    items = kj("-n", NS, "get", "pod", "-l", "app=qworker").get("items", [])
+    return [p for p in items if p["status"].get("phase") == "Running" and not p["metadata"].get("deletionTimestamp")]
+
+
+def q1_so_ready() -> bool:
+    so = kj("-n", NS, "get", "scaledobject", "qworker")
+    return any(c.get("type") == "Ready" and c.get("status") == "True"
+               for c in so.get("status", {}).get("conditions", []))
+
+
+def q1_purge() -> None:
+    for q in ("work", "done", "dead"):
+        p = k("-n", NS, "exec", "deploy/rabbitmq", "-c", "rabbitmq", "--", "rabbitmqctl", "purge_queue", q, timeout=40)
+        if p.returncode != 0:
+            raise RuntimeError(f"could not purge Q1 {q} queue: {p.stderr[:300]}")
+
+
+def q1_job(name: str, command: list[str], extra_env: list[dict]) -> str:
+    env = [{"name": "RABBITMQ_HOST", "value": "rabbitmq.selfheal.svc.cluster.local"},
+           {"name": "RABBITMQ_PORT", "value": "5672"},
+           {"name": "RABBITMQ_USER", "valueFrom": {"secretKeyRef": {"name": "rabbitmq", "key": "username"}}},
+           {"name": "RABBITMQ_PASS", "valueFrom": {"secretKeyRef": {"name": "rabbitmq", "key": "password"}}}] + extra_env
+    k("-n", NS, "delete", "job", name, "--ignore-not-found", "--wait=true", timeout=90)
+    apply({"apiVersion": "batch/v1", "kind": "Job",
+           "metadata": {"name": name, "namespace": NS, "labels": {"selfheal/row": "Q1"}},
+           "spec": {"backoffLimit": 0, "ttlSecondsAfterFinished": 300, "template": {
+               "metadata": {"labels": {"app": "q1job", "selfheal/row": "Q1"}},
+               "spec": {"restartPolicy": "Never", "automountServiceAccountToken": False, "enableServiceLinks": False,
+                        "securityContext": {"runAsNonRoot": True, "runAsUser": 10001, "runAsGroup": 10001,
+                                            "seccompProfile": {"type": "RuntimeDefault"}},
+                        "containers": [{"name": "job", "image": Q1_IMAGE, "imagePullPolicy": "IfNotPresent",
+                                        "args": command, "env": env,
+                                        "resources": {"requests": {"cpu": "25m", "memory": "32Mi"},
+                                                      "limits": {"memory": "64Mi"}},
+                                        "securityContext": {"allowPrivilegeEscalation": False,
+                                                            "readOnlyRootFilesystem": True,
+                                                            "capabilities": {"drop": ["ALL"]}}}]}}}})
+    deadline = now() + 180
+    try:
+        while now() < deadline:
+            status = kj("-n", NS, "get", "job", name).get("status", {})
+            if status.get("succeeded"):
+                return k("-n", NS, "logs", f"job/{name}", timeout=60).stdout
+            if status.get("failed"):
+                logs = k("-n", NS, "logs", f"job/{name}", timeout=60).stdout.strip()
+                raise RuntimeError(f"Q1 job {name} failed: {logs[-1000:]}")
+            time.sleep(2)
+        raise TimeoutError(f"Q1 job {name} did not finish within 180s")
+    finally:
+        k("-n", NS, "delete", "job", name, "--ignore-not-found", "--wait=false")
+
+
+def row_q1(lab: Lab, profile: str, d: Path) -> dict:
+    n = int(os.environ.get("Q1_N", "240"))
+    work_ms = int(os.environ.get("Q1_WORK_MS", "250"))
+    limit_s = int(os.environ.get("Q1_LIMIT", "300"))
+    zero_s = int(os.environ.get("Q1_ZERO_S", "120"))
+    tag = f"q1{profile[0]}{int(now()) % 100000:05d}"
+
+    wait_for(lambda: q1_depth("work") is not None, 180, step=3, what="the Q1 broker reachable")
+    metrics_ok = None
+    if profile == "hardened":
+        wait_for(q1_so_ready, 180, step=5, what="the Q1 ScaledObject Ready")
+        wait_for(lambda: not q1_running(), 180, step=3, what="the worker idle at zero replicas")
+        metrics_ok = q1_so_ready()
+    q1_purge()
+    start_replicas = len(q1_running())
+    t0 = now()
+    plog = q1_job("q1-producer", ["produce"],
+                  [{"name": "Q1_TAG", "value": tag}, {"name": "Q1_N", "value": str(n)},
+                   {"name": "Q1_WORK_MS", "value": str(work_ms)}])
+    published = next((int(ln.split()[1]) for ln in plog.splitlines() if ln.startswith("PRODUCED ")), 0)
+
+    ev = {"scaled_up": None, "drained": None, "zero": None, "max_replicas": start_replicas,
+          "killed_pod": None, "unacked_at_kill": None, "workers_at_kill": None}
+    killed = False
+    while now() < t0 + limit_s:
+        if profile == "hardened":
+            metrics_ok = metrics_ok and q1_so_ready()
+        running = q1_running()
+        ev["max_replicas"] = max(ev["max_replicas"], len(running))
+        if ev["scaled_up"] is None and len(running) > start_replicas:
+            ev["scaled_up"] = now()
+        depth = q1_depth("work") or {"ready": 1, "unacked": 0}
+        # Kill one busy worker once, mid-drain: it holds an in-flight (unacked)
+        # message the broker must redeliver (no lost work). The victim is the
+        # pod the broker reports as holding an unacked message, so it works at
+        # any replica count (a scale-out can pass one worker between polls).
+        if not killed and depth["ready"] > 0 and depth["unacked"] >= 1:
+            busy = q1_busy_workers(running)
+            if busy:
+                victim = sorted(busy)[0]
+                ev["unacked_at_kill"] = busy[victim]
+                ev["workers_at_kill"] = len(running)
+                k("-n", NS, "delete", "pod", victim, "--grace-period=0", "--force", "--wait=false", timeout=30)
+                ev["killed_pod"], killed = victim, True
+        if ev["drained"] is None and depth["ready"] == 0 and depth["unacked"] == 0:
+            ev["drained"] = now()
+            break
+        time.sleep(3)
+
+    if profile == "hardened" and ev["drained"] is not None:
+        def at_zero() -> bool:
+            return (not q1_running()
+                    and kj("-n", NS, "get", "deploy", "qworker").get("spec", {}).get("replicas", 1) == 0)
+        try:
+            wait_for(at_zero, zero_s, step=3, what="the worker to scale back to zero")
+            ev["zero"] = now()
+        except TimeoutError:
+            pass
+    if profile == "hardened":
+        metrics_ok = metrics_ok and q1_so_ready()
+
+    end_replicas = len(q1_running())
+    coll: dict = {}
+    for ln in q1_job("q1-collect", ["collect"],
+                     [{"name": "Q1_TAG", "value": tag}, {"name": "Q1_N", "value": str(n)}]).splitlines():
+        if ln.startswith("COLLECT "):
+            coll = json.loads(ln.split(" ", 1)[1])
+            break
+    q1_purge()
+    rel = lambda t: None if t is None else round(t - t0, 1)  # noqa: E731
+    return {"t0": t0, "n_target": n, "published": published, "profile_start_replicas": start_replicas,
+            "max_replicas": ev["max_replicas"], "end_replicas": end_replicas, "scaled_up_s": rel(ev["scaled_up"]),
+            "drained_s": rel(ev["drained"]), "scaled_to_zero_s": rel(ev["zero"]),
+            "distinct_done": coll.get("distinct"), "expected_done": coll.get("expected_done"),
+            "unexpected_done": coll.get("unexpected_done"), "done_total": coll.get("total"),
+            "duplicates": coll.get("duplicates"),
+            "killed_pod": ev["killed_pod"], "unacked_at_kill": ev["unacked_at_kill"],
+            "workers_at_kill": ev["workers_at_kill"], "metrics_source_ok": metrics_ok,
+            "window": "T0 (backlog published) to drained and scaled back to zero"}
+
+
+RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1, "S2": row_s2, "S3": row_s3,
+           "R1": row_r1, "Q1": row_q1,
+           "Q2": lambda lab, profile, d: q2_row.run(sys.modules[__name__], lab, profile, d),
+           "Q3": lambda lab, profile, d: q3_row.run(sys.modules[__name__], lab, profile, d),
+           "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d),
+           "P1": lambda lab, profile, d: p1_row.run(sys.modules[__name__], lab, profile, d),
+           "D1": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d),
+           "O1": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
-            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s"}
+            "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
+            "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s",
+            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
-             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s"}
+             "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
+             "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s",
+             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s"}
 
 
 def runner(row: str):
@@ -1093,25 +1322,162 @@ def clock_keys(row: str) -> tuple[str, str]:
 # --------------------------------------------------------------------------- #
 
 
-def preconditions() -> dict:
+FULL_PRECONDITIONS = [
+    ("kube-system", "deploy", "metrics-server"), ("monitoring", "deploy", "kps-operator"),
+    ("cert-manager", "deploy", "cert-manager"), ("external-secrets", "deploy", "external-secrets"),
+    ("reloader", "deploy", "reloader-reloader"), ("argo-rollouts", "deploy", "argo-rollouts"),
+    ("argocd", "statefulset", "argocd-application-controller"),
+    ("chaos-mesh", "deploy", "chaos-controller-manager"), ("falco", "daemonset", "falco"),
+    ("falco", "deploy", "falco-falcosidekick"), ("falco", "deploy", "falco-talon"),
+    ("gitops", "deploy", "gitserver"),
+]
+FOCUSED_SHARED_PRECONDITIONS = [
+    ("kube-system", "daemonset", "cilium"), ("kube-system", "deploy", "cilium-operator"),
+    ("argocd", "statefulset", "argocd-application-controller"), ("gitops", "deploy", "gitserver"),
+]
+FOCUSED_KEDA_PRECONDITIONS = [
+    ("keda", "deploy", "keda-operator"), ("keda", "deploy", "keda-operator-metrics-apiserver"),
+    ("keda", "deploy", "keda-admission-webhooks"),
+]
+FOCUSED_Q3_PRECONDITIONS = [("kube-system", "deploy", "metrics-server"),
+                            ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender")]
+FOCUSED_N1_PRECONDITIONS = [("kube-system", "deploy", "hubble-relay")]
+FOCUSED_P1_PRECONDITIONS = [
+    ("kyverno", "deploy", "kyverno-admission-controller"),
+    ("kyverno", "deploy", "kyverno-background-controller"),
+    ("kyverno", "deploy", "kyverno-reports-controller"),
+    ("argocd", "statefulset", "argocd-application-controller"),
+    ("gitops", "deploy", "gitserver"),
+]
+FOCUSED_D1_PRECONDITIONS = [
+    ("argocd", "statefulset", "argocd-application-controller"),
+    ("gitops", "deploy", "gitserver"),
+    ("selfheal-d1-store", "statefulset", "d1-minio"),
+    ("selfheal-d1-source", "statefulset", "d1-source"),
+]
+# The cloud store is S3 or Blob, not a StatefulSet (ADR-0022), so there is no store workload to wait for.
+FOCUSED_D1_CLOUD_PRECONDITIONS = [p for p in FOCUSED_D1_PRECONDITIONS if p[0] not in ("selfheal-d1-store", "selfheal-d1-source")]
+FOCUSED_O1_PRECONDITIONS = FOCUSED_SHARED_PRECONDITIONS
+
+
+def q1_only(rows: list[str]) -> bool:
+    return rows == ["Q1"]
+
+
+def q2_only(rows: list[str]) -> bool:
+    return rows == ["Q2"]
+
+
+def q3_only(rows: list[str]) -> bool:
+    return rows == ["Q3"]
+
+
+def n1_only(rows: list[str]) -> bool:
+    return rows == ["N1"]
+
+
+def p1_only(rows: list[str]) -> bool:
+    return rows == ["P1"]
+
+
+def d1_only(rows: list[str]) -> bool:
+    return rows == ["D1"]
+
+
+def o1_only(rows: list[str]) -> bool:
+    return rows == ["O1"]
+
+
+def focused_row(rows: list[str]) -> str | None:
+    if q1_only(rows):
+        return "Q1"
+    if q2_only(rows):
+        return "Q2"
+    if q3_only(rows):
+        return "Q3"
+    if n1_only(rows):
+        return "N1"
+    if p1_only(rows):
+        return "P1"
+    if d1_only(rows):
+        return "D1"
+    if o1_only(rows):
+        return "O1"
+    return None
+
+
+def keda_preconditions() -> list[tuple[str, str, str]]:
+    """AKS runs the managed add-on in kube-system. Kind and EKS run the pinned chart in keda."""
+    if TARGET == "aks":
+        return [("kube-system", "deploy", "keda-operator"),
+                ("kube-system", "deploy", "keda-operator-metrics-apiserver"),
+                ("kube-system", "deploy", "keda-admission-webhooks")]
+    return FOCUSED_KEDA_PRECONDITIONS
+
+
+def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
+    focused = focused_row(rows)
+    if focused == "Q1":
+        return FOCUSED_SHARED_PRECONDITIONS + keda_preconditions()
+    if focused == "Q2":
+        return FOCUSED_SHARED_PRECONDITIONS + keda_preconditions()
+    if focused == "Q3":
+        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_Q3_PRECONDITIONS
+    if focused == "N1":
+        return FOCUSED_SHARED_PRECONDITIONS + FOCUSED_N1_PRECONDITIONS
+    if focused == "P1":
+        # ADR-0021: on the clouds the outage is attributed through Hubble drops.
+        return FOCUSED_P1_PRECONDITIONS + ([] if TARGET == "kind" else FOCUSED_N1_PRECONDITIONS)
+    if focused == "D1":
+        return FOCUSED_D1_PRECONDITIONS if TARGET == "kind" else FOCUSED_D1_CLOUD_PRECONDITIONS
+    if focused == "O1":
+        return FOCUSED_O1_PRECONDITIONS
+    extra = {"eks": [("kube-system", "deploy", "karpenter")],
+             "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
+    return extra + FULL_PRECONDITIONS
+
+
+def preconditions(rows: list[str]) -> dict:
     ctx = k("config", "current-context").stdout.strip()
     if ctx != CONTEXTS[TARGET]:
         raise SystemExit(f"refusing to run: kube context is {ctx!r}, expected {CONTEXTS[TARGET]!r} "
                          f"(KUBECONFIG={os.environ['KUBECONFIG']})")
     checks = {"context": ctx}
-    extra = {"eks": [("kube-system", "deploy", "karpenter")],
-             "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
-    # On AKS, metrics-server is AKS's own deployment (not the chart).
-    for ns, kind, name in extra + [("kube-system", "deploy", "metrics-server"), ("monitoring", "deploy", "kps-operator"),
-                           ("cert-manager", "deploy", "cert-manager"), ("external-secrets", "deploy", "external-secrets"),
-                           ("reloader", "deploy", "reloader-reloader"), ("argo-rollouts", "deploy", "argo-rollouts"),
-                           ("argocd", "statefulset", "argocd-application-controller"), ("chaos-mesh", "deploy", "chaos-controller-manager"),
-                           ("falco", "daemonset", "falco"), ("falco", "deploy", "falco-falcosidekick"),
-                           ("falco", "deploy", "falco-talon"), ("gitops", "deploy", "gitserver")]:
+    api = k("get", "--raw=/readyz", "--request-timeout=10s", timeout=15)
+    checks["api_ready"] = api.returncode == 0 and api.stdout.strip() == "ok"
+    if not checks["api_ready"]:
+        raise SystemExit(f"precondition failed: Kubernetes readyz: {(api.stderr or api.stdout).strip()}")
+    for ns, kind, name in precondition_resources(rows):
         p = k("-n", ns, "rollout", "status", f"{kind}/{name}", "--timeout=120s", timeout=130)
         checks[f"{ns}/{name}"] = p.returncode == 0
         if p.returncode != 0:
             raise SystemExit(f"precondition failed: {ns}/{kind}/{name} not ready: {p.stderr.strip()}")
+    focused = focused_row(rows)
+    if focused:
+        if focused == "N1" and TARGET != "kind":
+            # ADR-0023: the N1 pods select these slot labels, so they must exist before the app can be Healthy.
+            checks["n1_slot_nodes"] = n1_row.label_slot_nodes(sys.modules[__name__])
+        if focused == "O1" and TARGET != "kind":
+            # ADR-0019: the O1 pods select this label, so it must exist before the app can be Healthy.
+            checks["o1_node_labelled"] = o1_row.label_system_node(sys.modules[__name__])
+        if focused == "Q2" and TARGET != "kind":
+            # ADR-0017: the Q2 pods select this label, so it must exist before the app can be Healthy.
+            checks["q2_nodes_labelled"] = q2_row.label_workload_nodes(sys.modules[__name__])
+        app = f"selfheal-{focused.lower()}"
+        wait_for(lambda: app_state(app).get("health") == "Healthy"
+                 and app_state(app).get("sync") == "Synced", 180, step=5,
+                 what=f"{focused} app Synced and Healthy")
+        names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
+                 "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
+                 "P1": (), "D1": (), "O1": ()}[focused]
+        for name in names:
+            p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
+            checks[f"{NS}/{name}"] = p.returncode == 0
+            if p.returncode != 0:
+                raise SystemExit(f"precondition failed: {NS}/deploy/{name} not ready: "
+                                 f"{(p.stderr or p.stdout).strip()}")
+        checks[f"{focused.lower()}_synced"] = True
+        return checks
     # Right after `make up`, Argo CD may not have synced the lab yet.
     wait_for(lambda: app_state("selfheal-workload").get("health") == "Healthy"
              and app_state("selfheal-workload").get("sync") == "Synced", 600, step=5, what="workload app Synced and Healthy")
@@ -1126,12 +1492,273 @@ def preconditions() -> dict:
     return checks
 
 
+def apply_q1_profile(profile: str) -> None:
+    """Switch only the GitOps profile Q1 needs.
+
+    The web, Prometheus, Falco, prober and Hubble controls belong to other rows.
+    Waiting on them in a Q1-only run adds load and can hide the queue result
+    behind an unrelated platform timeout.
+    """
+    log(f"profile -> {profile} (Q1 only)")
+    app_path = f"q1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/q1/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0:
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+        wait_for(lambda: app_state("selfheal-q1")["path"] == app_path, 120, step=3,
+                 what="Q1 app path")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-q1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-q1")
+    wait_for(lambda: app_state("selfheal-q1")["sync"] == "Synced"
+             and app_state("selfheal-q1")["health"] == "Healthy", 180, step=3,
+             what="Q1 app Synced and Healthy")
+
+
+def apply_q2_profile(profile: str) -> None:
+    """Switch only the isolated Q2 application."""
+    log(f"profile -> {profile} (Q2 only)")
+    app_path = f"q2/{profile}" if TARGET == "kind" else f"targets/{TARGET}/q2/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-q2", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-q2")
+    wait_for(lambda: app_state("selfheal-q2")["path"] == app_path, 120, step=3,
+             what="Q2 app path")
+    wait_for(lambda: app_state("selfheal-q2")["sync"] == "Synced"
+             and app_state("selfheal-q2")["health"] == "Healthy", 180, step=3,
+             what="Q2 app Synced and Healthy")
+
+
+def apply_q3_profile(profile: str) -> None:
+    """Switch only the recommendation-only Q3 application."""
+    log(f"profile -> {profile} (Q3 only)")
+    app_path = f"q3/{profile}" if TARGET == "kind" else f"targets/{TARGET}/q3/{profile}"
+    k("-n", "argocd", "patch", "application", "selfheal-q3", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-q3")
+    wait_for(lambda: app_state("selfheal-q3")["path"] == app_path, 120, step=3,
+             what="Q3 app path")
+    wait_for(lambda: app_state("selfheal-q3")["sync"] == "Synced"
+             and app_state("selfheal-q3")["health"] == "Healthy", 180, step=3,
+             what="Q3 app Synced and Healthy")
+    if profile == "hardened":
+        wait_for(lambda: kj("-n", NS, "get", "verticalpodautoscaler", "q3-target")
+                 .get("spec", {}).get("updatePolicy", {}).get("updateMode") == "Off",
+                 120, step=3, what="Q3 recommendation-only VPA")
+    else:
+        wait_for(lambda: not kj("-n", NS, "get", "verticalpodautoscaler", "q3-target").get("metadata"),
+                 120, step=3, what="Q3 baseline without a VPA")
+
+
+def apply_n1_profile(profile: str) -> None:
+    """Switch the N1 Git path and the cluster-level Cilium encryption control."""
+    log(f"profile -> {profile} (N1 only)")
+    # The cloud value files stay in the chain, or the switch would replace ENI IPAM or the AKS BYO
+    # CNI settings with kind's defaults (ADR-0023 decision 6).
+    value_args = [arg for path in n1_row.value_files(ROOT, TARGET, profile) for arg in ("-f", str(path))]
+    result = sh(["helm", "upgrade", "cilium", "cilium/cilium", "--version", "1.20.4",
+                 "-n", "kube-system", *value_args, "--wait", "--timeout", "10m"], timeout=660)
+    if result.returncode != 0:
+        raise RuntimeError(f"N1 Cilium profile failed: {(result.stderr or result.stdout).strip()[-500:]}")
+    # The Cilium chart updates cilium-config without changing the DaemonSet pod
+    # template. Restart the agents so the selected encryption control is loaded.
+    k("-n", "kube-system", "rollout", "restart", "daemonset/cilium", check=True)
+    wait_for(lambda: k("-n", "kube-system", "rollout", "status", "daemonset/cilium",
+                       "--timeout=20s", timeout=25).returncode == 0,
+             300, step=5, what=f"Cilium {profile} rollout")
+    app_path = f"n1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/n1/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # Same as O1: a cloud root app self-heals its children, so move the root, not only the child.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-n1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-n1")
+    wait_for(lambda: app_state("selfheal-n1")["path"] == app_path, 120, step=3,
+             what="N1 app path")
+    wait_for(lambda: app_state("selfheal-n1")["sync"] == "Synced"
+             and app_state("selfheal-n1")["health"] == "Healthy", 180, step=3,
+             what="N1 app Synced and Healthy")
+
+
+def apply_p1_profile(profile: str) -> None:
+    """Switch the isolated P1 application and wait for policy readiness."""
+    log(f"profile -> {profile} (P1 only)")
+    app_path = f"p1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/p1/{profile}"
+    k("-n", "argocd", "patch", "application", "selfheal-p1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-p1")
+    wait_for(lambda: app_state("selfheal-p1")["path"] == app_path, 120, step=3,
+             what="P1 app path")
+    wait_for(lambda: app_state("selfheal-p1")["sync"] == "Synced", 180, step=3,
+             what="P1 app Synced")
+    if profile == "hardened":
+        wait_for(lambda: p1_row.policy_ready(sys.modules[__name__]), 120, step=2,
+                 what="P1 ImageValidatingPolicy Ready")
+    else:
+        wait_for(lambda: not kj("get", "imagevalidatingpolicy", p1_row.POLICY).get("metadata"),
+                 120, step=2, what="P1 baseline without an image policy")
+
+
+def apply_d1_profile(profile: str) -> None:
+    """Switch the isolated D1 application and wait for its stateful boundary."""
+    log(f"profile -> {profile} (D1 only)")
+    app_path = f"d1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/d1/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # Same as O1 and N1: a cloud root app self-heals its children, so move the root.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-d1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-d1")
+    wait_for(lambda: app_state("selfheal-d1")["path"] == app_path, 120, step=3,
+             what="D1 app path")
+    wait_for(lambda: app_state("selfheal-d1")["sync"] == "Synced"
+             and app_state("selfheal-d1")["health"] == "Healthy", 240, step=3,
+             what="D1 app Synced and Healthy")
+    # A cloud volume is provisioned and attached before PostgreSQL can start (ADR-0022 L18).
+    pg_wait = 120 if TARGET == "kind" else 300
+    wait_for(lambda: k("-n", d1_row.SOURCE_NS, "rollout", "status", "statefulset/d1-source",
+                       "--timeout=10s", timeout=15).returncode == 0,
+             pg_wait, step=2, what="D1 source PostgreSQL")
+    if TARGET == "kind":
+        wait_for(lambda: k("-n", d1_row.STORE_NS, "rollout", "status", "statefulset/d1-minio",
+                           "--timeout=10s", timeout=15).returncode == 0,
+                 120, step=2, what="D1 object store")
+    if profile == "hardened":
+        wait_for(lambda: bool(kj("-n", d1_row.SOURCE_NS, "get", "cronjob", "d1-backup").get("metadata")),
+                 120, step=2, what="D1 backup CronJob")
+        wait_for(lambda: k("-n", d1_row.RESTORE_NS, "rollout", "status", "statefulset/d1-restore",
+                           "--timeout=10s", timeout=15).returncode == 0,
+                 pg_wait, step=2, what="D1 restore PostgreSQL")
+    else:
+        wait_for(lambda: not kj("-n", d1_row.SOURCE_NS, "get", "cronjob", "d1-backup").get("metadata"),
+                 120, step=2, what="D1 baseline without backup CronJob")
+
+
+def apply_o1_profile(profile: str) -> None:
+    """Switch O1 and reset its runtime evidence and release state."""
+    log(f"profile -> {profile} (O1 only)")
+    app_path = f"o1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/o1/{profile}"
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        # On a cloud the root app self-heals its children, so patching only selfheal-o1 is reverted
+        # within seconds (EKS 2026-11-10: baseline flipped back to hardened after 3s). Move the root.
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", "selfheal-o1", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-o1")
+    wait_for(lambda: app_state("selfheal-o1")["path"] == app_path, 120, step=3,
+             what="O1 app path")
+    wait_for(lambda: app_state("selfheal-o1")["sync"] == "Synced"
+             and app_state("selfheal-o1")["health"] == "Healthy", 180, step=3,
+             what="O1 app Synced and Healthy")
+    for kind, name in (("pod", "o1-target"), ("configmap", "o1-evidence"),
+                       ("lease.coordination.k8s.io", "o1-release")):
+        wait_for(lambda kind=kind, name=name: bool(kj("-n", o1_row.NS, "get", kind, name).get("metadata")),
+                 120, step=2, what=f"O1 {kind}/{name}")
+    k("-n", o1_row.NS, "patch", "configmap", "o1-evidence", "--type", "merge",
+      "-p", json.dumps({"data": None}), check=True)
+    k("-n", o1_row.NS, "patch", "lease.coordination.k8s.io", "o1-release", "--type", "merge",
+      "-p", json.dumps({"metadata": {"annotations": {"o1.security/release": "false"}},
+                         "spec": {"holderIdentity": "awaiting-operator"}}), check=True)
+    k("-n", o1_row.NS, "patch", "networkpolicy", "quarantine-ingress", "--type", "merge",
+      "-p", json.dumps({"spec": {"ingress": []}}), check=True)
+    k("-n", o1_row.NS, "patch", "pod", "o1-target", "--type", "merge",
+      "-p", json.dumps({"metadata": {"annotations": {"o1.security/incident": "false"}}}), check=True)
+    wait_for(lambda: o1_row._quarantined(sys.modules[__name__]), 30, step=1,
+             what="O1 quarantine reset")
+    wait_for(lambda: not (kj("-n", o1_row.NS, "get", "configmap", "o1-evidence").get("data") or {}),
+             30, step=1, what="O1 evidence reset")
+    wait_for(lambda: kj("-n", o1_row.NS, "get", "lease.coordination.k8s.io", "o1-release")
+             .get("metadata", {}).get("annotations", {}).get("o1.security/release") == "false",
+             30, step=1, what="O1 release reset")
+    wait_for(lambda: k("-n", o1_row.NS, "wait", "--for=condition=Ready", "pod/o1-target",
+                       "--timeout=5s", timeout=10).returncode == 0,
+             60, step=2, what="O1 target Ready")
+    if profile == "hardened":
+        for name in ("o1-controller", "o1-alert-receiver"):
+            wait_for(lambda name=name: k("-n", o1_row.NS, "rollout", "status", f"deploy/{name}",
+                                         "--timeout=10s", timeout=15).returncode == 0,
+                     120, step=2, what=f"O1 {name}")
+        # The Pod label changes its Cilium security identity. Do not begin the
+        # experiment until datapath enforcement has converged on quarantine.
+        wait_for(lambda: not o1_row._probe_target(sys.modules[__name__]), 60, step=2,
+                 what="O1 quarantine datapath enforcement")
+    else:
+        wait_for(lambda: not kj("-n", o1_row.NS, "get", "resourcequota", "o1-budget").get("metadata"),
+                 120, step=2, what="O1 baseline without ResourceQuota")
+
+
+def apply_focused_profile(row: str, profile: str) -> None:
+    if row == "Q1":
+        apply_q1_profile(profile)
+    elif row == "Q2":
+        apply_q2_profile(profile)
+    elif row == "Q3":
+        apply_q3_profile(profile)
+    elif row == "N1":
+        apply_n1_profile(profile)
+    elif row == "P1":
+        apply_p1_profile(profile)
+    elif row == "D1":
+        apply_d1_profile(profile)
+    elif row == "O1":
+        apply_o1_profile(profile)
+    else:
+        raise ValueError(f"unknown focused row {row}")
+
+
+def repo_commit() -> str:
+    """The git commit the runner was launched from, recorded in every report so
+    a result can be tied to the exact code. 'unknown' outside a git checkout."""
+    try:
+        r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=str(ROOT),
+                           capture_output=True, text=True, timeout=5)
+        head = r.stdout.strip()
+        dirty = subprocess.run(["git", "status", "--porcelain"], cwd=str(ROOT),
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+        return head + ("-dirty" if dirty else "") if head else "unknown"
+    except Exception:  # noqa: BLE001
+        return "unknown"
+
+
 def versions() -> dict:
-    out = {}
+    out = {"repo_commit": repo_commit()}
     components = [("kube-system", "daemonset", "cilium"), ("falco", "daemonset", "falco"),
                   ("falco", "deploy", "falco-talon"), ("argo-rollouts", "deploy", "argo-rollouts"),
                   ("external-secrets", "deploy", "external-secrets"), ("cert-manager", "deploy", "cert-manager"),
-                  ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader")]
+                  ("chaos-mesh", "deploy", "chaos-controller-manager"), ("reloader", "deploy", "reloader-reloader"),
+                  ("keda", "deploy", "keda-operator"), (NS, "deploy", "rabbitmq"),
+                  (NS, "deploy", "qworker"), (NS, "deploy", "q2-signal"),
+                  (NS, "deploy", "q2-target"),
+                  ("vpa", "deploy", "vpa-vertical-pod-autoscaler-recommender"),
+                  (NS, "deploy", "q3-target"), (NS, "deploy", "n1-server"),
+                  (NS, "deploy", "n1-client"), (NS, "deploy", "n1-denied"),
+                  (o1_row.NS, "deploy", "o1-controller"),
+                  (o1_row.NS, "deploy", "o1-alert-receiver")]
     if TARGET == "eks":
         components.append(("kube-system", "deploy", "karpenter"))
     for ns, kind, name in components:
@@ -1186,12 +1813,27 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("")
     L.append("## Environment\n")
     L.append("```json\n" + json.dumps({"preconditions": doc["preconditions"], "versions": doc["versions"]}, indent=2) + "\n```")
-    L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
-             "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
-             + {"eks": ", the R2 bundle (manifest, capture, audit window, finding, execution history) in `R2/r2-hardened/`.",
-                "aks": ", the R2 bundle (the Defender alert as ARM returned it, the worker's isolated.json, the Logic "
-                       "App's manifest with the snapshot and Run Command capture, its runs) in `R2/r2-hardened/`."}
-             .get(doc["target"], "."))
+    if doc["rows"] == ["Q1"]:
+        L.append("\nQ1 uses RabbitMQ queue telemetry and distinct completion IDs. The measured observations are in `report.json`.")
+    elif doc["rows"] == ["Q2"]:
+        L.append("\nQ2 records metric-source availability, ScaledObject and HPA conditions, replica and Pending-pod timelines, scheduler reasons, per-node CPU capacity, the node inventory around the Pending window, the KEDA version, and timestamped request samples.")
+    elif doc["rows"] == ["Q3"]:
+        L.append("\nQ3 records resource Metrics API samples and the VPA status recommendation. The VPA runs in Off mode, so the report also verifies unchanged requests, pod identity, and restart count.")
+    elif doc["rows"] == ["N1"]:
+        L.append("\nN1 records worker-underlay packet metadata, Cilium WireGuard peer status, cross-node request results, and exact Hubble policy drops. Same-node and control-plane traffic are outside the claim.")
+    elif doc["rows"] == ["P1"]:
+        L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
+    elif doc["rows"] == ["D1"]:
+        L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
+    elif doc["rows"] == ["O1"]:
+        L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
+    else:
+        L.append("\nBurn rate is the row window's error rate over the 99.5% SLO's budget (0.5%). Raw prober samples for "
+                 "every row window are in `<row>/prober-*.json.gz`; the R1 evidence bundle is in `<row>/r1-hardened/`"
+                 + {"eks": ", the R2 bundle (manifest, capture, audit window, finding, execution history) in `R2/r2-hardened/`.",
+                    "aks": ", the R2 bundle (the Defender alert as ARM returned it, the worker's isolated.json, the Logic "
+                           "App's manifest with the snapshot and Run Command capture, its runs) in `R2/r2-hardened/`."}
+                 .get(doc["target"], "."))
     (outdir / "report.md").write_text("\n".join(L) + "\n")
 
 
@@ -1205,7 +1847,7 @@ def alerts_fired(lab: Lab, since: float) -> list[str]:
 
 
 def main() -> int:
-    global TARGET, ROWS
+    global TARGET, ROWS, Q1_IMAGE, Q2_IMAGE
     ap = argparse.ArgumentParser()
     ap.add_argument("--target", choices=sorted(ROWS_BY_TARGET), default="kind")
     ap.add_argument("--run-id")
@@ -1216,6 +1858,7 @@ def main() -> int:
     if TARGET in CLOUD_ROWS:
         sha = (ROOT / "gitops" / "targets" / TARGET / "generated" / "IMAGE_SHA").read_text().strip()
         TAG.update({"v1": f"{sha}-v1", "v2": f"{sha}-v2"})
+        Q1_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "QWORKER_IMAGE").read_text().strip()
     args.run_id = args.run_id or dt.datetime.now().strftime(f"{TARGET}-%Y%m%d-%H%M%S")
     # Rows are case-sensitive only in S1b; accept any case on the command line.
     by_upper = {r.upper(): r for r in ROWS}
@@ -1224,10 +1867,20 @@ def main() -> int:
     if bad:
         raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
 
-    checks = preconditions()
+    if TARGET in CLOUD_ROWS and "D1" in rows:
+        d1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "D1_IMAGE").read_text().strip()
+    if TARGET in CLOUD_ROWS and "O1" in rows:
+        o1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "O1_IMAGE").read_text().strip()
+    if TARGET in CLOUD_ROWS and "Q2" in rows:
+        Q2_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "Q2_IMAGE").read_text().strip()
+    checks = preconditions(rows)
     if args.only_profile:
-        with Lab() as lab:
-            apply_profile(lab, args.only_profile)
+        focused = focused_row(rows)
+        if focused:
+            apply_focused_profile(focused, args.only_profile)
+        else:
+            with Lab() as lab:
+                apply_profile(lab, args.only_profile)
         return 0
 
     outdir = ROOT / "evidence" / args.run_id
@@ -1235,20 +1888,27 @@ def main() -> int:
     doc = {"run_id": args.run_id, "target": TARGET, "started": iso(now()), "rows": rows,
            "partial": rows != ROWS, "preconditions": checks, "versions": versions(),
            "results": {}, "observations": {}}
-    with Lab() as lab, HubbleRelay():
+    focused = focused_row(rows)
+    lab_context = contextlib.nullcontext(None) if focused else Lab()
+    hubble_context = HubbleRelay() if focused == "N1" or (focused == "P1" and TARGET != "kind") else (contextlib.nullcontext() if focused else HubbleRelay())
+    with lab_context as lab, hubble_context:
         for profile in ("baseline", "hardened"):
-            apply_profile(lab, profile)
+            if focused:
+                apply_focused_profile(focused, profile)
+            else:
+                apply_profile(lab, profile)
             for row in rows:
                 d = outdir / row
                 d.mkdir(exist_ok=True)
                 log(f"{profile} {row}: {hypothesis(row, TARGET)}")
                 try:
-                    steady(lab)
+                    if not focused:
+                        steady(lab)
                     ABORT.clear()
                     obs = runner(row)(lab, profile, d)
                     if ABORT:
                         obs["abort_evidence"] = {**ABORT, "at_s": round(ABORT["t"] - obs.get("t0", ABORT["t"]), 1)}
-                    obs["alerts_fired"] = alerts_fired(lab, obs.get("t0", now()))
+                    obs["alerts_fired"] = [] if focused else alerts_fired(lab, obs.get("t0", now()))
                 except Exception as e:  # noqa: BLE001 - recorded as error, never skipped
                     obs = {"exception": f"{type(e).__name__}: {e}", "traceback": traceback.format_exc()}
                     log(f"  exception: {obs['exception']}")

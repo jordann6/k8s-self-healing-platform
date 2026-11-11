@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: o1-controller
+  namespace: selfheal-o1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: o1-controller
+  namespace: selfheal-o1
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    resourceNames: ["o1-target"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["o1-evidence"]
+    verbs: ["get", "patch"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    resourceNames: ["o1-release"]
+    verbs: ["get"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    resourceNames: ["quarantine-ingress"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: o1-controller
+  namespace: selfheal-o1
+subjects:
+  - kind: ServiceAccount
+    name: o1-controller
+    namespace: selfheal-o1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: o1-controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: o1-operator
+  namespace: selfheal-o1
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    resourceNames: ["o1-release"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: o1-operator
+  namespace: selfheal-o1
+subjects:
+  - kind: ServiceAccount
+    name: o1-operator
+    namespace: selfheal-o1
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: o1-operator
