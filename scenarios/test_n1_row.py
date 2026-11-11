@@ -70,6 +70,20 @@ class PolicyDrops(unittest.TestCase):
         self.assertEqual(exact_policy_drops([good, unrelated], "denied", "server"), [good])
 
 
+class BaselinePolicy(unittest.TestCase):
+    def test_allow_all_baseline_policy_excludes_the_n1_pods(self):
+        """Cilium policies are additive, so a baseline allow-all over the namespace overrides
+        n1-server-ingress and the denied pod reaches the server (aks-n1 and four EKS runs)."""
+        import yaml
+        root = Path(__file__).resolve().parent.parent
+        policy = yaml.safe_load((root / "gitops/profiles/baseline/policy.yaml").read_text())
+        selector = policy["spec"]["endpointSelector"]
+        excluded = {"n1-client", "n1-denied", "n1-server"}
+        rules = selector.get("matchExpressions") or []
+        self.assertTrue(any(r["key"] == "app" and r["operator"] == "NotIn"
+                            and excluded <= set(r["values"]) for r in rules), selector)
+
+
 class _Run:
     def __init__(self, returncode=0, stdout="", stderr=""):
         self.returncode, self.stdout, self.stderr = returncode, stdout, stderr

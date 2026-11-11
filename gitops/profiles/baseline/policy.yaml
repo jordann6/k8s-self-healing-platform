@@ -5,7 +5,14 @@ kind: CiliumNetworkPolicy
 metadata:
   name: selfheal-policy
 spec:
-  endpointSelector: {}
+  # Allow-all for the platform workloads, but not for the N1 pods. Cilium policies are additive, so
+  # this allow-all would override n1-server-ingress and let the denied pod through, which is why
+  # N1 reported "denied successes 5, policy drops 0" in four EKS runs and on AKS (2026-11-11, the
+  # endpoint flipped from ingress to both enforcement and the monitor showed "allow, match all").
+  # N1 judges policy denial in both profiles, so its pods keep only their own policy.
+  endpointSelector:
+    matchExpressions:
+      - {key: app, operator: NotIn, values: [n1-client, n1-denied, n1-server]}
   ingress:
     - fromEntities: [all]
   egress:
