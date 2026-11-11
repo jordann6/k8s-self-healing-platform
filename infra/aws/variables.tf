@@ -60,9 +60,9 @@ variable "cluster_name" {
 }
 
 variable "cluster_version" {
-  description = "EKS Kubernetes version. Standard support, supported by Cilium 1.20 and Karpenter 1.15."
+  description = "EKS Kubernetes version. Standard support, supported by Cilium 1.20 and Karpenter 1.15. ADR-0018 decision A runs the remaining rows on 1.36."
   type        = string
-  default     = "1.34"
+  default     = "1.36"
 }
 
 variable "cluster_public_access_cidrs" {
