@@ -1,0 +1,1369 @@
+### interface ens5
+
+
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on ens5, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+0 packets captured
+3 packets received by filter
+0 packets dropped by kernel
+
+### interface ens6
+
+
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on ens6, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+0 packets captured
+0 packets received by filter
+0 packets dropped by kernel
+
+### interface ens7
+04:09:52.017840 IP 10.30.1.9.47176 > 10.30.29.77.8084: Flags [S], seq 3212788555, win 62727, options [mss 8961,sackOK,TS val 2513156686 ecr 0,nop,wscale 10], length 0
+E..<F8@.~...
+..	
+..M.H....CK.........T....#....
+...N.......
+
+04:09:52.018000 IP 10.30.29.77.8084 > 10.30.1.9.47176: Flags [S.], seq 1524734099, ack 3212788556, win 62643, options [mss 8961,sackOK,TS val 696061428 ecr 2513156686,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...HZ.....CL....2.....#....
+)}.....N...
+
+04:09:52.018493 IP 10.30.1.9.47176 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2513156686 ecr 696061428], length 0
+E..4F9@.~...
+..	
+..M.H....CLZ......>.C.....
+...N)}.
+04:09:52.018618 IP 10.30.1.9.47176 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2513156687 ecr 696061428], length 148
+E...F:@.~..d
+..	
+..M.H....CLZ......>.b.....
+...O)}..GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.018652 IP 10.30.29.77.8084 > 10.30.1.9.47176: Flags [.], ack 149, win 62, options [nop,nop,TS val 696061428 ecr 2513156687], length 0
+E..4.I@.~...
+..M
+..	...HZ.....C....>2......
+)}.....O
+04:09:52.028577 IP 10.30.29.77.8084 > 10.30.1.9.47176: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 696061438 ecr 2513156687], length 144
+E....J@.~..W
+..M
+..	...HZ.....C....>3H.....
+)}.....OHTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.028921 IP 10.30.29.77.8084 > 10.30.1.9.47176: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 696061439 ecr 2513156687], length 53
+E..i.K@.~...
+..M
+..	...HZ..$..C....>2......
+)}.....O{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.029066 IP 10.30.1.9.47176 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2513156697 ecr 696061438], length 0
+E..4F;@.~...
+..	
+..M.H....C.Z..$...>.
+.....
+...Y)}.
+04:09:52.029765 IP 10.30.1.9.47176 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2513156698 ecr 696061439], length 0
+E..4F<@.~...
+..	
+..M.H....C.Z..Z...>.......
+...Z)}.
+04:09:52.029864 IP 10.30.29.77.8084 > 10.30.1.9.47176: Flags [.], ack 150, win 62, options [nop,nop,TS val 696061440 ecr 2513156698], length 0
+E..4.L@.~...
+..M
+..	...HZ..Z..C....>2......
+)}.....Z
+04:09:52.030203 IP 10.30.1.9.47188 > 10.30.29.77.8084: Flags [S], seq 1949962098, win 62727, options [mss 8961,sackOK,TS val 4258389619 ecr 0,nop,wscale 10], length 0
+E..<.&@.~.4.
+..	
+..M.T..t:.r.........;....#....
+...s.......
+
+04:09:52.030285 IP 10.30.29.77.8084 > 10.30.1.9.47188: Flags [S.], seq 113143628, ack 1949962099, win 62643, options [mss 8961,sackOK,TS val 2472349946 ecr 4258389619,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...T..oLt:.s....2.....#....
+.].....s...
+
+04:09:52.030707 IP 10.30.1.9.47188 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 4258389620 ecr 2472349946], length 0
+E..4.'@.~.4.
+..	
+..M.T..t:.s..oM...>.......
+...t.]..
+04:09:52.030957 IP 10.30.1.9.47188 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 4258389620 ecr 2472349946], length 148
+E....(@.~.3v
+..	
+..M.T..t:.s..oM...>.......
+...t.]..GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.030996 IP 10.30.29.77.8084 > 10.30.1.9.47188: Flags [.], ack 149, win 62, options [nop,nop,TS val 2472349947 ecr 4258389620], length 0
+E..4.\@.~.E.
+..M
+..	...T..oMt:.....>2......
+.].....t
+04:09:52.049376 IP 10.30.29.77.8084 > 10.30.1.9.47188: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2472349965 ecr 4258389620], length 144
+E....]@.~.EE
+..M
+..	...T..oMt:.....>3H.....
+.].....tHTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.049470 IP 10.30.29.77.8084 > 10.30.1.9.47188: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2472349965 ecr 4258389620], length 53
+E..i.^@.~.E.
+..M
+..	...T..o.t:.....>2......
+.].....t{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.049903 IP 10.30.1.9.47188 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 4258389639 ecr 2472349965], length 0
+E..4.)@.~.4	
+..	
+..M.T..t:....o....>.c.....
+.....].
+04:09:52.050445 IP 10.30.1.9.47188 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 4258389639 ecr 2472349965], length 0
+E..4.*@.~.4.
+..	
+..M.T..t:....p....>.,.....
+.....].
+04:09:52.050524 IP 10.30.29.77.8084 > 10.30.1.9.47188: Flags [.], ack 150, win 62, options [nop,nop,TS val 2472349966 ecr 4258389639], length 0
+E..4._@.~.E.
+..M
+..	...T..p.t:.....>2......
+.]......
+04:09:52.058764 IP 10.30.1.9.47200 > 10.30.29.77.8084: Flags [S], seq 1151987135, win 62727, options [mss 8961,sackOK,TS val 1149875352 ecr 0,nop,wscale 10], length 0
+E..<.z@.~...
+..	
+..M.`..D.................#....
+D..........
+
+04:09:52.058901 IP 10.30.29.77.8084 > 10.30.1.9.47200: Flags [S.], seq 2592819851, ack 1151987136, win 62643, options [mss 8961,sackOK,TS val 3684875875 ecr 1149875352,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...`..J.D.......2.....#....
+...cD......
+
+04:09:52.059362 IP 10.30.1.9.47200 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 1149875352 ecr 3684875875], length 0
+E..4.{@.~...
+..	
+..M.`..D.....J....>.N.....
+D......c
+04:09:52.059436 IP 10.30.1.9.47200 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 1149875352 ecr 3684875875], length 148
+E....|@.~.."
+..	
+..M.`..D.....J....>.n.....
+D......cGET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.059464 IP 10.30.29.77.8084 > 10.30.1.9.47200: Flags [.], ack 149, win 62, options [nop,nop,TS val 3684875875 ecr 1149875352], length 0
+E..4Iv@.~...
+..M
+..	...`..J.D..T...>2......
+...cD...
+04:09:52.060278 IP 10.30.29.77.8084 > 10.30.1.9.47200: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3684875876 ecr 1149875352], length 144
+E...Iw@.~..+
+..M
+..	...`..J.D..T...>3H.....
+...dD...HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.060365 IP 10.30.29.77.8084 > 10.30.1.9.47200: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3684875876 ecr 1149875352], length 53
+E..iIx@.~...
+..M
+..	...`..K.D..T...>2......
+...dD...{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.060696 IP 10.30.1.9.47200 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 1149875354 ecr 3684875876], length 0
+E..4.}@.~...
+..	
+..M.`..D..T..K....>.'.....
+D......d
+04:09:52.061052 IP 10.30.1.9.47200 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 1149875354 ecr 3684875876], length 0
+E..4.~@.~...
+..	
+..M.`..D..T..KR...>.......
+D......d
+04:09:52.061119 IP 10.30.29.77.8084 > 10.30.1.9.47200: Flags [.], ack 150, win 62, options [nop,nop,TS val 3684875877 ecr 1149875354], length 0
+E..4Iy@.~...
+..M
+..	...`..KRD..U...>2......
+...eD...
+04:09:52.064056 IP 10.30.1.9.47214 > 10.30.29.77.8084: Flags [S], seq 871301741, win 62727, options [mss 8961,sackOK,TS val 2631697149 ecr 0,nop,wscale 10], length 0
+E..<..@.~."W
+..	
+..M.n..3..m..............#....
+...........
+
+04:09:52.064171 IP 10.30.29.77.8084 > 10.30.1.9.47214: Flags [S.], seq 1546881590, ack 871301742, win 62643, options [mss 8961,sackOK,TS val 402437065 ecr 2631697149,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...n\3.63..n....2.....#....
+...........
+
+04:09:52.064627 IP 10.30.1.9.47214 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2631697150 ecr 402437065], length 0
+E..4..@.~."^
+..	
+..M.n..3..n\3.7...>c......
+........
+04:09:52.064851 IP 10.30.1.9.47214 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2631697150 ecr 402437065], length 148
+E.....@.~.!.
+..	
+..M.n..3..n\3.7...>s......
+........GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.064885 IP 10.30.29.77.8084 > 10.30.1.9.47214: Flags [.], ack 149, win 62, options [nop,nop,TS val 402437066 ecr 2631697150], length 0
+E..4s.@.~.V.
+..M
+..	...n\3.73......>2......
+........
+04:09:52.071449 IP 10.30.29.77.8084 > 10.30.1.9.47214: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 402437072 ecr 2631697150], length 144
+E...s.@.~.V.
+..M
+..	...n\3.73......>3H.....
+........HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.071518 IP 10.30.29.77.8084 > 10.30.1.9.47214: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 402437072 ecr 2631697150], length 53
+E..is.@.~.Vh
+..M
+..	...n\3..3......>2......
+........{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.071933 IP 10.30.1.9.47214 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2631697157 ecr 402437072], length 0
+E..4..@.~."\
+..	
+..M.n..3...\3.....>bP.....
+........
+04:09:52.072356 IP 10.30.1.9.47214 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2631697157 ecr 402437072], length 0
+E..4..@.~."[
+..	
+..M.n..3...\3.....>b......
+........
+04:09:52.072432 IP 10.30.29.77.8084 > 10.30.1.9.47214: Flags [.], ack 150, win 62, options [nop,nop,TS val 402437073 ecr 2631697157], length 0
+E..4s.@.~.V.
+..M
+..	...n\3..3......>2......
+........
+04:09:52.072770 IP 10.30.1.9.47222 > 10.30.29.77.8084: Flags [S], seq 3090470095, win 62727, options [mss 8961,sackOK,TS val 2376316280 ecr 0,nop,wscale 10], length 0
+E..<.
+@.~.. 
+..	
+..M.v...4..........Z.....#....
+...x.......
+
+04:09:52.072851 IP 10.30.29.77.8084 > 10.30.1.9.47222: Flags [S.], seq 2535292431, ack 3090470096, win 62643, options [mss 8961,sackOK,TS val 2509504822 ecr 2376316280,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...v..~..4......2.....#....
+...6...x...
+
+04:09:52.073284 IP 10.30.1.9.47222 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2376316280 ecr 2509504822], length 0
+E..4..@.~..'
+..	
+..M.v...4....~....>.......
+...x...6
+04:09:52.073349 IP 10.30.1.9.47222 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2376316280 ecr 2509504822], length 148
+E.....@.~...
+..	
+..M.v...4....~....>.......
+...x...6GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.073374 IP 10.30.29.77.8084 > 10.30.1.9.47222: Flags [.], ack 149, win 62, options [nop,nop,TS val 2509504822 ecr 2376316280], length 0
+E..4+,@.~...
+..M
+..	...v..~..4.d...>2......
+...6...x
+04:09:52.085952 IP 10.30.29.77.8084 > 10.30.1.9.47222: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2509504835 ecr 2376316280], length 144
+E...+-@.~..u
+..M
+..	...v..~..4.d...>3H.....
+...C...xHTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.086027 IP 10.30.29.77.8084 > 10.30.1.9.47222: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2509504835 ecr 2376316280], length 53
+E..i+.@.~...
+..M
+..	...v..~..4.d...>2......
+...C...x{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.086410 IP 10.30.1.9.47222 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2376316293 ecr 2509504835], length 0
+E..4..@.~..%
+..	
+..M.v...4.d..~....>.......
+.......C
+04:09:52.087120 IP 10.30.1.9.47222 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2376316294 ecr 2509504835], length 0
+E..4..@.~..$
+..	
+..M.v...4.d..~....>.R.....
+.......C
+04:09:52.087189 IP 10.30.29.77.8084 > 10.30.1.9.47222: Flags [.], ack 150, win 62, options [nop,nop,TS val 2509504836 ecr 2376316294], length 0
+E..4+/@.~...
+..M
+..	...v..~..4.e...>2......
+...D....
+04:09:52.087506 IP 10.30.1.9.47228 > 10.30.29.77.8084: Flags [S], seq 1105574795, win 62727, options [mss 8961,sackOK,TS val 3848508991 ecr 0,nop,wscale 10], length 0
+E..<..@.~.9/
+..	
+..M.|..A.................#....
+.c.?.......
+
+04:09:52.087573 IP 10.30.29.77.8084 > 10.30.1.9.47228: Flags [S.], seq 1746055068, ack 1105574796, win 62643, options [mss 8961,sackOK,TS val 2489187288 ecr 3848508991,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	...|h...A.......2.....#....
+.]...c.?...
+
+04:09:52.087967 IP 10.30.1.9.47228 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 3848508992 ecr 2489187288], length 0
+E..4..@.~.96
+..	
+..M.|..A...h......>J......
+.c.@.]..
+04:09:52.088784 IP 10.30.1.9.47228 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 3848508993 ecr 2489187288], length 148
+E.....@.~.8.
+..	
+..M.|..A...h......>Z......
+.c.A.]..GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.088819 IP 10.30.29.77.8084 > 10.30.1.9.47228: Flags [.], ack 149, win 62, options [nop,nop,TS val 2489187290 ecr 3848508993], length 0
+E..4..@.~...
+..M
+..	...|h...A.. ...>2......
+.]...c.A
+04:09:52.094674 IP 10.30.29.77.8084 > 10.30.1.9.47228: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2489187295 ecr 3848508993], length 144
+E.....@.~...
+..M
+..	...|h...A.. ...>3H.....
+.]...c.AHTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.094766 IP 10.30.29.77.8084 > 10.30.1.9.47228: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2489187296 ecr 3848508993], length 53
+E..i..@.~...
+..M
+..	...|h..-A.. ...>2......
+.]...c.A{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.095135 IP 10.30.1.9.47228 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 3848508999 ecr 2489187295], length 0
+E..4..@.~.94
+..	
+..M.|..A.. h..-...>I......
+.c.G.]..
+04:09:52.095964 IP 10.30.1.9.47228 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 3848509000 ecr 2489187296], length 0
+E..4..@.~.93
+..	
+..M.|..A.. h..c...>Iu.....
+.c.H.]..
+04:09:52.096049 IP 10.30.29.77.8084 > 10.30.1.9.47228: Flags [.], ack 150, win 62, options [nop,nop,TS val 2489187297 ecr 3848509000], length 0
+E..4..@.~...
+..M
+..	...|h..cA..!...>2......
+.]...c.H
+04:09:52.096394 IP 10.30.1.9.47242 > 10.30.29.77.8084: Flags [S], seq 923572102, win 62727, options [mss 8961,sackOK,TS val 3645988012 ecr 0,nop,wscale 10], length 0
+E..<W.@.~.r^
+..	
+..M....7...........&g....#....
+.Q\........
+
+04:09:52.096478 IP 10.30.29.77.8084 > 10.30.1.9.47242: Flags [S.], seq 4218377319, ack 923572103, win 62643, options [mss 8961,sackOK,TS val 3502057979 ecr 3645988012,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	.....oTg7.......2.....#....
+..)..Q\....
+
+04:09:52.096918 IP 10.30.1.9.47242 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 3645988013 ecr 3502057979], length 0
+E..4W.@.~.re
+..	
+..M....7....oTh...>.......
+.Q\...).
+04:09:52.099059 IP 10.30.1.9.47242 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 3645988015 ecr 3502057979], length 148
+E...W.@.~.q.
+..	
+..M....7....oTh...>,......
+.Q\...).GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.099127 IP 10.30.29.77.8084 > 10.30.1.9.47242: Flags [.], ack 149, win 62, options [nop,nop,TS val 3502057982 ecr 3645988015], length 0
+E..4..@.~..N
+..M
+..	.....oTh7......>2......
+..)..Q\.
+04:09:52.117263 IP 10.30.29.77.8084 > 10.30.1.9.47242: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3502058000 ecr 3645988015], length 144
+E.....@.~...
+..M
+..	.....oTh7......>3H.....
+..*..Q\.HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.117365 IP 10.30.29.77.8084 > 10.30.1.9.47242: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3502058000 ecr 3645988015], length 53
+E..i..@.~...
+..M
+..	.....oT.7......>2......
+..*..Q\.{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.117717 IP 10.30.1.9.47242 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 3645988034 ecr 3502058000], length 0
+E..4W.@.~.rc
+..	
+..M....7....oT....>.].....
+.Q\...*.
+04:09:52.124102 IP 10.30.1.9.47242 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 3645988040 ecr 3502058000], length 0
+E..4W.@.~.rb
+..	
+..M....7....oU....>. .....
+.Q\...*.
+04:09:52.124230 IP 10.30.29.77.8084 > 10.30.1.9.47242: Flags [.], ack 150, win 62, options [nop,nop,TS val 3502058007 ecr 3645988040], length 0
+E..4..@.~..K
+..M
+..	.....oU.7......>2......
+..*..Q\.
+04:09:52.124521 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [S], seq 47711063, win 62727, options [mss 8961,sackOK,TS val 1741593264 ecr 0,nop,wscale 10], length 0
+E..<.D@.~...
+..	
+..M.......W........":....#....
+g..........
+
+04:09:52.124615 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [S.], seq 1191304284, ack 47711064, win 62643, options [mss 8961,sackOK,TS val 1375349175 ecr 1741593264,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....G..\...X....2.....#....
+Q.).g......
+
+04:09:52.125029 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 1741593265 ecr 1375349175], length 0
+E..4.E@.~...
+..	
+..M.......XG..]...>.......
+g...Q.).
+04:09:52.128916 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 1741593269 ecr 1375349175], length 148
+E....F@.~..X
+..	
+..M.......XG..]...>.......
+g...Q.).GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.129003 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [.], ack 149, win 62, options [nop,nop,TS val 1375349180 ecr 1741593269], length 0
+E..4.#@.~...
+..M
+..	....G..].......>2......
+Q.).g...
+04:09:52.135585 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 1375349186 ecr 1741593269], length 144
+E....$@.~..~
+..M
+..	....G..].......>3H.....
+Q.).g...HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.136073 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 1741593276 ecr 1375349186], length 0
+E..4.G@.~...
+..	
+..M........G......>.......
+g...Q.).
+04:09:52.136723 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [P.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 1375349187 ecr 1741593276], length 53
+E..i.%@.~...
+..M
+..	....G..........>2......
+Q.).g...{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.137146 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [.], ack 198, win 62, options [nop,nop,TS val 1741593277 ecr 1375349187], length 0
+E..4.H@.~...
+..	
+..M........G.."...>.......
+g...Q.).
+04:09:52.137301 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [F.], seq 198, ack 149, win 62, options [nop,nop,TS val 1375349188 ecr 1741593277], length 0
+E..4.&@.~...
+..M
+..	....G..".......>2......
+Q.).g...
+04:09:52.138043 IP 10.30.1.9.47258 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 1741593278 ecr 1375349188], length 0
+E..4.I@.~...
+..	
+..M........G..#...>.......
+g...Q.).
+04:09:52.138104 IP 10.30.29.77.8084 > 10.30.1.9.47258: Flags [.], ack 150, win 62, options [nop,nop,TS val 1375349189 ecr 1741593278], length 0
+E..4.'@.~...
+..M
+..	....G..#.......>2......
+Q.).g...
+04:09:52.138316 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [S], seq 4168078896, win 62727, options [mss 8961,sackOK,TS val 800568876 ecr 0,nop,wscale 10], length 0
+E..<..@.~.._
+..	
+..M.....o.0........v_....#....
+/..,.......
+
+04:09:52.138387 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [S.], seq 3818650589, ack 4168078897, win 62643, options [mss 8961,sackOK,TS val 3043066350 ecr 800568876,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	.........o.1....2.....#....
+.a../..,...
+
+04:09:52.138792 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 800568877 ecr 3043066350], length 0
+E..4..@.~..f
+..	
+..M.....o.1.......>.i.....
+/..-.a..
+04:09:52.140043 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 800568878 ecr 3043066350], length 148
+E.....@.~...
+..	
+..M.....o.1.......>.......
+/....a..GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.140093 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [.], ack 149, win 62, options [nop,nop,TS val 3043066352 ecr 800568878], length 0
+E..4..@.~...
+..M
+..	.........o.....>2......
+.a../...
+04:09:52.146105 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3043066358 ecr 800568878], length 144
+E.....@.~...
+..M
+..	.........o.....>3H.....
+.a../...HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.146543 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 800568884 ecr 3043066358], length 0
+E..4..@.~..d
+..	
+..M.....o.....n...>.6.....
+/..4.a..
+04:09:52.150291 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [P.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3043066362 ecr 800568884], length 53
+E..i..@.~...
+..M
+..	.......n.o.....>2......
+.a../..4{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.150388 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [F.], seq 198, ack 149, win 62, options [nop,nop,TS val 3043066362 ecr 800568884], length 0
+E..4..@.~...
+..M
+..	.........o.....>2......
+.a../..4
+04:09:52.150760 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [.], ack 198, win 62, options [nop,nop,TS val 800568889 ecr 3043066362], length 0
+E..4..@.~..c
+..	
+..M.....o.........>.......
+/..9.a..
+04:09:52.150887 IP 10.30.1.9.47262 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 800568889 ecr 3043066362], length 0
+E..4..@.~..b
+..	
+..M.....o.........>.......
+/..9.a..
+04:09:52.150939 IP 10.30.29.77.8084 > 10.30.1.9.47262: Flags [.], ack 150, win 62, options [nop,nop,TS val 3043066363 ecr 800568889], length 0
+E..4..@.~...
+..M
+..	.........o.....>2......
+.a../..9
+04:09:52.152366 IP 10.30.1.9.47278 > 10.30.29.77.8084: Flags [S], seq 2938012811, win 62727, options [mss 8961,sackOK,TS val 2853071202 ecr 0,nop,wscale 10], length 0
+E..<.d@.~.C.
+..	
+..M......................#....
+..ib.......
+
+04:09:52.152466 IP 10.30.29.77.8084 > 10.30.1.9.47278: Flags [S.], seq 158321785, ack 2938012812, win 62643, options [mss 8961,sackOK,TS val 39993762 ecr 2853071202,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....	o.y........2.....#....
+.bA...ib...
+
+04:09:52.152892 IP 10.30.1.9.47278 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2853071203 ecr 39993762], length 0
+E..4.e@.~.C.
+..	
+..M........	o.z...>
+......
+..ic.bA.
+04:09:52.152953 IP 10.30.1.9.47278 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2853071203 ecr 39993762], length 148
+E....f@.~.C8
+..	
+..M........	o.z...>.......
+..ic.bA.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.152987 IP 10.30.29.77.8084 > 10.30.1.9.47278: Flags [.], ack 149, win 62, options [nop,nop,TS val 39993763 ecr 2853071203], length 0
+E..4..@.~...
+..M
+..	....	o.z... ...>2......
+.bA...ic
+04:09:52.162858 IP 10.30.29.77.8084 > 10.30.1.9.47278: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 39993773 ecr 2853071203], length 144
+E.....@.~...
+..M
+..	....	o.z... ...>3H.....
+.bA...icHTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.162970 IP 10.30.29.77.8084 > 10.30.1.9.47278: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 39993773 ecr 2853071203], length 53
+E..i..@.~...
+..M
+..	....	o.
+... ...>2......
+.bA...ic{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.163293 IP 10.30.1.9.47278 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2853071213 ecr 39993773], length 0
+E..4.g@.~.C.
+..	
+..M....... 	o.
+...>	g.....
+..im.bA.
+04:09:52.166404 IP 10.30.1.9.47278 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2853071216 ecr 39993773], length 0
+E..4.h@.~.C.
+..	
+..M....... 	o.@...>	-.....
+..ip.bA.
+04:09:52.166574 IP 10.30.29.77.8084 > 10.30.1.9.47278: Flags [.], ack 150, win 62, options [nop,nop,TS val 39993776 ecr 2853071216], length 0
+E..4..@.~...
+..M
+..	....	o.@...!...>2......
+.bA...ip
+04:09:52.166827 IP 10.30.1.9.47282 > 10.30.29.77.8084: Flags [S], seq 2995078209, win 62727, options [mss 8961,sackOK,TS val 512404467 ecr 0,nop,wscale 10], length 0
+E..<.<@.~.C.
+..	
+..M......DA........i.....#....
+...........
+
+04:09:52.166907 IP 10.30.29.77.8084 > 10.30.1.9.47282: Flags [S.], seq 2050356449, ack 2995078210, win 62643, options [mss 8961,sackOK,TS val 2932949171 ecr 512404467,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....z5....DB....2.....#....
+..@........
+
+04:09:52.167307 IP 10.30.1.9.47282 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 512404467 ecr 2932949171], length 0
+E..4.=@.~.C.
+..	
+..M......DBz5.....>K......
+......@.
+04:09:52.178589 IP 10.30.1.9.47282 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 512404478 ecr 2932949171], length 148
+E....>@.~.C`
+..	
+..M......DBz5.....>[......
+......@.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.178712 IP 10.30.29.77.8084 > 10.30.1.9.47282: Flags [.], ack 149, win 62, options [nop,nop,TS val 2932949182 ecr 512404478], length 0
+E..4.	@.~..(
+..M
+..	....z5....D....>2......
+..@.....
+04:09:52.179929 IP 10.30.29.77.8084 > 10.30.1.9.47282: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2932949184 ecr 512404478], length 144
+E....
+@.~...
+..M
+..	....z5....D....>3H.....
+..@.....HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.180192 IP 10.30.29.77.8084 > 10.30.1.9.47282: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2932949184 ecr 512404478], length 53
+E..i..@.~...
+..M
+..	....z5.r..D....>2......
+..@.....{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.180409 IP 10.30.1.9.47282 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 512404480 ecr 2932949184], length 0
+E..4.?@.~.C.
+..	
+..M......D.z5.r...>J......
+......@.
+04:09:52.181007 IP 10.30.1.9.47282 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 512404481 ecr 2932949184], length 0
+E..4.@@.~.C.
+..	
+..M......D.z5.....>JN.....
+......@.
+04:09:52.181086 IP 10.30.29.77.8084 > 10.30.1.9.47282: Flags [.], ack 150, win 62, options [nop,nop,TS val 2932949185 ecr 512404481], length 0
+E..4..@.~..%
+..M
+..	....z5....D....>2......
+..@.....
+04:09:52.192761 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [S], seq 1825352702, win 62727, options [mss 8961,sackOK,TS val 1283348830 ecr 0,nop,wscale 10], length 0
+E..<..@.~.
+.
+..	
+..M....l...........l.....#....
+L~Y^.......
+
+04:09:52.192879 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [S.], seq 4050369569, ack 1825352703, win 62643, options [mss 8961,sackOK,TS val 3172857683 ecr 1283348830,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	.....k.!l.......2.....#....
+...SL~Y^...
+
+04:09:52.193328 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 1283348830 ecr 3172857683], length 0
+E..4..@.~.
+.
+..	
+..M....l....k."...>J......
+L~Y^...S
+04:09:52.193863 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 1283348831 ecr 3172857683], length 148
+E.....@.~.
+.
+..	
+..M....l....k."...>[......
+L~Y_...SGET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.193919 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [.], ack 149, win 62, options [nop,nop,TS val 3172857684 ecr 1283348831], length 0
+E..4..@.~.3.
+..M
+..	.....k."l......>2......
+...TL~Y_
+04:09:52.199125 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3172857689 ecr 1283348831], length 144
+E.....@.~.3
+
+..M
+..	.....k."l......>3H.....
+...YL~Y_HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.199586 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 1283348836 ecr 3172857689], length 0
+E..4..@.~.
+.
+..	
+..M....l....k.....>I......
+L~Yd...Y
+04:09:52.202465 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [P.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3172857692 ecr 1283348836], length 53
+E..i..@.~.3d
+..M
+..	.....k..l......>2......
+...\L~Yd{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.202905 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [.], ack 198, win 62, options [nop,nop,TS val 1283348840 ecr 3172857692], length 0
+E..4..@.~.
+.
+..	
+..M....l....k.....>I......
+L~Yh...\
+04:09:52.203136 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [F.], seq 198, ack 149, win 62, options [nop,nop,TS val 3172857693 ecr 1283348840], length 0
+E..4..@.~.3.
+..M
+..	.....k..l......>2......
+...]L~Yh
+04:09:52.207206 IP 10.30.1.9.47298 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 1283348844 ecr 3172857693], length 0
+E..4..@.~.
+.
+..	
+..M....l....k.....>I{.....
+L~Yl...]
+04:09:52.207298 IP 10.30.29.77.8084 > 10.30.1.9.47298: Flags [.], ack 150, win 62, options [nop,nop,TS val 3172857697 ecr 1283348844], length 0
+E..4..@.~.3.
+..M
+..	.....k..l......>2......
+...aL~Yl
+04:09:52.208617 IP 10.30.1.9.47304 > 10.30.29.77.8084: Flags [S], seq 3448795583, win 62727, options [mss 8961,sackOK,TS val 536107722 ecr 0,nop,wscale 10], length 0
+E..<I.@.~..6
+..	
+..M......q.........p.....#....
+..Z........
+
+04:09:52.208719 IP 10.30.29.77.8084 > 10.30.1.9.47304: Flags [S.], seq 3328458653, ack 3448795584, win 62643, options [mss 8961,sackOK,TS val 2394045716 ecr 536107722,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	.....d?...q.....2.....#....
+..=...Z....
+
+04:09:52.209124 IP 10.30.1.9.47304 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 536107723 ecr 2394045716], length 0
+E..4I.@.~..=
+..	
+..M......q..d?....>.......
+..Z...=.
+04:09:52.215831 IP 10.30.1.9.47304 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 536107730 ecr 2394045716], length 148
+E...I.@.~...
+..	
+..M......q..d?....>.......
+..Z...=.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.215933 IP 10.30.29.77.8084 > 10.30.1.9.47304: Flags [.], ack 149, win 62, options [nop,nop,TS val 2394045724 ecr 536107730], length 0
+E..4F.@.~...
+..M
+..	.....d?...rT...>2......
+..=...Z.
+04:09:52.222056 IP 10.30.29.77.8084 > 10.30.1.9.47304: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2394045730 ecr 536107730], length 144
+E...F.@.~.. 
+..M
+..	.....d?...rT...>3H.....
+..="..Z.HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.222140 IP 10.30.29.77.8084 > 10.30.1.9.47304: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2394045730 ecr 536107730], length 53
+E..iF.@.~..z
+..M
+..	.....d@...rT...>2......
+..="..Z.{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.222547 IP 10.30.1.9.47304 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 536107736 ecr 2394045730], length 0
+E..4I.@.~..;
+..	
+..M......rT.d@....>.w.....
+..Z...="
+04:09:52.227067 IP 10.30.1.9.47304 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 536107741 ecr 2394045730], length 0
+E..4I.@.~..:
+..	
+..M......rT.d@d...>.;.....
+..Z...="
+04:09:52.227194 IP 10.30.29.77.8084 > 10.30.1.9.47304: Flags [.], ack 150, win 62, options [nop,nop,TS val 2394045735 ecr 536107741], length 0
+E..4F.@.~...
+..M
+..	.....d@d..rU...>2......
+..='..Z.
+04:09:52.227492 IP 10.30.1.9.47312 > 10.30.29.77.8084: Flags [S], seq 3636757099, win 62727, options [mss 8961,sackOK,TS val 3057537260 ecr 0,nop,wscale 10], length 0
+E..<.I@.~...
+..	
+..M.......k.........V....#....
+.>P........
+
+04:09:52.227591 IP 10.30.29.77.8084 > 10.30.1.9.47312: Flags [S.], seq 1982367303, ack 3636757100, win 62643, options [mss 8961,sackOK,TS val 158497159 ecr 3057537260,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....v(.G...l....2.....#....
+	ry..>P....
+
+04:09:52.227997 IP 10.30.1.9.47312 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 3057537261 ecr 158497159], length 0
+E..4.J@.~...
+..	
+..M.......lv(.H...>.......
+.>P.	ry.
+04:09:52.230535 IP 10.30.1.9.47312 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 3057537263 ecr 158497159], length 148
+E....K@.~..S
+..	
+..M.......lv(.H...>.......
+.>P.	ry.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.230595 IP 10.30.29.77.8084 > 10.30.1.9.47312: Flags [.], ack 149, win 62, options [nop,nop,TS val 158497162 ecr 3057537263], length 0
+E..4..@.~..6
+..M
+..	....v(.H.......>2......
+	ry..>P.
+04:09:52.247039 IP 10.30.29.77.8084 > 10.30.1.9.47312: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 158497179 ecr 3057537263], length 144
+E.....@.~...
+..M
+..	....v(.H.......>3H.....
+	ry..>P.HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.247132 IP 10.30.29.77.8084 > 10.30.1.9.47312: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 158497179 ecr 3057537263], length 53
+E..i..@.~...
+..M
+..	....v(.........>2......
+	ry..>P.{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.247511 IP 10.30.1.9.47312 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 3057537280 ecr 158497179], length 0
+E..4.L@.~...
+..	
+..M........v(.....>.v.....
+.>Q.	ry.
+04:09:52.247920 IP 10.30.1.9.47312 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 3057537281 ecr 158497179], length 0
+E..4.M@.~...
+..	
+..M........v(.....>.>.....
+.>Q.	ry.
+04:09:52.247981 IP 10.30.29.77.8084 > 10.30.1.9.47312: Flags [.], ack 150, win 62, options [nop,nop,TS val 158497180 ecr 3057537281], length 0
+E..4..@.~..3
+..M
+..	....v(.........>2......
+	ry..>Q.
+04:09:52.250221 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [S], seq 2508700998, win 62727, options [mss 8961,sackOK,TS val 2582083488 ecr 0,nop,wscale 10], length 0
+E..<..@.~..j
+..	
+..M.......F.........O....#....
+..w........
+
+04:09:52.250321 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [S.], seq 1577022824, ack 2508700999, win 62643, options [mss 8961,sackOK,TS val 2303913179 ecr 2582083488,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....].uh...G....2.....#....
+.R....w....
+
+04:09:52.250764 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2582083489 ecr 2303913179], length 0
+E..4..@.~..q
+..	
+..M.......G].ui...>.......
+..w..R..
+04:09:52.251131 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2582083489 ecr 2303913179], length 148
+E.....@.~...
+..	
+..M.......G].ui...>.......
+..w..R..GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.251184 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [.], ack 149, win 62, options [nop,nop,TS val 2303913180 ecr 2582083489], length 0
+E..4..@.~...
+..M
+..	....].ui.......>2......
+.R....w.
+04:09:52.263387 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2303913192 ecr 2582083489], length 144
+E.....@.~...
+..M
+..	....].ui.......>3H.....
+.R....w.HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.263879 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2582083502 ecr 2303913192], length 0
+E..4..@.~..o
+..	
+..M........].u....>.O.....
+..w..R..
+04:09:52.264239 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [P.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2303913193 ecr 2582083502], length 53
+E..i..@.~..O
+..M
+..	....].u........>2......
+.R....w.{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.264331 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [F.], seq 198, ack 149, win 62, options [nop,nop,TS val 2303913193 ecr 2582083502], length 0
+E..4..@.~...
+..M
+..	....].v........>2......
+.R....w.
+04:09:52.264666 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [.], ack 198, win 62, options [nop,nop,TS val 2582083503 ecr 2303913193], length 0
+E..4..@.~..n
+..	
+..M........].v....>.......
+..w..R..
+04:09:52.273388 IP 10.30.1.9.47324 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2582083511 ecr 2303913193], length 0
+E..4..@.~..m
+..	
+..M........].v/...>.......
+..w..R..
+04:09:52.273523 IP 10.30.29.77.8084 > 10.30.1.9.47324: Flags [.], ack 150, win 62, options [nop,nop,TS val 2303913202 ecr 2582083511], length 0
+E..4..@.~...
+..M
+..	....].v/.......>2......
+.R....w.
+04:09:52.275712 IP 10.30.1.9.47334 > 10.30.29.77.8084: Flags [S], seq 1291661720, win 62727, options [mss 8961,sackOK,TS val 2031094314 ecr 0,nop,wscale 10], length 0
+E..<..@.~..K
+..	
+..M....L.1.........(.....#....
+y.
+*.......
+
+04:09:52.275856 IP 10.30.29.77.8084 > 10.30.1.9.47334: Flags [S.], seq 3936965778, ack 1291661721, win 62643, options [mss 8961,sackOK,TS val 2340776922 ecr 2031094314,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	......T.L.1.....2.....#....
+..k.y.
+*...
+
+04:09:52.276292 IP 10.30.1.9.47334 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 2031094314 ecr 2340776922], length 0
+E..4..@.~..R
+..	
+..M....L.1...T....>3......
+y.
+*..k.
+04:09:52.279180 IP 10.30.1.9.47334 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 2031094317 ecr 2340776922], length 148
+E.....@.~...
+..	
+..M....L.1...T....>C".....
+y.
+-..k.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.279278 IP 10.30.29.77.8084 > 10.30.1.9.47334: Flags [.], ack 149, win 62, options [nop,nop,TS val 2340776925 ecr 2031094317], length 0
+E..4..@.~...
+..M
+..	......T.L.2-...>2......
+..k.y.
+-
+04:09:52.286545 IP 10.30.29.77.8084 > 10.30.1.9.47334: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2340776932 ecr 2031094317], length 144
+E.....@.~...
+..M
+..	......T.L.2-...>3H.....
+..k.y.
+-HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.286630 IP 10.30.29.77.8084 > 10.30.1.9.47334: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2340776932 ecr 2031094317], length 53
+E..i..@.~...
+..M
+..	......U#L.2-...>2......
+..k.y.
+-{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.287029 IP 10.30.1.9.47334 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 2031094325 ecr 2340776932], length 0
+E..4..@.~..P
+..	
+..M....L.2-..U#...>1......
+y.
+5..k.
+04:09:52.288083 IP 10.30.1.9.47334 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 2031094326 ecr 2340776932], length 0
+E..4..@.~..O
+..	
+..M....L.2-..UY...>1......
+y.
+6..k.
+04:09:52.288161 IP 10.30.29.77.8084 > 10.30.1.9.47334: Flags [.], ack 150, win 62, options [nop,nop,TS val 2340776934 ecr 2031094326], length 0
+E..4..@.~...
+..M
+..	......UYL.2....>2......
+..k.y.
+6
+04:09:52.291592 IP 10.30.1.9.47344 > 10.30.29.77.8084: Flags [S], seq 3022835629, win 62727, options [mss 8961,sackOK,TS val 659022560 ecr 0,nop,wscale 10], length 0
+E..<.3@.~...
+..	
+..M.....,................#....
+'G.........
+
+04:09:52.291711 IP 10.30.29.77.8084 > 10.30.1.9.47344: Flags [S.], seq 563243782, ack 3022835630, win 62643, options [mss 8961,sackOK,TS val 4025088367 ecr 659022560,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....!.k..,......2.....#....
+...o'G.....
+
+04:09:52.292144 IP 10.30.1.9.47344 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 659022561 ecr 4025088367], length 0
+E..4.4@.~...
+..	
+..M.....,..!.k....>gq.....
+'G.....o
+04:09:52.299988 IP 10.30.1.9.47344 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 659022569 ecr 4025088367], length 148
+E....5@.~..h
+..	
+..M.....,..!.k....>w......
+'G.....oGET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.300101 IP 10.30.29.77.8084 > 10.30.1.9.47344: Flags [.], ack 149, win 62, options [nop,nop,TS val 4025088376 ecr 659022569], length 0
+E..4..@.~. ]
+..M
+..	....!.k..,.B...>2......
+...x'G..
+04:09:52.301755 IP 10.30.29.77.8084 > 10.30.1.9.47344: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 4025088377 ecr 659022569], length 144
+E.....@.~...
+..M
+..	....!.k..,.B...>3H.....
+...y'G..HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.301844 IP 10.30.29.77.8084 > 10.30.1.9.47344: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 4025088378 ecr 659022569], length 53
+E..i..@.~. &
+..M
+..	....!.k..,.B...>2......
+...z'G..{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.302211 IP 10.30.1.9.47344 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 659022571 ecr 4025088377], length 0
+E..4.6@.~...
+..	
+..M.....,.B!.k....>f9.....
+'G.....y
+04:09:52.309192 IP 10.30.1.9.47344 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 659022578 ecr 4025088378], length 0
+E..4.7@.~...
+..	
+..M.....,.B!.k....>e......
+'G.....z
+04:09:52.309304 IP 10.30.29.77.8084 > 10.30.1.9.47344: Flags [.], ack 150, win 62, options [nop,nop,TS val 4025088385 ecr 659022578], length 0
+E..4..@.~. Z
+..M
+..	....!.k..,.C...>2......
+....'G..
+04:09:52.309616 IP 10.30.1.9.47354 > 10.30.29.77.8084: Flags [S], seq 4189805662, win 62727, options [mss 8961,sackOK,TS val 1372712130 ecr 0,nop,wscale 10], length 0
+E..<..@.~...
+..	
+..M......\^..............#....
+Q..........
+
+04:09:52.309713 IP 10.30.29.77.8084 > 10.30.1.9.47354: Flags [S.], seq 1014631194, ack 4189805663, win 62643, options [mss 8961,sackOK,TS val 2144730947 ecr 1372712130,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....<z....\_....2.....#....
+...CQ......
+
+04:09:52.310130 IP 10.30.1.9.47354 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 1372712131 ecr 2144730947], length 0
+E..4..@.~..$
+..	
+..M......\_<z.....>.......
+Q......C
+04:09:52.312584 IP 10.30.1.9.47354 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 1372712133 ecr 2144730947], length 148
+E.....@.~...
+..	
+..M......\_<z.....> ......
+Q......CGET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.312651 IP 10.30.29.77.8084 > 10.30.1.9.47354: Flags [.], ack 149, win 62, options [nop,nop,TS val 2144730950 ecr 1372712133], length 0
+E..4*\@.~...
+..M
+..	....<z....\....>2......
+...FQ...
+04:09:52.316997 IP 10.30.29.77.8084 > 10.30.1.9.47354: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 2144730955 ecr 1372712133], length 144
+E...*]@.~..E
+..M
+..	....<z....\....>3H.....
+...KQ...HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.317465 IP 10.30.1.9.47354 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 1372712138 ecr 2144730955], length 0
+E..4..@.~.."
+..	
+..M......\.<z.....>.......
+Q......K
+04:09:52.317525 IP 10.30.29.77.8084 > 10.30.1.9.47354: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 2144730955 ecr 1372712133], length 53
+E..i*^@.~...
+..M
+..	....<z....\....>2......
+...KQ...{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.318404 IP 10.30.1.9.47354 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 1372712139 ecr 2144730955], length 0
+E..4..@.~..!
+..	
+..M......\.<z.....>.......
+Q......K
+04:09:52.318486 IP 10.30.29.77.8084 > 10.30.1.9.47354: Flags [.], ack 150, win 62, options [nop,nop,TS val 2144730956 ecr 1372712139], length 0
+E..4*_@.~...
+..M
+..	....<z....\....>2......
+...LQ...
+04:09:52.325522 IP 10.30.1.9.47358 > 10.30.29.77.8084: Flags [S], seq 129317506, win 62727, options [mss 8961,sackOK,TS val 3076874751 ecr 0,nop,wscale 10], length 0
+E..<..@.~.	.
+..	
+..M......:...............#....
+.ea........
+
+04:09:52.325677 IP 10.30.29.77.8084 > 10.30.1.9.47358: Flags [S.], seq 877270482, ack 129317507, win 62643, options [mss 8961,sackOK,TS val 3980947555 ecr 3076874751,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	....4J....:.....2.....#....
+.Hpc.ea....
+
+04:09:52.326129 IP 10.30.1.9.47358 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 3076874752 ecr 3980947555], length 0
+E..4..@.~.	.
+..	
+..M......:.4J.....>g......
+.eb..Hpc
+04:09:52.330158 IP 10.30.1.9.47358 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 3076874756 ecr 3980947555], length 148
+E.... @.~..~
+..	
+..M......:.4J.....>x......
+.eb..HpcGET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.330283 IP 10.30.29.77.8084 > 10.30.1.9.47358: Flags [.], ack 149, win 62, options [nop,nop,TS val 3980947560 ecr 3076874756], length 0
+E..4E.@.~..q
+..M
+..	....4J....;....>2......
+.Hph.eb.
+04:09:52.337294 IP 10.30.29.77.8084 > 10.30.1.9.47358: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3980947567 ecr 3076874756], length 144
+E...E.@.~...
+..M
+..	....4J....;....>3H.....
+.Hpo.eb.HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.337398 IP 10.30.29.77.8084 > 10.30.1.9.47358: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3980947567 ecr 3076874756], length 53
+E..iE.@.~..:
+..M
+..	....4J.c..;....>2......
+.Hpo.eb.{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.337766 IP 10.30.1.9.47358 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 3076874764 ecr 3980947567], length 0
+E..4.!@.~.	.
+..	
+..M......;.4J.c...>f......
+.eb..Hpo
+04:09:52.339969 IP 10.30.1.9.47358 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 3076874766 ecr 3980947567], length 0
+E..4."@.~.	.
+..	
+..M......;.4J.....>f~.....
+.eb..Hpo
+04:09:52.340092 IP 10.30.29.77.8084 > 10.30.1.9.47358: Flags [.], ack 150, win 62, options [nop,nop,TS val 3980947570 ecr 3076874766], length 0
+E..4E.@.~..n
+..M
+..	....4J....;....>2......
+.Hpr.eb.
+04:09:52.340338 IP 10.30.1.9.47366 > 10.30.29.77.8084: Flags [S], seq 2462057320, win 62727, options [mss 8961,sackOK,TS val 3823740099 ecr 0,nop,wscale 10], length 0
+E..<A.@.~.._
+..	
+..M.......h..............#....
+...........
+
+04:09:52.340428 IP 10.30.29.77.8084 > 10.30.1.9.47366: Flags [S.], seq 4053363712, ack 2462057321, win 62643, options [mss 8961,sackOK,TS val 3068097800 ecr 3823740099,nop,wscale 10], length 0
+E..<..@.~..*
+..M
+..	......l....i....2.....#....
+..u........
+
+04:09:52.340827 IP 10.30.1.9.47366 > 10.30.29.77.8084: Flags [.], ack 1, win 62, options [nop,nop,TS val 3823740100 ecr 3068097800], length 0
+E..4A.@.~..f
+..	
+..M.......i..l....>.......
+......u.
+04:09:52.341011 IP 10.30.1.9.47366 > 10.30.29.77.8084: Flags [P.], seq 1:149, ack 1, win 62, options [nop,nop,TS val 3823740100 ecr 3068097800], length 148
+E...A.@.~...
+..	
+..M.......i..l....>.......
+......u.GET /n1-baseline-f79422d6c56ffef0 HTTP/1.1
+Accept-Encoding: identity
+Host: 10.30.29.77:8084
+User-Agent: Python-urllib/3.12
+Connection: close
+
+
+04:09:52.341047 IP 10.30.29.77.8084 > 10.30.1.9.47366: Flags [.], ack 149, win 62, options [nop,nop,TS val 3068097801 ecr 3823740100], length 0
+E..4..@.~..y
+..M
+..	......l........>2......
+..u	....
+04:09:52.343073 IP 10.30.29.77.8084 > 10.30.1.9.47366: Flags [P.], seq 1:145, ack 149, win 62, options [nop,nop,TS val 3068097803 ecr 3823740100], length 144
+E.....@.~...
+..M
+..	......l........>3H.....
+..u.....HTTP/1.0 200 OK
+Server: selfheal-n1 Python/3.12.13
+Date: Wed, 11 Nov 2026 04:09:52 GMT
+Content-Type: application/json
+Content-Length: 53
+
+
+04:09:52.343159 IP 10.30.29.77.8084 > 10.30.1.9.47366: Flags [FP.], seq 145:198, ack 149, win 62, options [nop,nop,TS val 3068097803 ecr 3823740100], length 53
+E..i..@.~..B
+..M
+..	......l........>2......
+..u.....{"ok": true, "path": "/n1-baseline-f79422d6c56ffef0"}
+04:09:52.343491 IP 10.30.1.9.47366 > 10.30.29.77.8084: Flags [.], ack 145, win 62, options [nop,nop,TS val 3823740102 ecr 3068097803], length 0
+E..4A.@.~..d
+..	
+..M..........l....>.......
+......u.
+04:09:52.344239 IP 10.30.1.9.47366 > 10.30.29.77.8084: Flags [F.], seq 149, ack 199, win 62, options [nop,nop,TS val 3823740103 ecr 3068097803], length 0
+E..4A.@.~..c
+..	
+..M..........l....>.......
+......u.
+04:09:52.344299 IP 10.30.29.77.8084 > 10.30.1.9.47366: Flags [.], ack 150, win 62, options [nop,nop,TS val 3068097804 ecr 3823740103], length 0
+E..4..@.~..v
+..M
+..	......l........>2......
+..u.....
+
+
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on ens7, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+208 packets captured
+208 packets received by filter
+0 packets dropped by kernel

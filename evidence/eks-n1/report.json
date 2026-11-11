@@ -1,0 +1,269 @@
+{
+  "run_id": "eks-n1",
+  "target": "eks",
+  "started": "2026-11-11T03:35:39.350Z",
+  "rows": [
+    "N1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-eks",
+    "api_ready": true,
+    "kube-system/cilium": true,
+    "kube-system/cilium-operator": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "kube-system/hubble-relay": true,
+    "n1_slot_nodes": {
+      "client": "ip-10-30-1-187.ec2.internal",
+      "server": "ip-10-30-27-5.ec2.internal"
+    },
+    "selfheal/n1-server": true,
+    "selfheal/n1-client": true,
+    "selfheal/n1-denied": true,
+    "n1_synced": true
+  },
+  "versions": {
+    "repo_commit": "3dc32206493caa6f684cb5543f8a0313bef89a51",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/qworker:2bb4ee9",
+    "q2-signal": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "q2-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q2:2bb4ee9",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/q3:2bb4ee9",
+    "n1-server": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-client": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "n1-denied": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/n1:2bb4ee9",
+    "o1-controller": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/o1:2bb4ee9",
+    "o1-alert-receiver": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/o1:2bb4ee9",
+    "karpenter": "public.ecr.aws/karpenter/controller:1.15.1@sha256:8314ff9c6bca66372031e80532c18025bbe6d34eae2443849d9ff02796fb09c8",
+    "kubernetes": "v1.36.5-eks-577a51e",
+    "web_image": "<lab-account>.dkr.ecr.us-east-1.amazonaws.com/selfheal/app:2bb4ee9-v1",
+    "workload_ami": [
+      "ami-069787c4f4d0583ff"
+    ]
+  },
+  "results": {
+    "N1": {
+      "baseline": {
+        "status": "no-impact",
+        "reason": "plaintext pod packets 214 on ['ens5', 'ens6', 'ens7'], WireGuard 0, marker visible True; requests 20 with 0 failures, p95 42.859 ms; denied successes 5, policy drops 0",
+        "thresholds": {
+          "min_requests": 20,
+          "max_failures": 0,
+          "p95_ms": 300,
+          "min_denied": 5,
+          "denied_successes": 0,
+          "min_policy_drops": 1,
+          "min_packets": 5,
+          "interfaces": 1,
+          "min_peers": 1,
+          "datapath": "native"
+        },
+        "pass": false
+      },
+      "hardened": {
+        "status": "inconclusive",
+        "reason": "baseline was 'no-impact'; a heal can only be claimed against an impact observed in the same run",
+        "thresholds": {
+          "min_requests": 20,
+          "max_failures": 0,
+          "p95_ms": 300,
+          "min_denied": 5,
+          "denied_successes": 0,
+          "min_policy_drops": 1,
+          "min_packets": 5,
+          "interfaces": 1,
+          "min_peers": 1,
+          "datapath": "native"
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "N1": {
+      "baseline": {
+        "t0": 1794368251.5890691,
+        "placement": {
+          "client": {
+            "count": 1,
+            "name": "n1-client-5ffd6dd5c5-qm9jk",
+            "uid": "fc8f8af6-4b9c-4c03-b511-2bacec595b7e",
+            "node": "ip-10-30-1-187.ec2.internal",
+            "ip": "10.30.13.214"
+          },
+          "denied": {
+            "count": 1,
+            "name": "n1-denied-c9d996ff-bmfvj",
+            "uid": "94dd30bc-8fd7-4558-8c23-56d6f5230b2c",
+            "node": "ip-10-30-1-187.ec2.internal",
+            "ip": "10.30.7.98"
+          },
+          "server": {
+            "count": 1,
+            "name": "n1-server-6c9b95c967-z68rr",
+            "uid": "054b75ef-cddc-466a-9889-7abe2690769d",
+            "node": "ip-10-30-27-5.ec2.internal",
+            "ip": "10.30.18.164"
+          },
+          "capture": {
+            "count": 1,
+            "name": "n1-capture-747db6dcd5-6jg8t",
+            "uid": "5ac4e4d8-d696-4fde-a69d-19de170431ac",
+            "node": "ip-10-30-27-5.ec2.internal",
+            "ip": "10.30.27.5"
+          },
+          "cross_node": true
+        },
+        "marker": "n1-baseline-4bf014d0cc3b34f0",
+        "capture": {
+          "vxlan_packets": 0,
+          "vxlan_packets_total": 0,
+          "wireguard_packets": 0,
+          "plain_packets": 214,
+          "marker_visible": true,
+          "bytes": 53135,
+          "probe": {
+            "samples": 20,
+            "successes": 20,
+            "failures": 0,
+            "p95_ms": 42.859
+          },
+          "interfaces": [
+            "ens5",
+            "ens6",
+            "ens7"
+          ]
+        },
+        "denied": {
+          "samples": 5,
+          "successes": 5,
+          "failures": 0,
+          "p95_ms": 36.035
+        },
+        "hubble_available": true,
+        "policy_drops": 0,
+        "wireguard_config": "false",
+        "wireguard": {
+          "client_interfaces": 0,
+          "server_interfaces": 0,
+          "client_peer_count": 0,
+          "server_peer_count": 0,
+          "peer_keys_match": false,
+          "client_routes_server": false,
+          "server_routes_client": false,
+          "client_handshake": false,
+          "server_handshake": false
+        },
+        "node_internal_ips": {
+          "ip-10-30-1-187.ec2.internal": "10.30.1.187",
+          "ip-10-30-27-5.ec2.internal": "10.30.27.5"
+        },
+        "datapath": "native",
+        "slot_nodes": {
+          "client": "ip-10-30-1-187.ec2.internal",
+          "server": "ip-10-30-27-5.ec2.internal"
+        },
+        "window": "cross-node requests under worker eth0 capture, followed by policy-denied attempts",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794368414.57113,
+        "placement": {
+          "client": {
+            "count": 1,
+            "name": "n1-client-5ffd6dd5c5-qm9jk",
+            "uid": "fc8f8af6-4b9c-4c03-b511-2bacec595b7e",
+            "node": "ip-10-30-1-187.ec2.internal",
+            "ip": "10.30.13.214"
+          },
+          "denied": {
+            "count": 1,
+            "name": "n1-denied-c9d996ff-bmfvj",
+            "uid": "94dd30bc-8fd7-4558-8c23-56d6f5230b2c",
+            "node": "ip-10-30-1-187.ec2.internal",
+            "ip": "10.30.7.98"
+          },
+          "server": {
+            "count": 1,
+            "name": "n1-server-6c9b95c967-z68rr",
+            "uid": "054b75ef-cddc-466a-9889-7abe2690769d",
+            "node": "ip-10-30-27-5.ec2.internal",
+            "ip": "10.30.18.164"
+          },
+          "capture": {
+            "count": 1,
+            "name": "n1-capture-747db6dcd5-6jg8t",
+            "uid": "5ac4e4d8-d696-4fde-a69d-19de170431ac",
+            "node": "ip-10-30-27-5.ec2.internal",
+            "ip": "10.30.27.5"
+          },
+          "cross_node": true
+        },
+        "marker": "n1-hardened-974a71e488aead4f",
+        "capture": {
+          "vxlan_packets": 0,
+          "vxlan_packets_total": 0,
+          "wireguard_packets": 2662,
+          "plain_packets": 0,
+          "marker_visible": false,
+          "bytes": 803885,
+          "probe": {
+            "samples": 20,
+            "successes": 20,
+            "failures": 0,
+            "p95_ms": 43.877
+          },
+          "interfaces": [
+            "ens5",
+            "ens6",
+            "ens7"
+          ]
+        },
+        "denied": {
+          "samples": 5,
+          "successes": 0,
+          "failures": 5,
+          "p95_ms": null
+        },
+        "hubble_available": true,
+        "policy_drops": 12,
+        "wireguard_config": "true",
+        "wireguard": {
+          "client_interfaces": 1,
+          "server_interfaces": 1,
+          "client_peer_count": 4,
+          "server_peer_count": 4,
+          "peer_keys_match": true,
+          "client_routes_server": true,
+          "server_routes_client": true,
+          "client_handshake": true,
+          "server_handshake": true
+        },
+        "node_internal_ips": {
+          "ip-10-30-1-187.ec2.internal": "10.30.1.187",
+          "ip-10-30-27-5.ec2.internal": "10.30.27.5"
+        },
+        "datapath": "native",
+        "slot_nodes": {
+          "client": "ip-10-30-1-187.ec2.internal",
+          "server": "ip-10-30-27-5.ec2.internal"
+        },
+        "window": "cross-node requests under worker eth0 capture, followed by policy-denied attempts",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-11T03:40:44.435Z",
+  "pass": false
+}
