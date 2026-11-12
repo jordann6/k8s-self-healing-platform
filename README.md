@@ -5,11 +5,18 @@ threat, proven with before/after experiments. The third lab in the arc after
 the EKS Attack Range (gain access, detect) and the Kubernetes Network
 Segmentation Lab (contain): this one responds and recovers.
 
-**Status:** three phases have run live and been destroyed: the portable core
-on kind (zero cloud spend), the AWS module on EKS (11 of 13 hardened rows
-healed, one missed, one inconclusive) and the Azure module on AKS (9 of 11
-healed, A3 missed by 20 ms, R2 blocked because Defender never raised the
-alert). GCP comes next.
+**Status:** four phases have run live and been destroyed. The portable core
+runs on kind (zero cloud spend). The AWS module on EKS has every one of its 13
+core rows healed on record (R1 missed once at 34.6s and healed at 16.1s and
+11s on later runs, A4 became conclusive on a rerun). The Azure module on AKS
+healed 10 of its 11 core rows (A3 healed at 281 ms on a rerun, R2 stays
+blocked because Defender never raised the alert). Phase 4 added seven more
+rows, run on both clouds on Kubernetes 1.36 (Q1 to Q3, P1, D1, O1, N1). Every
+phase 4 row healed on AKS. On EKS six healed and N1 stayed inconclusive
+because its baseline never showed impact. Counting both clouds that is 38
+hardened rows, 36 healed, one inconclusive, one blocked. GCP and an integrated
+adversarial proof on one cluster ([ADR-0024](docs/adr/0024-integrated-adversarial-proof.md),
+designed, not built) come next.
 
 ![Self-healing platform on EKS](docs/architecture.png)
 
@@ -79,6 +86,35 @@ facts in [ADR-0007](docs/adr/0007-azure-facts-before-the-module.md), session in
 | A4 | The workload node hosting the most web pods stops | `az vmss stop` of one scale set instance by ID | cluster autoscaler, PDB, topology spread with `minDomains`, 30s not-ready tolerations |
 | S4 | Node subnet NSG opened to 0.0.0.0/0 | an inbound Allow rule | Azure Policy deployIfNotExists rewrites the rule to Deny |
 | R2 | Runtime threat in a web pod | Microsoft's threat-intelligence test request | Defender for Containers -> workflow automation -> Logic App (checks ARM's copy) -> queue -> worker: cordon, relabel, OS-disk snapshot, Run Command capture |
+
+On both clouds (phase 4) seven more rows run, each judged against a baseline
+in the same run ([ADR-0018](docs/adr/0018-phase4-remaining-rows-docs-pass.md)
+for the cloud docs pass and ADR-0016, 0017, 0019 to 0023 for each parity
+contract):
+
+![Phase 4 rows on EKS and AKS](docs/architecture-phase4.png)
+
+*The phase 4 rows. Blue is scaling and sizing, red is admission and
+encryption, orange is recovery and operations, and the dashed grey edges are
+the runner. The two object stores are the per-cloud pair. Source:
+`docs/diagram_phase4.py`.*
+
+| Row | Fault | Healing control | EKS | AKS |
+|---|---|---|---|---|
+| Q1 | 240 queued messages, a busy worker killed mid-message | KEDA scales from zero on queue depth, manual ack redelivers | healed, 240 of 240 done, 0 duplicates, drained 37s | healed, 240 of 240 done, 0 duplicates, drained 35s |
+| Q2 | The scaling metric breaks during load | KEDA fallback replica count, capacity ceiling | healed, fallback at 30s, 0.17% failures | healed, fallback at 16s, 0.14% failures |
+| Q3 | Sustained CPU and memory pressure | VPA recommender in Off mode, nothing resized | healed, recommendation at 4s, 0 restarts | healed, recommendation at 2s, 0 restarts |
+| P1 | Unsigned, invalid, untrusted, tag-only images and a verifier outage | Kyverno verifies a cosign signature on a pinned digest, fails closed | healed, verifier back in 16.6s | healed, verifier back in 16.2s |
+| D1 | The database volume is replaced | logical backup into an object-locked store, restore into a fresh target | healed, 100 exact rows restored in 43s, S3 Object Lock | healed, 100 exact rows restored in 48s, locked Blob WORM |
+| O1 | A broad operator and a dead controller | namespace quota, least-privilege roles, evidence-gated quarantine release | healed after one timeout rerun, release at 5s | healed, release at 2s |
+| N1 | Cross-node pod traffic on the wire | Cilium WireGuard | **inconclusive** in four runs, baseline showed no impact | healed, 40,892 WireGuard packets, 0 VXLAN, marker no longer visible |
+
+N1 on EKS never produced an impact in its baseline, so the runner refused to
+claim a heal. The cause was found on AKS afterwards. A shared allow-all
+`CiliumNetworkPolicy` over the namespace overrode the narrower deny, because
+Cilium policies are additive ([ADR-0023](docs/adr/0023-n1-cloud-parity-contract.md)).
+The fix landed before the AKS pass and EKS has not been rerun, so the EKS row
+stays inconclusive in the record.
 
 ## Run it
 
@@ -177,7 +213,39 @@ AKS alone would be tuning a control on the target that missed. R2's
 responder is built and its parts passed their live checks, but the row is
 unproven on Azure until Defender fires.
 
+### Reruns after phases 2 and 3
+
+- EKS A4 and R1 (`evidence/eks-run3`): A4 healed with the baseline impact in
+  the same run, so it is conclusive, and R1 isolated in 11s. The 34.6s miss
+  stays in `evidence/eks-run2-rows`.
+- AKS A3 (`evidence/aks-run2-a3`): healed at p95 281.1 ms, 0.00% errors, HPA
+  3 to 8, against a same-run baseline of 2142 ms. The 320 ms miss in
+  `evidence/aks-run1-a3` stays beside it, with the 300 ms bar unchanged.
+- AKS R2 was not rerun. Defender raised no alert naming the pod in 3600s on
+  either profile, so it is recorded as a platform limitation.
+
 ## What broke (and what it taught)
+
+### On both clouds (phase 4)
+
+- **A shared allow-all policy silently overrode one row's deny.** Cilium
+  policies are additive, so a namespace-wide allow beat the narrower rule and
+  the N1 baseline showed no impact in four EKS runs. The N1 pods are now
+  excluded from the allow-all, and the AKS run passed.
+- **Watchers perturbed the measurement.** Diagnostic pods that exec'd into the
+  client every few seconds delayed the N1 probe past its 8s capture window.
+  Nothing touches the cluster during a row now, and diagnosis happens after.
+- **Wrong assumptions in code that had only run on kind.** D1 failed twice on
+  Azure (a version id read from the wrong place, and an administrator delete
+  the CLI cannot express as a version delete) and once on AWS (an
+  organization policy requiring server-side encryption on the upload). Each
+  failed run is kept beside the passing one.
+- **Teardown has its own failure modes.** A scale set rolling upgrade started
+  by the platform blocked deletion of the system pool until it was cancelled,
+  and a store with COMPLIANCE retention cannot be destroyed for 24 hours, so
+  it lives in its own Terraform root.
+
+
 
 ### On Azure (phase 3)
 
