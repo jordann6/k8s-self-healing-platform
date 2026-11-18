@@ -1,0 +1,126 @@
+{
+  "t0": 1794989080.159988,
+  "listener": {
+    "hostname": "app.g1.lab",
+    "from": "Selector"
+  },
+  "proxy_service": "LoadBalancer",
+  "legit_before": {
+    "status": 200,
+    "backend": "web"
+  },
+  "lb_address_s": 4.0,
+  "first_ok_s": 11.54,
+  "lb_address": "a71aef20d5a224f959f94c091e5916ab-1b5bdc5c00ef2eae.elb.us-east-1.amazonaws.com",
+  "stray_host": {
+    "namespace": "selfheal-g1",
+    "route": "g1-stray-host",
+    "hostname": "evil.g1.lab",
+    "path": "/",
+    "accepted": {
+      "status": "False",
+      "reason": "NoMatchingListenerHostname"
+    },
+    "resolved_refs": {
+      "status": "True",
+      "reason": "ResolvedRefs"
+    },
+    "status_s": 1.047,
+    "request": {
+      "status": 404,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "cross_namespace": {
+    "namespace": "selfheal-g1-other",
+    "route": "g1-cross-namespace",
+    "hostname": "app.g1.lab",
+    "path": "/other",
+    "accepted": {
+      "status": "False",
+      "reason": "NotAllowedByListeners"
+    },
+    "resolved_refs": {
+      "status": "True",
+      "reason": "ResolvedRefs"
+    },
+    "status_s": 1.026,
+    "request": {
+      "status": 404,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "deleted_backend": {
+    "namespace": "selfheal-g1",
+    "route": "g1-deleted-backend",
+    "hostname": "app.g1.lab",
+    "path": "/ghost",
+    "accepted": {
+      "status": "True",
+      "reason": "Accepted"
+    },
+    "resolved_refs": {
+      "status": "False",
+      "reason": "BackendNotFound"
+    },
+    "status_s": 1.073,
+    "request": {
+      "status": 500,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "unrouted_path": {
+    "status": 404,
+    "backend": null
+  },
+  "unknown_host": {
+    "status": 404,
+    "backend": null
+  },
+  "hubble_drop": {
+    "available": true,
+    "direct_call": {
+      "status": null,
+      "backend": null,
+      "error": "URLError"
+    },
+    "blocked": true,
+    "seen": true,
+    "drops": 10,
+    "verdict_side": "destination ingress policy"
+  },
+  "tls": {
+    "cert_ready_s": 1.184,
+    "status_line": "HTTP/1.1 200 OK",
+    "served_ok": true,
+    "without_lab_ca": "verify",
+    "rejected_without_lab_ca": true
+  },
+  "proxy_kill": {
+    "killed": "envoy-selfheal-g1-platform-g1-2db48b10-95b54cfd7-gz866",
+    "requests": 4,
+    "failures": 0,
+    "cluster_ip_path": {
+      "requests": 4,
+      "failures": 0
+    }
+  },
+  "proxy_recovery_s": 62.396,
+  "route_status_s": 1.073,
+  "legit_after": {
+    "status": 200,
+    "backend": "web"
+  }
+}

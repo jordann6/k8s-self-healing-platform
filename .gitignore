@@ -67,6 +67,9 @@ evidence/*
 !evidence/aks-x1-run1/
 !evidence/aks-g1-run1/
 !evidence/aks-g1-run2/
+# EKS G1 and X1 session 2026-11-18 (NodePool CPU limit 12, not 24, for the vCPU quota; see DEVIATION.md). Redacted.
+!evidence/eks-x1-run1/
+!evidence/eks-g1-run1/
 
 # Terraform saved plans and Lambda build output
 *.tfplan

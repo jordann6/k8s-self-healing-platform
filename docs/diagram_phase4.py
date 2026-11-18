@@ -6,7 +6,7 @@ Renders docs/architecture-phase4.png with official AWS, Azure and Kubernetes ico
 (needs graphviz `dot` on PATH).
 
 Blue = scaling and sizing (Q1 to Q3), red = admission and encryption (P1, N1),
-orange = recovery and operations (D1, O1), green = the two kind-only rows
+orange = recovery and operations (D1, O1), green = the two rows that ran on kind, EKS and AKS
 (G1 Gateway API front door, X1 Quarantine operator), grey dashed = the runner injecting a
 fault and judging from outside. The two object stores are the per-cloud pair.
 """
@@ -14,8 +14,10 @@ import os
 
 from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import ECR
+from diagrams.aws.network import NLB
 from diagrams.aws.storage import S3
 from diagrams.azure.containers import ContainerRegistries
+from diagrams.azure.network import LoadBalancers
 from diagrams.azure.storage import BlobStorage
 from diagrams.custom import Custom
 from diagrams.k8s.compute import Pod, Deployment
@@ -42,7 +44,7 @@ kindonly = {"color": "seagreen4", "fontcolor": "seagreen4", "penwidth": "2"}
 inject = {"color": "gray40", "fontcolor": "gray30", "style": "dashed"}
 
 with Diagram(
-    "Phase 4 rows on EKS and AKS 1.36 (blue, red, orange) and the two kind-only rows G1 and X1 (green)",
+    "Phase 4 rows on EKS and AKS 1.36 (blue, red, orange) and the G1 and X1 rows (green)",
     filename="docs/architecture-phase4",
     show=False,
     direction="LR",
@@ -67,15 +69,18 @@ with Diagram(
             backup = Pod("backup + restore\njobs")
             o1 = Pod("O1 namespace\nquota, limits, evidence-gated\nrelease, alert receiver")
 
-    with Cluster("kind only so far, default CNI (not yet run on a cloud)"):
+    with Cluster("G1 and X1, run on kind, EKS and AKS (X1 on the default CNI on kind)"):
         with Cluster("G1 front door"):
             gw = Custom("Envoy Gateway\nplatform namespace owns the\nlistener, one host, labelled\nnamespaces only", ENVOY)
             route = SVC("HTTPRoute\napp namespace owns it")
+            tls = ConfigMap("cert-manager lab CA\nHTTPS listener, hardened only")
         with Cluster("X1 operator"):
             crd = CRD("Quarantine CRD\nstatus: Isolated, Preserved,\nReleased, Failed")
             ctl = Pod("controller\nstdlib, resumes from status")
             rbac = Role("Role\npatch pods, no delete,\nno Secrets")
 
+    nlb = NLB("EKS in-tree NLB\ninternal, no public IP")
+    ilb = LoadBalancers("AKS internal frontend\nprivate IP, no public IP")
     ecr = ECR("ECR")
     acr = ContainerRegistries("ACR")
     s3 = S3("S3 Object Lock\nCOMPLIANCE, 1 day")
@@ -102,6 +107,11 @@ with Diagram(
 
     runner >> Edge(label="stray host, cross-namespace\nroute, deleted backend", **inject) >> route
     route >> Edge(label="attach", **kindonly) >> gw
+    runner >> Edge(label="client pod in the cluster", **inject) >> nlb
+    runner >> Edge(label="client pod in the cluster", **inject) >> ilb
+    nlb >> Edge(label="proxy Service", **kindonly) >> gw
+    ilb >> Edge(label="proxy Service", **kindonly) >> gw
+    tls >> Edge(label="g1-tls", **kindonly) >> gw
     runner >> Edge(label="create Quarantine, early\nrelease, kill controller", **inject) >> crd
     crd >> Edge(label="reconcile", **kindonly) >> ctl
     rbac >> Edge(label="bounds", **kindonly) >> ctl

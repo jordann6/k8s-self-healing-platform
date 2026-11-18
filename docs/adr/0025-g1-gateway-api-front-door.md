@@ -299,3 +299,39 @@ L2, both proxy pods carry `gateway.envoyproxy.io/owning-gateway-name=g1` and
 `gateway.envoyproxy.io/owning-gateway-namespace=selfheal-g1-platform`, so the policy selector stands. L3, Hubble
 reports proxy to backend flows with the proxy pod as source (its own Cilium identity, verdict FORWARDED), not the
 host or node. EKS has the same clock and must not run G1 on the old one.
+
+## Addendum 2026-11-18, first EKS run (eks-g1-run1)
+
+Written after eks-g1-run1 (evidence in `evidence/eks-g1-run1/`). The run was made on the corrected address clock while
+that fix was still uncommitted, so its report carries `a15a195-dirty`. The fix is merged (PR #4, 9e9f59a). The run also
+used a Karpenter NodePool CPU limit of 12 instead of 24 for the account vCPU quota, recorded in the run's
+`DEVIATION.md` and never committed.
+
+Result. Baseline impact, hardened healed. Lab-CA TLS was ready in 1.2 s and refused without the lab CA. The backend
+policy drop was seen in Hubble. The proxy kill lost 0 of 5 requests in baseline and 0 of 4 in hardened, both
+informational and too small to support a bound.
+
+The address clock. `lb_address_s` read 4.0 s, Service creation to the first `EnsuredLoadBalancer` event. Do not quote it
+as provisioning time. On AWS the in-tree provider emits that event when `CreateLoadBalancer` returns, while the NLB is
+still provisioning, so on EKS the number measures the API accepting the load balancer, not the load balancer serving.
+On AKS the same clock read 77 s because Azure emits the event when the frontend exists, so the two clouds are not
+comparable on this number. Time to first served request on a cold NLB was not measured. `first_ok_s` of 11.54 s ran
+against an NLB that had been active since bootstrap, so it is a warm figure only. The 300 s bound is unchanged and was
+met by both numbers, but the EKS figure does not test it.
+
+Live checks answered on EKS. The NLB is tagged `kubernetes.io/cluster/selfheal` owned and is internal, with no public IP
+on its interfaces or on the nodes. The in-tree NLB creates no security group of its own. It adds rules to the node
+security group, including a NodePort client rule from `0.0.0.0/0`, so the load balancer security group line in
+`eks-verify-gone.sh` cannot positively confirm a load balancer group and a clean result there means only that nothing is
+tagged. Setting `loadBalancerSourceRanges` to the VPC CIDR is a possible later tightening. It is a contract change and
+was not made. L2, both proxy pods carry `gateway.envoyproxy.io/owning-gateway-name` and
+`gateway.envoyproxy.io/owning-gateway-namespace`, so the policy selector stands on EKS too. L3, Hubble reports the proxy
+as its own pod identity with the gateway labels and the verdict FORWARDED at the backend.
+
+Teardown. `eks-predestroy.sh` deleted the Gateway, and Argo CD re-created it 2 s later and built a second NLB. The
+script deleted only `selfheal-root` and `selfheal-workload`, the child app `selfheal-g1` keeps `selfHeal` true, and the
+application controller was still running. Scaling `argocd-application-controller` to 0 fixed it live, and the NLB, its
+interfaces and its node security group rules were confirmed gone before the destroy. Both predestroy scripts now scale
+the controller to 0 and wait for its pod to go before deleting the Gateway. That change is shellchecked and was not run
+against a cluster, the next cloud session is its first test. `make eks-verify-gone` after the destroy left one item, the
+D1 WORM bucket, which is in Object Lock COMPLIANCE mode with a 1 day retention and cannot be deleted until that expires.
