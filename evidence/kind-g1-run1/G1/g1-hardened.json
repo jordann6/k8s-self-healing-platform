@@ -1,0 +1,100 @@
+{
+  "t0": 1794978992.1708858,
+  "listener": {
+    "hostname": "app.g1.lab",
+    "from": "Selector"
+  },
+  "proxy_service": "ClusterIP",
+  "legit_before": {
+    "status": 200,
+    "backend": "web"
+  },
+  "stray_host": {
+    "namespace": "selfheal-g1",
+    "route": "g1-stray-host",
+    "hostname": "evil.g1.lab",
+    "path": "/",
+    "accepted": {
+      "status": "False",
+      "reason": "NoMatchingListenerHostname"
+    },
+    "resolved_refs": {
+      "status": "True",
+      "reason": "ResolvedRefs"
+    },
+    "status_s": 0.053,
+    "request": {
+      "status": 404,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "cross_namespace": {
+    "namespace": "selfheal-g1-other",
+    "route": "g1-cross-namespace",
+    "hostname": "app.g1.lab",
+    "path": "/other",
+    "accepted": {
+      "status": "False",
+      "reason": "NotAllowedByListeners"
+    },
+    "resolved_refs": {
+      "status": "True",
+      "reason": "ResolvedRefs"
+    },
+    "status_s": 0.058,
+    "request": {
+      "status": 404,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "deleted_backend": {
+    "namespace": "selfheal-g1",
+    "route": "g1-deleted-backend",
+    "hostname": "app.g1.lab",
+    "path": "/ghost",
+    "accepted": {
+      "status": "True",
+      "reason": "Accepted"
+    },
+    "resolved_refs": {
+      "status": "False",
+      "reason": "BackendNotFound"
+    },
+    "status_s": 0.065,
+    "request": {
+      "status": 500,
+      "backend": null
+    },
+    "legit_during": {
+      "status": 200,
+      "backend": "web"
+    }
+  },
+  "unrouted_path": {
+    "status": 404,
+    "backend": null
+  },
+  "unknown_host": {
+    "status": 404,
+    "backend": null
+  },
+  "proxy_kill": {
+    "killed": "envoy-selfheal-g1-platform-g1-2db48b10-6968f556dd-jp4zh",
+    "requests": 22,
+    "failures": 0
+  },
+  "proxy_recovery_s": 30.709,
+  "route_status_s": 0.065,
+  "legit_after": {
+    "status": 200,
+    "backend": "web"
+  }
+}

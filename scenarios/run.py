@@ -50,6 +50,7 @@ import q2_row  # noqa: E402
 import q3_row  # noqa: E402
 import n1_row  # noqa: E402
 import p1_row  # noqa: E402
+import g1_row  # noqa: E402
 import d1_row  # noqa: E402
 import o1_row  # noqa: E402
 
@@ -69,6 +70,9 @@ ROWS_BY_TARGET = {
     # R2 last here too: its node is cordoned, then removed after the evidence.
     "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
 }
+# Rows that run only as a focused row on a target with its own cluster (make g1-up). They are never
+# part of the default full demo, so they are not in ROWS_BY_TARGET (ADR-0025).
+FOCUSED_ONLY_ROWS = {"kind": ["G1"]}
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
 ROWS = ROWS_BY_TARGET["kind"]
@@ -96,6 +100,7 @@ ACTIONS = {
     **q3_row.ACTIONS,
     **n1_row.ACTIONS,
     **p1_row.ACTIONS,
+    **g1_row.ACTIONS,
     **d1_row.ACTIONS,
     **o1_row.ACTIONS,
     **eks_rows.ACTIONS,
@@ -1290,15 +1295,16 @@ RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1,
            "N1": lambda lab, profile, d: n1_row.run(sys.modules[__name__], lab, profile, d),
            "P1": lambda lab, profile, d: p1_row.run(sys.modules[__name__], lab, profile, d),
            "D1": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d),
-           "O1": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d)}
+           "O1": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d),
+           "G1": lambda lab, profile, d: g1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
             "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s"}
+            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s", "G1": "route_status_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
              "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s"}
+             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s", "G1": "proxy_recovery_s"}
 
 
 def runner(row: str):
@@ -1349,6 +1355,11 @@ FOCUSED_P1_PRECONDITIONS = [
     ("argocd", "statefulset", "argocd-application-controller"),
     ("gitops", "deploy", "gitserver"),
 ]
+FOCUSED_G1_PRECONDITIONS = [
+    ("envoy-gateway-system", "deploy", "envoy-gateway"),
+    ("argocd", "statefulset", "argocd-application-controller"),
+    ("gitops", "deploy", "gitserver"),
+]
 FOCUSED_D1_PRECONDITIONS = [
     ("argocd", "statefulset", "argocd-application-controller"),
     ("gitops", "deploy", "gitserver"),
@@ -1388,6 +1399,10 @@ def o1_only(rows: list[str]) -> bool:
     return rows == ["O1"]
 
 
+def g1_only(rows: list[str]) -> bool:
+    return rows == ["G1"]
+
+
 def focused_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
@@ -1403,6 +1418,8 @@ def focused_row(rows: list[str]) -> str | None:
         return "D1"
     if o1_only(rows):
         return "O1"
+    if g1_only(rows):
+        return "G1"
     return None
 
 
@@ -1432,6 +1449,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         return FOCUSED_D1_PRECONDITIONS if TARGET == "kind" else FOCUSED_D1_CLOUD_PRECONDITIONS
     if focused == "O1":
         return FOCUSED_O1_PRECONDITIONS
+    if focused == "G1":
+        return FOCUSED_G1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1469,7 +1488,7 @@ def preconditions(rows: list[str]) -> dict:
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
                  "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
-                 "P1": (), "D1": (), "O1": ()}[focused]
+                 "P1": (), "D1": (), "O1": (), "G1": ()}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1712,6 +1731,21 @@ def apply_o1_profile(profile: str) -> None:
                  120, step=2, what="O1 baseline without ResourceQuota")
 
 
+def apply_g1_profile(profile: str) -> None:
+    """Switch the isolated G1 application and wait for the Gateway to carry that profile's listener."""
+    log(f"profile -> {profile} (G1 only)")
+    app_path = f"g1/{profile}"
+    k("-n", "argocd", "patch", "application", "selfheal-g1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-g1")
+    wait_for(lambda: app_state("selfheal-g1")["path"] == app_path, 120, step=3, what="G1 app path")
+    wait_for(lambda: app_state("selfheal-g1")["sync"] == "Synced", 180, step=3, what="G1 app Synced")
+    want = "Selector" if profile == "hardened" else "All"
+    wait_for(lambda: g1_row.listener_shape(sys.modules[__name__])["from"] == want, 120, step=2,
+             what=f"G1 listener from={want}")
+    wait_for(lambda: g1_row.gateway_ready(sys.modules[__name__]), 120, step=2, what="G1 Gateway Programmed")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
@@ -1727,6 +1761,8 @@ def apply_focused_profile(row: str, profile: str) -> None:
         apply_d1_profile(profile)
     elif row == "O1":
         apply_o1_profile(profile)
+    elif row == "G1":
+        apply_g1_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1825,6 +1861,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nP1 records the single artifact digest, signature-state preflight, exact admission responses, runtime image IDs, Kyverno image-policy metric deltas, a positive PolicyReport, and fail-closed verifier recovery.")
     elif doc["rows"] == ["D1"]:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
+    elif doc["rows"] == ["G1"]:
+        L.append("\nG1 records the listener shape, the Gateway's own Accepted and ResolvedRefs conditions per faulted route, the response each faulted host and path received through the Envoy proxy Service, the legitimate route during every fault, and an informational proxy pod kill. The caller is a pod inside the cluster, so no public address exists.")
     elif doc["rows"] == ["O1"]:
         L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
     else:
@@ -1861,11 +1899,12 @@ def main() -> int:
         Q1_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "QWORKER_IMAGE").read_text().strip()
     args.run_id = args.run_id or dt.datetime.now().strftime(f"{TARGET}-%Y%m%d-%H%M%S")
     # Rows are case-sensitive only in S1b; accept any case on the command line.
-    by_upper = {r.upper(): r for r in ROWS}
+    known = ROWS + FOCUSED_ONLY_ROWS.get(TARGET, [])
+    by_upper = {r.upper(): r for r in known}
     rows = [by_upper.get(r.strip().upper(), r.strip()) for r in (args.rows or ",".join(ROWS)).split(",") if r.strip()]
-    bad = [r for r in rows if r not in ROWS]
+    bad = [r for r in rows if r not in known]
     if bad:
-        raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(ROWS)})")
+        raise SystemExit(f"unknown rows for {TARGET}: {bad} (rows: {', '.join(known)})")
 
     if TARGET in CLOUD_ROWS and "D1" in rows:
         d1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "D1_IMAGE").read_text().strip()

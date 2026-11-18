@@ -1,0 +1,29 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../base
+patches:
+  - target:
+      kind: ConfigMap
+      name: g1-profile
+    patch: |-
+      - op: add
+        path: /data/profile
+        value: hardened
+  # The role split. The platform namespace owns one listener bound to one
+  # hostname, and only namespaces labelled for routes may attach to it.
+  - target: {group: gateway.networking.k8s.io, version: v1, kind: Gateway, name: g1}
+    patch: |-
+      - op: add
+        path: /spec/listeners/0/hostname
+        value: app.g1.lab
+      - op: replace
+        path: /spec/listeners/0/allowedRoutes
+        value:
+          kinds:
+            - {group: gateway.networking.k8s.io, kind: HTTPRoute}
+          namespaces:
+            from: Selector
+            selector:
+              matchLabels:
+                selfheal.lab/g1-routes: "allowed"

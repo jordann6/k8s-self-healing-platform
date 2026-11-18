@@ -1,0 +1,11 @@
+# Envoy Gateway for row G1 (ADR-0025). Small requests so it fits the 4 GB kind
+# budget beside Argo CD. The chart installs the Gateway API and Envoy Gateway
+# CRDs itself (its default), so no separate CRD step exists.
+deployment:
+  envoyGateway:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        memory: 256Mi

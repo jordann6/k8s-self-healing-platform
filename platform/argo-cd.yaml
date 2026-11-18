@@ -67,6 +67,14 @@ configs:
       - apiGroups: [policies.kyverno.io]
         kinds: [ImageValidatingPolicy]
         clusters: ["*"]
+      # Row G1 (ADR-0025). Without these Argo CD excludes the Gateway kinds, so the
+      # app reports Synced and Healthy while nothing was applied.
+      - apiGroups: [gateway.networking.k8s.io]
+        kinds: [GatewayClass, Gateway, HTTPRoute]
+        clusters: ["*"]
+      - apiGroups: [gateway.envoyproxy.io]
+        kinds: [EnvoyProxy]
+        clusters: ["*"]
 controller:
   resources:
     requests: {cpu: 100m, memory: 192Mi}

@@ -7,6 +7,7 @@
 #   make q3-up     kind + only the controllers and workloads required by Q3
 #   make n1-up     multi-node kind + only the components required by N1
 #   make p1-up     kind + local registry + Kyverno signed-image admission
+#   make g1-up     kind + Envoy Gateway + Gateway API front door
 #   make d1-up     kind + PostgreSQL + retained local object backup
 #   make o1-up     kind + operational readiness boundary and controller
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
@@ -53,6 +54,7 @@ KARPENTER_VERSION       := 1.15.1   # EKS only; NodeRepair gate on (ADR-0005)
 KEDA_VERSION            := 2.21.0    # kind and EKS; AKS uses its managed add-on
 VPA_VERSION             := 0.16.0    # app 1.8.1, recommender only, row Q3 on kind, EKS and AKS (ADR-0020)
 RABBITMQ_IMAGE          := rabbitmq:3.13.7-management  # row Q1 broker
+ENVOY_GATEWAY_VERSION   := v1.10.0   # Gateway API v1.6.1, Kubernetes 1.34 to 1.37, row G1 (ADR-0025)
 KYVERNO_VERSION         := 3.9.2     # app v1.19.2, row P1 on kind, EKS and AKS (ADR-0021)
 POSTGRES_VERSION        := 17.11-alpine3.24
 
@@ -83,6 +85,9 @@ n1-up: n1-kind-up n1-platform n1-bootstrap ## Focused multi-node N1 WireGuard pr
 
 .PHONY: p1-up
 p1-up: p1-kind-up p1-platform p1-bootstrap ## Focused P1 signed-image admission proof
+
+.PHONY: g1-up
+g1-up: g1-kind-up g1-platform g1-bootstrap ## Focused G1 Gateway API front-door proof
 
 .PHONY: d1-up
 d1-up: d1-kind-up d1-platform d1-bootstrap ## Focused D1 backup, restore, and deletion-resistance proof
@@ -151,6 +156,13 @@ p1-kind-up: ## Create P1's kind cluster and local OCI registry, then publish one
 	$(MAKE) repos
 	$(MAKE) p1-images
 
+.PHONY: g1-kind-up
+g1-kind-up: ## Create G1's kind cluster and load its images
+	mkdir -p .kube
+	kind create cluster --config kind/g1-cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(MAKE) g1-images
+
 .PHONY: d1-kind-up
 d1-kind-up: ## Create the kind cluster, install Cilium, and load only D1 images
 	mkdir -p .kube
@@ -218,6 +230,12 @@ p1-images: ## Build one P1 artifact and prepare trusted and rejected signature s
 	scripts/p1-images.sh
 	docker build -q -t selfheal-gitserver:dev app/gitserver
 	kind load docker-image selfheal-gitserver:dev --name $(KIND_CLUSTER)
+
+.PHONY: g1-images
+g1-images: ## Build and load the G1 backend and Git server images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-g1:v1 app/g1
+	kind load docker-image selfheal-gitserver:dev selfheal-g1:v1 --name $(KIND_CLUSTER)
 
 .PHONY: d1-images
 d1-images: ## Build the D1 tool and load PostgreSQL, MinIO, and Git server images
@@ -314,6 +332,13 @@ p1-platform: repos ## Install Kyverno and Argo CD for focused P1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
+.PHONY: g1-platform
+g1-platform: repos ## Install Envoy Gateway and Argo CD for focused G1
+	$(HELM) upgrade --install eg oci://docker.io/envoyproxy/gateway-helm --version $(ENVOY_GATEWAY_VERSION) \
+		-n envoy-gateway-system --create-namespace -f platform/envoy-gateway.yaml --wait --timeout 10m
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: d1-platform
 d1-platform: repos ## Install only Argo CD for focused D1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
@@ -347,6 +372,10 @@ n1-bootstrap: ## Namespaces, Git seed, and the N1 Argo CD app
 .PHONY: p1-bootstrap
 p1-bootstrap: ## Inject P1's public trust root, seed Git, and apply the baseline app
 	FOCUSED_P1=1 scripts/bootstrap.sh
+
+.PHONY: g1-bootstrap
+g1-bootstrap: ## Create the G1 namespaces, seed Git, and apply the G1 baseline app
+	FOCUSED_G1=1 scripts/bootstrap.sh
 
 .PHONY: d1-bootstrap
 d1-bootstrap: ## Generate runtime credentials, seed Git, and apply the D1 baseline app
@@ -392,7 +421,7 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row test_g1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
@@ -423,6 +452,9 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	kubectl kustomize gitops/p1/baseline >/dev/null
 	kubectl kustomize gitops/p1/hardened >/dev/null
 	scripts/render-p1-profiles.sh
+	kubectl kustomize gitops/g1/baseline >/dev/null
+	kubectl kustomize gitops/g1/hardened >/dev/null
+	scripts/render-g1-profiles.sh
 	kubectl kustomize gitops/d1/baseline >/dev/null
 	kubectl kustomize gitops/d1/hardened >/dev/null
 	scripts/render-d1-profiles.sh
@@ -432,7 +464,7 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

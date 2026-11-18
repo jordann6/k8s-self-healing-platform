@@ -1,0 +1,8 @@
+# Focused G1 cluster. Envoy Gateway is its own data plane (ADR-0025), so the
+# default kind CNI is enough. The runner calls the Gateway from a pod inside the
+# cluster, so no host port is mapped and no public endpoint exists.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: selfheal
+nodes:
+  - role: control-plane

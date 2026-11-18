@@ -76,6 +76,9 @@ THRESHOLDS = {
         # O1 (kind only, Phase 3). Fixed in ADR-0015 before live proof.
         # Missing boundary, RBAC, replacement, alert, evidence, release, or
         # connectivity telemetry is an error rather than a protected pass.
+        # G1 (kind only). Fixed in ADR-0025 before the first run. The proxy kill is
+        # informational (ADR-0025 decision 3) so it has no threshold here.
+        "G1": {"route_status_s": 30, "legit_status": 200, "denied_status": 404, "failed_status": 500},
         "O1": {"controller_recover_s": 60, "evidence_s": 30,
                "alert_s": 30, "release_s": 30},
     },
@@ -204,6 +207,10 @@ HYPOTHESES = {
     "D1": "A completed PostgreSQL backup restores exactly 100 deterministic rows into a fresh target within "
           "180 seconds, loses only the one intentional post-backup row, rejects a truncated archive atomically, "
           "and remains readable after identity and WORM deletion attempts.",
+    "G1": "A Gateway that admits routes only from labelled namespaces and one hostname rejects a stray hostname and "
+          "a route from another namespace, fails a route to a deleted backend closed, answers unrouted requests "
+          "with 404, and keeps the legitimate route serving throughout, where the baseline listener serves the "
+          "stray and cross-namespace routes.",
     "O1": "The hardened namespace enforces a resource budget and default limits, confines the operator to a "
           "named release request, replaces a failed controller within 60 seconds, captures evidence and delivers "
           "a matching alert within 30 seconds, then releases quarantine only after evidence while restoring access.",
@@ -791,6 +798,54 @@ def judge_p1(o: dict, t: dict):
     return True, why, True, healed
 
 
+def judge_g1(o: dict, t: dict):
+    required = ("legit_before", "stray_host", "cross_namespace", "deleted_backend",
+                "unrouted_path", "unknown_host", "legit_after")
+    missing = [name for name in required if not o.get(name)]
+    if missing:
+        return False, f"G1 observations missing: {', '.join(missing)}", False, False
+    legit = t["legit_status"]
+    for name in ("stray_host", "cross_namespace", "deleted_backend"):
+        fault = o[name]
+        if not fault.get("accepted") or not fault.get("resolved_refs"):
+            return False, f"the Gateway never reported route status for {name}", False, False
+        if not le(fault.get("status_s"), t["route_status_s"]):
+            return False, f"the Gateway took {fault.get('status_s')}s to report {name}", False, False
+    if (o["legit_before"].get("status") != legit):
+        return False, "the legitimate route did not serve before any fault", False, False
+
+    def served(name: str) -> bool:
+        return o[name]["request"].get("status") == legit
+
+    stray_leaks, cross_leaks = served("stray_host"), served("cross_namespace")
+    if o.get("listener", {}).get("from") == "All" and not (stray_leaks and cross_leaks):
+        # The baseline listener admits everything, so a fault that did not get through is a broken probe.
+        return False, "the baseline listener admitted a route the probe could not reach", False, False
+    if o.get("listener", {}).get("from") == "All":
+        return True, ("baseline listener served the stray hostname and the route from another namespace "
+                      "through the shared entrance"), True, False
+
+    denied = t["denied_status"]
+    stray_ok = (o["stray_host"]["accepted"]["status"] == "False"
+                and o["stray_host"]["request"].get("status") == denied)
+    cross_ok = (o["cross_namespace"]["accepted"]["status"] == "False"
+                and o["cross_namespace"]["request"].get("status") == denied)
+    ghost = o["deleted_backend"]
+    ghost_ok = (ghost["resolved_refs"]["status"] == "False"
+                and ghost["request"].get("status") == t["failed_status"])
+    unrouted_ok = (o["unrouted_path"].get("status") == denied
+                   and o["unknown_host"].get("status") == denied)
+    legit_ok = (all(o[name]["legit_during"].get("status") == legit
+                    for name in ("stray_host", "cross_namespace", "deleted_backend"))
+                and o["legit_after"].get("status") == legit)
+    healed = stray_ok and cross_ok and ghost_ok and unrouted_ok and legit_ok
+    kill = o.get("proxy_kill") or {}
+    why = (f"stray host rejected {stray_ok}, cross-namespace route rejected {cross_ok}, deleted backend failed "
+           f"closed {ghost_ok}, unrouted and unknown host 404 {unrouted_ok}, legitimate route served "
+           f"throughout {legit_ok}; proxy kill (informational) {kill.get('failures')} of {kill.get('requests')} failed")
+    return True, why, True, healed
+
+
 def judge_d1(o: dict, t: dict):
     source = o.get("source") or {}
     source_ok = (source.get("available") is True and source.get("rows") == t["rows"]
@@ -1198,7 +1253,7 @@ JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": 
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
           "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1,
-          "O1": judge_o1}
+          "O1": judge_o1, "G1": judge_g1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

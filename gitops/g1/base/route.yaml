@@ -1,0 +1,17 @@
+# The app team's route, in the app team's namespace.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: web
+  namespace: selfheal-g1
+spec:
+  parentRefs:
+    - name: g1
+      namespace: selfheal-g1-platform
+  hostnames: ["app.g1.lab"]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /shop}
+      backendRefs:
+        - name: web
+          port: 80

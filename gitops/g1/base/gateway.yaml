@@ -1,0 +1,18 @@
+# The shared entrance. This file is the BASELINE shape on purpose, a listener any
+# namespace may attach to for any hostname, which is what a single shared route
+# object looks like in practice. The hardened profile patches it (ADR-0025).
+# HTTP only on kind; TLS from the cert-manager CA is a cloud addendum.
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: g1
+  namespace: selfheal-g1-platform
+spec:
+  gatewayClassName: selfheal-g1
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP
+      allowedRoutes:
+        namespaces:
+          from: All

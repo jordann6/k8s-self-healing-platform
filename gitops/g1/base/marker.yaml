@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: g1-profile
+  namespace: selfheal-g1
+data:
+  capability: gateway-api-front-door

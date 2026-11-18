@@ -12,7 +12,8 @@ focused_n1="${FOCUSED_N1:-0}"
 focused_p1="${FOCUSED_P1:-0}"
 focused_d1="${FOCUSED_D1:-0}"
 focused_o1="${FOCUSED_O1:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1 + focused_o1))
+focused_g1="${FOCUSED_G1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1 + focused_o1 + focused_g1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
@@ -53,6 +54,15 @@ if ((focused_count == 0 || focused_d1 == 1)); then
 				--from-literal=password="$postgres_password" >/dev/null
 		done
 	fi
+fi
+
+if ((focused_count == 0 || focused_g1 == 1)); then
+	# Platform namespace owns the Gateway, the app namespace may attach routes (it
+	# carries the label the hardened listener selects on), the third has neither.
+	for ns in selfheal-g1-platform selfheal-g1 selfheal-g1-other; do
+		kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+	done
+	kubectl label namespace selfheal-g1 selfheal.lab/g1-routes=allowed --overwrite >/dev/null
 fi
 
 if [[ "$focused_p1" == "1" ]]; then
@@ -109,6 +119,9 @@ elif [[ "$focused_n1" == "1" ]]; then
 elif [[ "$focused_p1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/p1.yaml" >/dev/null
 	echo "bootstrap: done (focused P1 app -> p1/baseline)"
+elif [[ "$focused_g1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/g1.yaml" >/dev/null
+	echo "bootstrap: done (focused G1 app -> g1/baseline)"
 elif [[ "$focused_d1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/d1.yaml" >/dev/null
 	echo "bootstrap: done (focused D1 app -> d1/baseline)"
