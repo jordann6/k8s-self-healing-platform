@@ -44,6 +44,9 @@ values() {
 
 echo "gke-platform: kubeconfig (DNS endpoint)"
 mkdir -p "$(dirname "$KUBECONFIG")"
+# The lab's own file, rewritten every run: a second run otherwise adds a new
+# context and the rename collides with the first run's selfheal-gke.
+rm -f "$KUBECONFIG"
 gcloud container clusters get-credentials "$cluster" --location "$zone" --project "$project" --dns-endpoint >/dev/null
 ctx="$(kubectl config current-context)"
 [[ "$ctx" == "selfheal-gke" ]] || kubectl config rename-context "$ctx" selfheal-gke >/dev/null
