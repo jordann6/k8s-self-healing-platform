@@ -1,0 +1,126 @@
+{
+  "run_id": "kind-x1-run6",
+  "target": "kind",
+  "started": "2026-11-18T05:43:55.035Z",
+  "rows": [
+    "X1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "x1_synced": true
+  },
+  "versions": {
+    "repo_commit": "911e923e7aa92a183a9e1ffeefa0c620f06bc21b-dirty",
+    "cilium": null,
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "X1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "manual flow isolated the pod, then released it with no evidence recorded and no status anywhere",
+        "thresholds": {
+          "isolate_s": 10,
+          "blocked_s": 30,
+          "resume_s": 30
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "isolated in 1.29s without a restart True, release before evidence refused True, release after evidence True, resumed after controller kill in 1.848s True, self-isolation refused and role has no delete or Secret read True",
+        "thresholds": {
+          "isolate_s": 10,
+          "blocked_s": 30,
+          "resume_s": 30
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "X1": {
+      "baseline": {
+        "controller_present": false,
+        "reachable_before": true,
+        "blocked_s": 4.184,
+        "released_reachable_s": 0.635,
+        "released_without_evidence": true,
+        "evidence_checked": false,
+        "status_available": false,
+        "t0": 1794980636.76545,
+        "profile": "baseline",
+        "window": "isolation, premature release, evidence, release, controller kill, and the self-isolation refusal",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "reachable_before": true,
+        "x1a": {
+          "phase": "Isolated",
+          "isolate_s": 1.29,
+          "blocked_s": 3.714,
+          "same_uid": true,
+          "restarts_unchanged": true,
+          "replacement_serving": true
+        },
+        "x1b": {
+          "phase": "Isolated",
+          "handled": "r1",
+          "refused_reason": "NoEvidence",
+          "blocked": true
+        },
+        "x1c": {
+          "preserved": true,
+          "released": true,
+          "after_evidence": true,
+          "reachable_s": 0.515,
+          "labels_restored": true
+        },
+        "x1d": {
+          "resumed": true,
+          "resume_s": 1.848,
+          "label_actions": 1,
+          "same_uid": true,
+          "controller_pods": 1
+        },
+        "x1e": {
+          "phase": "Failed",
+          "reason": "Protected",
+          "labels_unchanged": true,
+          "can_delete_pods": false,
+          "can_get_secrets": false,
+          "can_patch_pods": true
+        },
+        "t0": 1794980650.7938921,
+        "profile": "hardened",
+        "window": "isolation, premature release, evidence, release, controller kill, and the self-isolation refusal",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-18T05:44:31.208Z",
+  "pass": true
+}

@@ -1,0 +1,41 @@
+{
+  "reachable_before": true,
+  "x1a": {
+    "phase": "Isolated",
+    "isolate_s": 0.933,
+    "blocked_s": 33.173,
+    "same_uid": true,
+    "restarts_unchanged": true,
+    "replacement_serving": true
+  },
+  "x1b": {
+    "phase": "Isolated",
+    "handled": "r1",
+    "refused_reason": "NoEvidence",
+    "blocked": true
+  },
+  "x1c": {
+    "preserved": true,
+    "released": true,
+    "after_evidence": true,
+    "reachable_s": 10.184,
+    "labels_restored": true
+  },
+  "x1d": {
+    "resumed": true,
+    "resume_s": 2.648,
+    "label_actions": 1,
+    "same_uid": true,
+    "controller_pods": 1
+  },
+  "x1e": {
+    "phase": "Failed",
+    "reason": "Protected",
+    "labels_unchanged": true,
+    "can_delete_pods": false,
+    "can_get_secrets": false,
+    "can_patch_pods": true
+  },
+  "t0": 1794980399.325488,
+  "profile": "hardened"
+}

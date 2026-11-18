@@ -8,7 +8,7 @@
 #   make n1-up     multi-node kind + only the components required by N1
 #   make p1-up     kind + local registry + Kyverno signed-image admission
 #   make g1-up     kind + Envoy Gateway + Gateway API front door
-#   make x1-up     kind + Cilium + the Quarantine operator
+#   make x1-up     kind + the Quarantine operator
 #   make d1-up     kind + PostgreSQL + retained local object backup
 #   make o1-up     kind + operational readiness boundary and controller
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
@@ -168,13 +168,10 @@ g1-kind-up: ## Create G1's kind cluster and load its images
 	$(MAKE) g1-images
 
 .PHONY: x1-kind-up
-x1-kind-up: ## Create the kind cluster, install Cilium, and load only X1 images
+x1-kind-up: ## Create X1's kind cluster (default CNI) and load only X1 images
 	mkdir -p .kube
-	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	kind create cluster --config kind/x1-cluster.yaml --kubeconfig $(KUBECONFIG)
 	$(MAKE) repos
-	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
-	cilium status --wait --wait-duration 6m >/dev/null
-	cilium/readiness-gate.sh
 	$(MAKE) x1-images
 
 .PHONY: d1-kind-up
@@ -361,7 +358,7 @@ g1-platform: repos ## Install Envoy Gateway and Argo CD for focused G1
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
 .PHONY: x1-platform
-x1-platform: repos ## Install only Argo CD after Cilium for focused X1
+x1-platform: repos ## Install only Argo CD for focused X1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 

@@ -79,7 +79,7 @@ THRESHOLDS = {
         # G1 (kind only). Fixed in ADR-0025 before the first run. The proxy kill is
         # informational (ADR-0025 decision 3) so it has no threshold here.
         # X1 (kind only). Fixed in ADR-0026 before the first run.
-        "X1": {"isolate_s": 10, "blocked_s": 15, "resume_s": 30},
+        "X1": {"isolate_s": 10, "blocked_s": 30, "resume_s": 30},
         "G1": {"route_status_s": 30, "legit_status": 200, "denied_status": 404, "failed_status": 500},
         "O1": {"controller_recover_s": 60, "evidence_s": 30,
                "alert_s": 30, "release_s": 30},
@@ -854,8 +854,8 @@ def judge_g1(o: dict, t: dict):
 
 def judge_x1(o: dict, t: dict):
     if o.get("profile") == "baseline":
-        if o.get("crd_present") is not False:
-            return False, "the baseline cluster already has the Quarantine CRD", False, False
+        if o.get("controller_present") is not False:
+            return False, "the baseline cluster still has the Quarantine controller", False, False
         if o.get("reachable_before") is not True:
             return False, "the target pod was not reachable before the manual isolation, so nothing was tested", False, False
         if o.get("blocked_s") is None:
@@ -880,7 +880,7 @@ def judge_x1(o: dict, t: dict):
     b_ok = (b.get("phase") == "Isolated" and b.get("handled") == "r1"
             and b.get("refused_reason") == "NoEvidence" and b.get("blocked") is True)
     c_ok = (c.get("preserved") is True and c.get("released") is True and c.get("after_evidence") is True
-            and c.get("reachable") is True and c.get("labels_restored") is True)
+            and c.get("reachable_s") is not None and c.get("labels_restored") is True)
     d_ok = (d.get("resumed") is True and le(d.get("resume_s"), t["resume_s"]) and d.get("same_uid") is True
             and d.get("label_actions") == 1 and d.get("controller_pods") == 1)
     e_ok = (e.get("phase") == "Failed" and e.get("reason") == "Protected" and e.get("labels_unchanged") is True

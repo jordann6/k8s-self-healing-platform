@@ -12,7 +12,7 @@ def hardened():
             "x1a": {"phase": "Isolated", "isolate_s": 2.0, "blocked_s": 1.0, "same_uid": True,
                     "restarts_unchanged": True, "replacement_serving": True},
             "x1b": {"phase": "Isolated", "handled": "r1", "refused_reason": "NoEvidence", "blocked": True},
-            "x1c": {"preserved": True, "released": True, "after_evidence": True, "reachable": True,
+            "x1c": {"preserved": True, "released": True, "after_evidence": True, "reachable_s": 3.0,
                     "labels_restored": True},
             "x1d": {"resumed": True, "resume_s": 8.0, "label_actions": 1, "same_uid": True, "controller_pods": 1},
             "x1e": {"phase": "Failed", "reason": "Protected", "labels_unchanged": True, "can_delete_pods": False,
@@ -20,7 +20,7 @@ def hardened():
 
 
 def baseline(**over):
-    return {"profile": "baseline", "crd_present": False, "reachable_before": True, "blocked_s": 1.0,
+    return {"profile": "baseline", "controller_present": False, "reachable_before": True, "blocked_s": 1.0,
             "released_without_evidence": True, "status_available": False, **over}
 
 
@@ -51,8 +51,8 @@ class Judge(unittest.TestCase):
     def test_baseline_that_never_blocked_is_an_error_not_no_impact(self):
         self.assertFalse(judge.judge_x1(baseline(blocked_s=None), T)[0])
 
-    def test_baseline_with_the_crd_already_present_is_an_error(self):
-        self.assertFalse(judge.judge_x1(baseline(crd_present=True), T)[0])
+    def test_baseline_with_the_controller_still_present_is_an_error(self):
+        self.assertFalse(judge.judge_x1(baseline(controller_present=True), T)[0])
 
     def test_hardened_pass_is_healed(self):
         self.assertEqual(judge.judge_x1(hardened(), T)[2:], (True, True))

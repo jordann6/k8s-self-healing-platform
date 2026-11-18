@@ -1364,7 +1364,6 @@ FOCUSED_G1_PRECONDITIONS = [
     ("gitops", "deploy", "gitserver"),
 ]
 FOCUSED_X1_PRECONDITIONS = [
-    ("kube-system", "daemonset", "cilium"), ("kube-system", "deploy", "cilium-operator"),
     ("argocd", "statefulset", "argocd-application-controller"), ("gitops", "deploy", "gitserver"),
 ]
 FOCUSED_D1_PRECONDITIONS = [
@@ -1503,7 +1502,7 @@ def preconditions(rows: list[str]) -> dict:
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
                  "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
-                 "P1": (), "D1": (), "O1": (), "G1": (), "X1": ("x1-target",)}[focused]
+                 "P1": (), "D1": (), "O1": (), "G1": (), "X1": ()}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1774,8 +1773,9 @@ def apply_x1_profile(profile: str) -> None:
         wait_for(lambda: k("get", "crd", "quarantines.selfhealing.lab").returncode == 0, 60, step=2,
                  what="X1 CRD established")
     else:
-        wait_for(lambda: k("get", "crd", "quarantines.selfhealing.lab").returncode != 0, 120, step=2,
-                 what="X1 baseline without the CRD")
+        # Argo CD prunes the controller and its Role but never a CRD, so wait for the controller to go.
+        wait_for(lambda: not kj("-n", x1_row.NS, "get", "deploy", x1_row.CONTROLLER).get("metadata"), 120, step=2,
+                 what="X1 baseline without the controller")
 
 
 def apply_focused_profile(row: str, profile: str) -> None:

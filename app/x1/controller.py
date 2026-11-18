@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import signal
 import ssl
 import sys
 import time
@@ -158,6 +159,9 @@ def step(namespace: str) -> int:
 def main() -> int:
     with open(NS_PATH, encoding="utf-8") as handle:
         namespace = os.environ.get("X1_NAMESPACE") or handle.read().strip()
+    # PID 1 ignores SIGTERM unless it installs a handler. Without this a deleted controller keeps
+    # reconciling for the whole grace period, so a replacement is not the only one acting.
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
     print("X1_CONTROLLER_STARTED " + namespace, flush=True)
     while True:
         try:

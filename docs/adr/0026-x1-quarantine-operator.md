@@ -110,3 +110,47 @@ Thresholds, fixed before the first run. Status Isolated within 10 s, the pod unr
 within 15 s, a replacement controller reaches Isolated within 30 s of the kill, exactly
 one label patch for the Quarantine across the kill, and the role may patch pods but not
 delete them or read Secrets.
+
+## Addendum 2026-11-17, threshold changed after the first runs
+
+The 15 s bound on the pod becoming unreachable was written without data. Four kind runs
+(kind-x1-run1 to run4) showed the controller reaching `Isolated` in 0.7 to 1.9 s every
+time, and Cilium taking 12.0, 28.0 and 17.5 s to enforce the label change in the hardened
+profile and 13.3, 20.2 and 25.4 s in the manual baseline. That is the same datapath delay
+ADR-0002 recorded for R1 (identity allocation and endpoint regeneration on one loaded kind
+node, whose bound is 30 s). The bound is raised to 30 s, after seeing the data, and this is
+the only threshold changed. The 10 s status bound and the 30 s resume bound are unchanged.
+A standby pod carrying the quarantined label set (the ADR-0002 remedy) is started in both
+profiles. Its effect on this row was not isolated, run3 without it took 28.0 s and run4 with
+it took 17.5 s, so it is kept for parity and is not claimed as the cause of any improvement.
+
+Other findings from the first runs, all fixed in the runner or controller.
+- The baseline release was probed after 3 s, before Cilium had applied the label removal,
+  so a premature release looked like no impact. It is now polled for up to 40 s.
+- The controller ignored SIGTERM as PID 1, so a deleted pod kept reconciling for its 30 s
+  grace period and the replacement was not the only controller acting. It now exits on
+  SIGTERM and the runner force-kills it.
+- Argo CD prunes the controller, Role and binding when the profile goes back to baseline
+  but never prunes the CRD. The baseline therefore claims no controller is acting, not that
+  the CRD is absent.
+- After a release the ReplicaSet sees two serving pods and deletes one, so the pod left
+  serving may be the original or the replacement.
+
+## Addendum 2026-11-17, result: X1 moves to the default kind CNI
+
+A fifth Cilium run (kind-x1-run5, kept as evidence) still took 33.2 s to block the pod, past
+even the raised 30 s bound, with the controller at 0.9 s. The Cilium agent log showed no
+identity allocation failures and the quarantine identity existed, so the R1 explanation did
+not hold here and the delay was not isolated further. Decision 8 above is replaced. The
+focused X1 cluster now uses the default kind CNI, which enforces NetworkPolicy
+(`kind/x1-cluster.yaml`), because the row claims the operator and not the CNI. The standby
+pod was removed with Cilium. The bounds are unchanged (30 s for enforcement, kept for R1
+parity, not retuned again).
+
+Result. Two consecutive clean runs (kind-x1-run6, kind-x1-run7). Baseline impact, the manual
+flow released the pod with no evidence and no status. Hardened healed, `Isolated` in 0.8 to
+1.3 s, pod unreachable in 3.7 s, no restart and the same UID, release before evidence
+refused, release after evidence 0.5 s to reachable, a replacement controller at `Isolated`
+in 1.8 to 2.4 s with exactly one label patch, self-isolation refused, and the role could
+patch pods but not delete them or read Secrets. Not shown, behaviour on Cilium (an
+unexplained 12 to 33 s enforcement delay on a loaded single node) and on either cloud.

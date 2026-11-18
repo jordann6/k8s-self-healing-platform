@@ -19,6 +19,7 @@ CONTROLLER = "x1-controller"
 EVIDENCE = "x1-evidence"
 GROUP = "selfhealing.lab/v1alpha1"
 SA = f"system:serviceaccount:{NS}:{CONTROLLER}"
+BLOCK_WAIT_S = 40
 ISOLATE = {"selfheal.lab/quarantined": "true", "lab/pool": "quarantine"}
 
 PROBE = """
@@ -124,6 +125,16 @@ def wait_blocked(h: Any, ip: str, limit_s: float) -> float | None:
     return None
 
 
+def wait_reachable(h: Any, ip: str, limit_s: float) -> float | None:
+    """Cilium applies a label change to the datapath after a delay, so release is measured, not assumed."""
+    start = h.now()
+    while h.now() - start < limit_s:
+        if reachable(h, ip):
+            return round(h.now() - start, 3)
+        time.sleep(0.5)
+    return None
+
+
 def get_cr(h: Any, name: str) -> dict[str, Any]:
     return h.kj("-n", NS, "get", "quarantine", name)
 
@@ -145,15 +156,16 @@ def run_baseline(h: Any, ip: str, pod: dict[str, Any]) -> dict[str, Any]:
     """The manual flow: a person relabels the pod and, later, relabels it back. Nothing records what
     happened and nothing checks that evidence exists first."""
     name = pod["metadata"]["name"]
-    out: dict[str, Any] = {"crd_present": bool(h.k("get", "crd", "quarantines.selfhealing.lab").returncode == 0),
+    # Argo CD prunes the controller but never the CRD, so absence of the CRD is not the baseline's claim.
+    # The claim is that nothing is acting on Quarantines.
+    out: dict[str, Any] = {"controller_present": bool(h.kj("-n", NS, "get", "deploy", CONTROLLER).get("metadata")),
                            "reachable_before": reachable(h, ip)}
     args = [f"{k}={v}" for k, v in ISOLATE.items()]
     h.k("-n", NS, "label", "pod", name, "--overwrite", *args, check=True, timeout=30)
-    out["blocked_s"] = wait_blocked(h, ip, 20)
-    out["released_without_evidence"] = False
+    out["blocked_s"] = wait_blocked(h, ip, BLOCK_WAIT_S)
     h.k("-n", NS, "label", "pod", name, "--overwrite", "selfheal.lab/quarantined-", "lab/pool=serving", check=True, timeout=30)
-    time.sleep(3)
-    out["released_without_evidence"] = reachable(h, ip)
+    out["released_reachable_s"] = wait_reachable(h, ip, BLOCK_WAIT_S)
+    out["released_without_evidence"] = out["released_reachable_s"] is not None
     out["evidence_checked"] = False
     out["status_available"] = False
     return out
@@ -169,7 +181,7 @@ def run_hardened(h: Any, ip: str, pod: dict[str, Any], directory: Path) -> dict[
     isolate_s = round(h.now() - t, 3) if cr else None
     after = h.kj("-n", NS, "get", "pod", name)
     out["x1a"] = {"phase": (cr or {}).get("status", {}).get("phase"), "isolate_s": isolate_s,
-                  "blocked_s": wait_blocked(h, ip, 20),
+                  "blocked_s": wait_blocked(h, ip, BLOCK_WAIT_S),
                   "same_uid": after.get("metadata", {}).get("uid") == uid,
                   "restarts_unchanged": restarts(after) == restarts(pod),
                   "replacement_serving": len(serving_pods(h)) == 1}
@@ -193,17 +205,14 @@ def run_hardened(h: Any, ip: str, pod: dict[str, Any], directory: Path) -> dict[
     out["x1c"] = {"preserved": bool(preserved), "released": bool(released),
                   "after_evidence": bool(rstatus.get("releasedAt") and rstatus.get("preservedAt")
                                          and rstatus["releasedAt"] > rstatus["preservedAt"]),
-                  "reachable": reachable(h, ip),
+                  "reachable_s": wait_reachable(h, ip, BLOCK_WAIT_S),
                   "labels_restored": labels.get("lab/pool") == "serving" and "selfheal.lab/quarantined" not in labels}
     # X1d resume after a controller kill
-    # After the release there are two serving pods (the replacement and the released one). Take the
-    # replacement, which is a different pod from the one the first Quarantine handled.
-    others = [p for p in serving_pods(h) if p["metadata"]["uid"] != uid]
-    if not others:
-        raise RuntimeError("X1d needs a second serving pod and found none")
-    target = others[0]
+    # After the release the ReplicaSet sees two serving pods and deletes one, so wait for exactly one
+    # and use it, whichever it is. The second Quarantine is about the controller, not the pod identity.
+    target = one_serving(h)
     killed = h.now()
-    h.k("-n", NS, "delete", "pod", "-l", f"app={CONTROLLER}", "--wait=false", timeout=30)
+    h.k("-n", NS, "delete", "pod", "-l", f"app={CONTROLLER}", "--grace-period=0", "--force", "--wait=true", timeout=60)
     time.sleep(1)
     h.k("apply", "-f", "-", input=json.dumps(quarantine_manifest("q-d", target["metadata"]["name"])),
         check=True, timeout=30)

@@ -1,0 +1,9 @@
+# Focused X1 cluster. The row's claim is the operator, not the CNI, so it runs on
+# the default kind CNI (kindnet enforces NetworkPolicy). On Cilium the same label
+# change took 12 to 33 s to reach the datapath across five runs, which measured
+# the CNI and not the controller (ADR-0026 addendum).
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: selfheal
+nodes:
+  - role: control-plane
