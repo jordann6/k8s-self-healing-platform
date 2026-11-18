@@ -46,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from judge import THRESHOLDS, hypothesis, overall, verdict  # noqa: E402
 import aks_rows  # noqa: E402
 import eks_rows  # noqa: E402
+import gke_rows  # noqa: E402
 import q2_row  # noqa: E402
 import q3_row  # noqa: E402
 import n1_row  # noqa: E402
@@ -60,7 +61,7 @@ os.environ.setdefault("KUBECONFIG", str(ROOT / ".kube" / "config"))
 # Set from --target in main(). Everything that differs between targets keys
 # off TARGET; the rows shared by all are the same code on all.
 TARGET = "kind"
-CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks"}
+CONTEXTS = {"kind": "kind-selfheal", "eks": "selfheal-eks", "aks": "selfheal-aks", "gke": "selfheal-gke"}
 NS = "selfheal"
 ROWS_BY_TARGET = {
     # Q1, Q2 and Q3 are focused workloads, independent of the web Rollout
@@ -70,12 +71,15 @@ ROWS_BY_TARGET = {
     "eks": ["A1", "A2", "A3", "A4", "A5", "S1", "S1b", "S2", "S3", "S4", "S5", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
     # R2 last here too: its node is cordoned, then removed after the evidence.
     "aks": ["A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"],
+    # The in-cluster rows only (ADR-0027, Scope): S1, S4 and R2 on GCP are the
+    # landing zone proofs.
+    "gke": ["A1", "A2", "A3", "A4", "A5", "S2", "S3", "R1"],
 }
 # Rows that run only as a focused row on a target with its own cluster (make g1-up). They are never
 # part of the default full demo, so they are not in ROWS_BY_TARGET (ADR-0025).
-FOCUSED_ONLY_ROWS = {"kind": ["G1", "X1"], "eks": ["G1", "X1"], "aks": ["G1", "X1"]}
+FOCUSED_ONLY_ROWS = {"kind": ["G1", "X1"], "eks": ["G1", "X1"], "aks": ["G1", "X1"], "gke": []}
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
-CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
+CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows, "gke": gke_rows}
 ROWS = ROWS_BY_TARGET["kind"]
 # Release tags. On kind the images are loaded as :v1 and :v2; on EKS and AKS
 # they are registry tags :<git sha>-v1 and :<git sha>-v2 (scripts/*-images.sh).
@@ -1466,8 +1470,14 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
     if focused == "X1":
         return FOCUSED_X1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
-             "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
-    return extra + FULL_PRECONDITIONS
+             "aks": [("responder", "deploy", "r2-worker")],
+             "gke": FOCUSED_KEDA_PRECONDITIONS}.get(TARGET, [])
+    full = FULL_PRECONDITIONS
+    if TARGET == "gke":
+        # GKE manages metrics-server under a versioned name; the runner checks
+        # the metrics.k8s.io APIService instead (preconditions()).
+        full = [c for c in full if c != ("kube-system", "deploy", "metrics-server")]
+    return extra + full
 
 
 def preconditions(rows: list[str]) -> dict:
@@ -1480,6 +1490,12 @@ def preconditions(rows: list[str]) -> dict:
     checks["api_ready"] = api.returncode == 0 and api.stdout.strip() == "ok"
     if not checks["api_ready"]:
         raise SystemExit(f"precondition failed: Kubernetes readyz: {(api.stderr or api.stdout).strip()}")
+    if TARGET == "gke":
+        avail = k("get", "apiservice", "v1beta1.metrics.k8s.io",
+                  "-o", "jsonpath={.status.conditions[?(@.type==\"Available\")].status}").stdout.strip()
+        checks["metrics_api"] = avail == "True"
+        if not checks["metrics_api"]:
+            raise SystemExit("precondition failed: metrics.k8s.io is not Available (GKE's metrics-server)")
     for ns, kind, name in precondition_resources(rows):
         p = k("-n", ns, "rollout", "status", f"{kind}/{name}", "--timeout=120s", timeout=130)
         checks[f"{ns}/{name}"] = p.returncode == 0
@@ -1854,6 +1870,11 @@ def versions() -> dict:
         out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
         out["node_images"] = sorted({n["metadata"].get("labels", {}).get("kubernetes.azure.com/node-image-version", "?")
                                      for n in kj("get", "nodes").get("items", [])})
+    if TARGET == "gke":
+        out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
+        nodes = kj("get", "nodes").get("items", [])
+        out["node_os_images"] = sorted({n["status"].get("nodeInfo", {}).get("osImage", "?") for n in nodes})
+        out["node_kernels"] = sorted({n["status"].get("nodeInfo", {}).get("kernelVersion", "?") for n in nodes})
     if TARGET == "eks":
         out["web_image"] = rollout().get("spec", {}).get("template", {}).get("spec", {}).get("containers", [{}])[0].get("image")
         nc = kj("get", "ec2nodeclass", "workload")
@@ -1947,7 +1968,9 @@ def main() -> int:
     if TARGET in CLOUD_ROWS:
         sha = (ROOT / "gitops" / "targets" / TARGET / "generated" / "IMAGE_SHA").read_text().strip()
         TAG.update({"v1": f"{sha}-v1", "v2": f"{sha}-v2"})
-        Q1_IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "QWORKER_IMAGE").read_text().strip()
+        qworker = ROOT / "gitops" / "targets" / TARGET / "generated" / "QWORKER_IMAGE"
+        # GKE builds no Q1 image (ADR-0027, Scope).
+        Q1_IMAGE = qworker.read_text().strip() if qworker.exists() else Q1_IMAGE
     args.run_id = args.run_id or dt.datetime.now().strftime(f"{TARGET}-%Y%m%d-%H%M%S")
     # Rows are case-sensitive only in S1b; accept any case on the command line.
     known = ROWS + FOCUSED_ONLY_ROWS.get(TARGET, [])
