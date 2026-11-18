@@ -117,10 +117,16 @@ if [[ -n "$notready" ]]; then
 fi
 echo "  every DaemonSet ready on every node it targets"
 # Live check L3: Falco's modern eBPF probe on the node image's COS kernel.
+# A pod can be Ready a few seconds before it logs the probe line (the first
+# GKE run counted 6 of 7, and all 7 had it moments later), so retry for 60s.
 nodes="$(kubectl get nodes -o name | wc -l | tr -d ' ')"
-loaded=0
-for pod in $(kubectl -n falco get pods -l app.kubernetes.io/name=falco -o name); do
-	kubectl -n falco logs "$pod" -c falco 2>/dev/null | grep -qi 'modern bpf probe' && loaded=$((loaded + 1))
+for _ in $(seq 1 12); do
+	loaded=0
+	for pod in $(kubectl -n falco get pods -l app.kubernetes.io/name=falco -o name); do
+		kubectl -n falco logs "$pod" -c falco 2>/dev/null | grep -qi 'modern bpf probe' && loaded=$((loaded + 1))
+	done
+	((loaded == nodes)) && break
+	sleep 5
 done
 echo "  L3: Falco reports the modern eBPF probe on $loaded of $nodes nodes ($(kubectl get nodes -o jsonpath='{.items[0].status.nodeInfo.kernelVersion}'))"
 ((loaded == nodes)) || { echo "gke-platform: FAIL, Falco's probe is not loaded on every node (L3)" >&2; exit 1; }
