@@ -5,7 +5,7 @@ threat, proven with before/after experiments. The third lab in the arc after
 the EKS Attack Range (gain access, detect) and the Kubernetes Network
 Segmentation Lab (contain): this one responds and recovers.
 
-**Status:** four phases have run live and been destroyed. The portable core
+**Status:** five phases have run live and been destroyed. The portable core
 runs on kind (zero cloud spend). The AWS module on EKS has every one of its 13
 core rows healed on record (R1 missed once at 34.6s and healed at 16.1s and
 11s on later runs, A4 became conclusive on a rerun). The Azure module on AKS
@@ -15,11 +15,13 @@ rows, run on both clouds on Kubernetes 1.36 (Q1 to Q3, P1, D1, O1, N1). Every
 phase 4 row healed on AKS. On EKS six healed and N1 stayed inconclusive
 because its baseline never showed impact. Two more rows, G1 (a Gateway API
 front door) and X1 (a Quarantine custom resource and its controller), ran on
-kind and then once on each cloud, and all four cloud runs healed. Counting both
-clouds that is 42 hardened rows, 40 healed, one inconclusive, one blocked. GCP
-and an integrated adversarial proof on one cluster
+kind and then once on each cloud, and all four cloud runs healed. The GKE
+module ran the eight in-cluster rows and healed five; A3, A5 and R1 missed by
+19 ms, 0.17 points and 2s, each reported as a miss. Counting the three clouds
+that is 50 hardened rows, 45 healed, three missed, one inconclusive, one
+blocked. An integrated adversarial proof on one cluster
 ([ADR-0024](docs/adr/0024-integrated-adversarial-proof.md), designed, not
-built) come next.
+built) comes next.
 
 ![Self-healing platform on EKS](docs/architecture.png)
 
@@ -166,21 +168,23 @@ make down
 
 G1 and X1 have their own kind clusters. `make g1-up` then
 `make demo ROWS=G1`, or `make x1-up` then `make demo ROWS=X1`. On the clouds they
-run with `TARGET=eks` or `TARGET=aks` inside a paid session.
+run with `TARGET=eks` or `TARGET=aks` inside a paid session. GKE runs the
+in-cluster rows with `TARGET=gke`.
 
 Needs docker (about 4 GB free for the cluster), kind, kubectl, helm, cilium,
 hubble, jq, openssl 3.4+ and python3. The lab uses its own kubeconfig
 (`.kube/config`), so it never touches other clusters on the machine.
 The cloud modules run from saved plans in one bounded session each:
-[docs/runbook-aws.md](docs/runbook-aws.md) and
-[docs/runbook-azure.md](docs/runbook-azure.md).
+[docs/runbook-aws.md](docs/runbook-aws.md),
+[docs/runbook-azure.md](docs/runbook-azure.md) and
+[docs/runbook-gcp.md](docs/runbook-gcp.md).
 
 ## Stack (pinned in the Makefile)
 
 Cilium 1.20.4, Argo CD v3.5.7, Argo Rollouts v1.10.1, External Secrets
 v2.14.0, Reloader v1.4.23, cert-manager v1.21.3, Falco 0.45.2 + Falcosidekick
 2.35.1 + Falco Talon 0.3.0, kube-prometheus-stack 92.17.1, Sloth v0.13.0,
-Chaos Mesh 2.8.7, k6 v2.3.0; on AKS, the managed KEDA add-on. CI: platform-guardrails v1.10.0.
+Chaos Mesh 2.8.7, k6 v2.3.0; on AKS, the managed KEDA add-on; on GKE, KEDA 2.21.0 from the chart. CI: platform-guardrails v1.10.0.
 
 ## Phase 1 result (kind)
 
@@ -268,7 +272,80 @@ unproven on Azure until Defender fires.
 - AKS R2 was not rerun. Defender raised no alert naming the pod in 3600s on
   either profile, so it is recorded as a platform limitation.
 
+## Phase 5 result (GKE)
+
+One bounded live session on 2026-11-18 (GKE 1.36.5 Standard, zonal, three
+e2-standard-2 system nodes and a tainted workload pool fixed at four, Cilium
+on bring-your-own CNI over the legacy datapath, private nodes behind an
+IAM-only DNS endpoint, about $1 for two hours up). GKE runs the in-cluster
+rows only ([ADR-0027](docs/adr/0027-gke-facts-before-the-module.md)): the
+GCP-native responses (secret rotation, an open firewall rule reverted from an
+org asset feed, a Pub/Sub-driven incident handler) were proven in the
+[GCP landing zone](https://github.com/jordann6/gcp-landing-zone) on a
+different cluster and are not claimed here. Reference evidence:
+`evidence/gke-run1`. No threshold was changed.
+
+![Self-healing platform on GKE](docs/architecture-gcp.png)
+
+*The GKE module, same colours. Availability adds a node VM stopped by the
+name on its providerID and KEDA scaling the HPA from Prometheus; the
+quarantine CiliumNetworkPolicy is the same file on all four targets. The grey
+box is the landing zone's proof, drawn apart because it ran elsewhere.
+Source: `docs/diagram_gcp.py`.*
+
+| Row | Hardened result on GKE | Run |
+|---|---|---|
+| A1 | healed: 0.00% errors after detection, hung pod serving again at 36s | gke-run1 |
+| A2 | healed: canary aborted at 70s, only v1 after, 0.00% | gke-run1 |
+| A3 | **miss**: sustained-spike p95 **319.0 ms** (bar 300), 0.00% errors, HPA 3 to 10 through KEDA | gke-run1 |
+| A4 | healed: node NotReady at 56s, 0.07% errors from then, every replica serving at 98s on the three nodes left; the same run's baseline hit 100% errors | gke-run1 |
+| A5 | **miss**: 1.17% errors (bar 1%); OOMKilled at 14s, serving at 17s, paged at 21s | gke-run1 |
+| S2 | healed: 0 TLS errors of 153, renewed certificate served at 60s | gke-run1 |
+| S3 | healed: policy restored at 2s, hand edit reverted at 4s | gke-run1 |
+| R1 | **miss**: detected at 2s, isolated at **32s** (bar 30s, 25 Hubble drops), evidence at 53s, 0.00% errors | gke-run1 |
+
+The three misses are close and each has a known cause. A3 is the AKS result
+again (320 ms before its rerun): the HPA no longer waits on metrics-server,
+and the shared CPU target leaves the sustain window just over the bar, this
+time at the 10-replica ceiling. A5's kill, restart and page all passed their
+clocks; the six failed requests of 514 came 9 to 11s after injection, before
+the kill, while the container stalled under memory pressure. R1's 2s is
+Cilium's identity grace period plus jitter (the ADR-0002 addendum), the same
+cause as EKS's 34.6s. A4 shows the gap a stopped VM leaves: 35.6% of requests
+failed in the 56s before the node was marked NotReady (reported, not judged,
+as on AKS), and GKE's managed instance group started the VM again by itself
+at 134s, after the replicas had moved.
+
 ## What broke (and what it taught)
+
+### On GCP (phase 5)
+
+- **The autoscaler and strict spread don't mix.** Google's docs say the GKE
+  cluster autoscaler does not support topology spread with
+  `whenUnsatisfiable: DoNotSchedule`, which is the hardened A4 placement on
+  every cloud. The workload pool is four fixed nodes instead, so one stopped
+  node leaves three domains for `minDomains: 3` and no autoscaler decision
+  sits in the measured path.
+- **Dataplane V2 could not carry the quarantine policy.** GKE's managed
+  Cilium documents cluster-wide policies with selectors, ports and CIDRs, and
+  says nothing about the `ingressDeny`, `egressDeny` and `host` entity R1
+  relies on. Pinned Cilium on the legacy datapath kept the file unchanged; the
+  cost is a CNI Google does not support, as on AKS.
+- **A new project has three CPU limits, and disks count as SSD.** Regional
+  `CPUS` was 200, but `CPUS_ALL_REGIONS` was 32, `E2_CPUS` 24, and
+  pd-balanced boot disks draw on `SSD_TOTAL_GB` (500, the lab needs 400 with a
+  surge node). The preflight now reads all three.
+- **An unreadable answer looked like "nothing there".** Aggregated
+  `gcloud compute ... list` calls exit 0 when the project cannot be read and
+  say so only on stderr, so the teardown proof printed "gone" for a query
+  that failed. Any stderr error is now a failed query. The same mistake, a
+  discarded `kubectl logs` error, made the Falco check count 4 of 7 probes
+  while all 7 were loaded.
+- **A stopped VM comes back on its own.** The docs say a managed instance
+  group "might" recreate or revert a VM changed outside it. It started the
+  stopped node at 134s. A4 already counted only the three nodes that stayed
+  up, so the restart could not heal the row, but a fault injector that
+  assumes a stopped VM stays stopped would.
 
 ### On kind (G1 and X1)
 
@@ -483,6 +560,11 @@ unproven on Azure until Defender fires.
   second and keeps no cache. Production uses a watch, leader election so two
   replicas never both act, a finalizer decision that is made on purpose, and a
   framework or a long-term maintained library instead of a hand-written loop.
+- **Encrypt etcd with your own key and admit only attested images.** The GKE
+  lab leaves application-layer secrets encryption with Cloud KMS and Binary
+  Authorization off, because a key ring can never be deleted and the lab pulls
+  upstream images nobody here signs. Production turns both on, as the GCP
+  landing zone's paved road does.
 - **Evidence goes to an account the cluster cannot touch.** The labs write
   to a bucket or container in the lab; production writes to a separate
   security account or subscription with object lock or immutability.
