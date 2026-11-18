@@ -1,0 +1,530 @@
+[
+  {
+    "t": 1.4,
+    "vm": "STOPPING",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 8.8,
+    "vm": "STOPPING",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 16.3,
+    "vm": "STOPPING",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 24.0,
+    "vm": "TERMINATED",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 31.5,
+    "vm": "PROVISIONING",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 39.0,
+    "vm": "STAGING",
+    "not_ready": false,
+    "recovered": false
+  },
+  {
+    "t": 46.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": false
+  },
+  {
+    "t": 54.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": false
+  },
+  {
+    "t": 62.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": false
+  },
+  {
+    "t": 69.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": false
+  },
+  {
+    "t": 77.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": false
+  },
+  {
+    "t": 84.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 92.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 99.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 106.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 112.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 119.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 126.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 133.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 140.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 147.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 153.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 160.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 167.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 174.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 181.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 187.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 194.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 201.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 208.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 214.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 221.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 228.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 235.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 241.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 248.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 255.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 262.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 269.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 276.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 282.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 289.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 296.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 303.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 309.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 316.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 323.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 330.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 336.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 343.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 350.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 357.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 364.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 370.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 377.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 384.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 390.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 397.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 404.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 410.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 417.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 424.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 430.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 437.4,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 444.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 450.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 457.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 464.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 470.9,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 477.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 484.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 490.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 497.5,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 504.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 510.7,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 517.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 524.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 531.1,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 538.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 544.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 551.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 558.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 564.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 571.3,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 578.0,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 584.6,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 591.2,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  },
+  {
+    "t": 597.8,
+    "vm": "RUNNING",
+    "not_ready": true,
+    "recovered": true
+  }
+]

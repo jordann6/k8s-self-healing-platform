@@ -1,0 +1,972 @@
+{
+  "run_id": "gke-run1",
+  "target": "gke",
+  "started": "2026-11-18T19:57:24.040Z",
+  "rows": [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "S2",
+    "S3",
+    "R1"
+  ],
+  "partial": false,
+  "preconditions": {
+    "context": "selfheal-gke",
+    "api_ready": true,
+    "metrics_api": true,
+    "keda/keda-operator": true,
+    "keda/keda-operator-metrics-apiserver": true,
+    "keda/keda-admission-webhooks": true,
+    "monitoring/kps-operator": true,
+    "cert-manager/cert-manager": true,
+    "external-secrets/external-secrets": true,
+    "reloader/reloader-reloader": true,
+    "argo-rollouts/argo-rollouts": true,
+    "argocd/argocd-application-controller": true,
+    "chaos-mesh/chaos-controller-manager": true,
+    "falco/falco": true,
+    "falco/falco-falcosidekick": true,
+    "falco/falco-talon": true,
+    "gitops/gitserver": true,
+    "workload_synced": true,
+    "cilium_gate": true
+  },
+  "versions": {
+    "repo_commit": "f00f387cee1834647208f0407add47eafb9d4bf4-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": "ghcr.io/kedacore/keda:2.21.0",
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.36.5-gke.1982000",
+    "web_image": "us-central1-docker.pkg.dev/<gcp-project>/selfheal/app:fb0bea5-v1",
+    "node_os_images": [
+      "Container-Optimized OS from Google"
+    ],
+    "node_kernels": [
+      "6.12.113+"
+    ]
+  },
+  "results": {
+    "A1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 49.2s: 54% of 46 http requests failed in 10s",
+        "thresholds": {
+          "recover_s": 60,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "error rate after detection 0.00%; hung pod restarted and serving at 36s",
+        "thresholds": {
+          "recover_s": 60,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A2": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 21.6s: 52% of 50 http requests failed in 10s",
+        "thresholds": {
+          "abort_s": 180,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "final error rate 0.00%, serving v1; canary aborted at 70s",
+        "thresholds": {
+          "abort_s": 180,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 130.1s: 52% of 42 http requests failed in 10s",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "miss",
+        "reason": "sustain window p95 319.0 ms, errors 0.00%, replicas 3 -> 10",
+        "thresholds": {
+          "p95_ms": 300,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    },
+    "A4": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 54.9s: 100% of 43 http requests failed in 10s",
+        "thresholds": {
+          "recover_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "stopped us-central1-a/gke-selfheal-workload-13368d94-tcdz (1 web pods), NotReady at 56s; errors from NotReady 0.07% (before NotReady, reported not judged: 35.61%); all replicas serving 98s; VM started again by something else at 134s",
+        "thresholds": {
+          "recover_s": 600,
+          "error_rate": 0.01
+        },
+        "pass": true
+      }
+    },
+    "A5": {
+      "baseline": {
+        "status": "impact",
+        "reason": "OOMKilled never, recovered never, alert never fired, leaked pod memory at end 336.2 MiB, other restarts 0, errors 0.00%",
+        "thresholds": {
+          "recover_s": 60,
+          "alert_s": 120,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "miss",
+        "reason": "OOMKilled at 14s, recovered at 17s, alert at 20s, leaked pod memory at end None MiB, other restarts 0, errors 1.17%",
+        "thresholds": {
+          "recover_s": 60,
+          "alert_s": 120,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    },
+    "S2": {
+      "baseline": {
+        "status": "impact",
+        "reason": "abort line hit at 34.3s: 70% of 20 tls requests failed in 10s",
+        "thresholds": {
+          "tls_errors": 0,
+          "renew_s": 60,
+          "serve_s": 150
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "0 TLS errors of 153; renewed at 1s, new certificate served at 60s",
+        "thresholds": {
+          "tls_errors": 0,
+          "renew_s": 60,
+          "serve_s": 150
+        },
+        "pass": true
+      }
+    },
+    "S3": {
+      "baseline": {
+        "status": "impact",
+        "reason": "policy restored never, hand edit reverted never",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "policy restored 2s, hand edit reverted 4s",
+        "thresholds": {
+          "revert_s": 60
+        },
+        "pass": true
+      }
+    },
+    "R1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "detected 2s, isolated never (0 Hubble policy drops), evidence never, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "miss",
+        "reason": "detected 2s, isolated 32s (25 Hubble policy drops), evidence 53s, errors 0.00%",
+        "thresholds": {
+          "isolate_s": 30,
+          "evidence_s": 90,
+          "error_rate": 0.01
+        },
+        "pass": false
+      }
+    }
+  },
+  "observations": {
+    "A1": {
+      "baseline": {
+        "t0": 1795031938.5741,
+        "hung_pod": "web-78df465677-j8ml2",
+        "killed_pod": "web-78df465677-lglbc",
+        "injected": true,
+        "detected_s": null,
+        "recovered_s": null,
+        "chaos_at_s": 32.2,
+        "aborted": true,
+        "error_rate_after": 0.4167,
+        "samples": 144,
+        "expected": 146.24152541160583,
+        "window": "T0+20s to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795031958.695979,
+          "until": 1795031987.9442842,
+          "n": 144,
+          "errors": 60,
+          "error_rate": 0.4167,
+          "p95_ms": 146.8,
+          "error_kinds": {
+            "TimeoutError": 56,
+            "URLError": 4
+          },
+          "first_error": 1795031958.700614,
+          "last_error": 1795031985.5005906,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-lglbc",
+            "web-78df465677-skkpq",
+            "web-78df465677-vsd97"
+          ],
+          "expected": 146.24152541160583
+        },
+        "abort_evidence": {
+          "t": 1795031987.822379,
+          "kind": "http",
+          "n": 46,
+          "errors": 25,
+          "error_rate": 0.5435,
+          "error_kinds": {
+            "URLError": 4,
+            "TimeoutError": 21
+          },
+          "at_s": 49.2
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795033689.982482,
+        "hung_pod": "web-c9fc65cd9-cwllz",
+        "killed_pod": "web-c9fc65cd9-d8bjf",
+        "injected": true,
+        "detected_s": 10.9,
+        "recovered_s": 35.8,
+        "chaos_at_s": 31.4,
+        "aborted": false,
+        "error_rate_after": 0.0,
+        "samples": 356,
+        "expected": 356.19436502456665,
+        "window": "T0+20s to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795033710.104361,
+          "until": 1795033781.343234,
+          "n": 356,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 135.5,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-cwllz",
+            "web-c9fc65cd9-d8bjf",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 356.19436502456665
+        },
+        "alerts_fired": []
+      }
+    },
+    "A2": {
+      "baseline": {
+        "t0": 1795032014.753698,
+        "aborted_s": null,
+        "fully_rolled_s": 20.4,
+        "v2_seen": true,
+        "abort_line": true,
+        "error_rate_final": 0.4462,
+        "releases_final": [
+          "v1",
+          "v2"
+        ],
+        "samples": 65,
+        "expected": 150,
+        "analysis": {
+          "phase": null,
+          "message": null,
+          "values": []
+        },
+        "window": "last 30s of the observation",
+        "impact": {
+          "kind": "http",
+          "since": 1795032014.8755772,
+          "until": 1795032036.5087361,
+          "n": 65,
+          "errors": 29,
+          "error_rate": 0.4462,
+          "p95_ms": 227.4,
+          "error_kinds": {
+            "URLError": 23,
+            "ConnectionResetError": 1,
+            "http 502": 1,
+            "http 500": 4
+          },
+          "first_error": 1795032024.2484112,
+          "last_error": 1795032035.4484835,
+          "releases": [
+            "v1",
+            "v2"
+          ],
+          "pods": [
+            "web-5774b879d4-86s68",
+            "web-5774b879d4-hxmk8",
+            "web-5774b879d4-lxzm2",
+            "web-78df465677-78jkg",
+            "web-78df465677-skkpq",
+            "web-78df465677-vsd97"
+          ],
+          "expected": 108.16579461097717
+        },
+        "abort_evidence": {
+          "t": 1795032036.38681,
+          "kind": "http",
+          "n": 50,
+          "errors": 26,
+          "error_rate": 0.52,
+          "error_kinds": {
+            "URLError": 20,
+            "ConnectionResetError": 1,
+            "http 502": 1,
+            "http 500": 4
+          },
+          "at_s": 21.6
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795033805.6759171,
+        "aborted_s": 70.0,
+        "fully_rolled_s": null,
+        "v2_seen": true,
+        "abort_line": false,
+        "error_rate_final": 0.0,
+        "releases_final": [
+          "v1"
+        ],
+        "samples": 150,
+        "expected": 150,
+        "analysis": {
+          "phase": "Failed",
+          "message": "Metric \"canary-error-rate\" assessed Failed due to failed (2) > failureLimit (1)",
+          "values": [
+            "[0.3888888888888889]",
+            "[0.4615384615384615]"
+          ]
+        },
+        "window": "last 30s of the observation",
+        "impact": {
+          "kind": "http",
+          "since": 1795033805.7977962,
+          "until": 1795033917.262621,
+          "n": 521,
+          "errors": 22,
+          "error_rate": 0.0422,
+          "p95_ms": 140.6,
+          "error_kinds": {
+            "http 500": 22
+          },
+          "first_error": 1795033823.154024,
+          "last_error": 1795033874.7540066,
+          "releases": [
+            "v1",
+            "v2"
+          ],
+          "pods": [
+            "web-5bb77f9668-smgpb",
+            "web-c9fc65cd9-cwllz",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 557.3241233825684
+        },
+        "alerts_fired": []
+      }
+    },
+    "A3": {
+      "baseline": {
+        "t0": 1795032086.3915362,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 2518.8,
+        "error_rate": 0.3944,
+        "min_replicas": 3,
+        "max_replicas": 3,
+        "scaled_s": null,
+        "aborted": true,
+        "samples": 142,
+        "expected": 150.55211305618286,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.2705,
+          "p95_ms": 2386.9,
+          "n": 499
+        },
+        "k6": {
+          "sustain_p95_ms": 1667.7323744999999,
+          "sustain_failed_rate": 0.45288839035333706,
+          "dropped_iterations": 57
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1795032186.5134153,
+          "until": 1795032216.623838,
+          "n": 142,
+          "errors": 56,
+          "error_rate": 0.3944,
+          "p95_ms": 2518.8,
+          "error_kinds": {
+            "URLError": 54,
+            "TimeoutError": 2
+          },
+          "first_error": 1795032186.5960128,
+          "last_error": 1795032214.3975818,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-5bkzd",
+            "web-78df465677-8cfgp",
+            "web-78df465677-8gk2l"
+          ],
+          "expected": 150.55211305618286
+        },
+        "abort_evidence": {
+          "t": 1795032216.501941,
+          "kind": "http",
+          "n": 42,
+          "errors": 22,
+          "error_rate": 0.5238,
+          "error_kinds": {
+            "URLError": 20,
+            "TimeoutError": 2
+          },
+          "at_s": 130.1
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795033959.194984,
+        "rate_rps": 30,
+        "load_ran": true,
+        "p95_ms": 319.0,
+        "error_rate": 0.0,
+        "min_replicas": 3,
+        "max_replicas": 10,
+        "scaled_s": 34.7,
+        "aborted": false,
+        "samples": 318,
+        "expected": 318.86765599250793,
+        "window": "T0+100s to T0+160s (sustain)",
+        "ramp": {
+          "error_rate": 0.032,
+          "p95_ms": 1653.6,
+          "n": 500
+        },
+        "k6": {
+          "sustain_p95_ms": 822.2180111999994,
+          "sustain_failed_rate": 0.013656633221850614,
+          "dropped_iterations": 30
+        },
+        "impact": {
+          "kind": "http",
+          "since": 1795034059.316863,
+          "until": 1795034123.0903943,
+          "n": 318,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 319.0,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-cwllz",
+            "web-c9fc65cd9-fj5hx",
+            "web-c9fc65cd9-qrrrx",
+            "web-c9fc65cd9-qxq2m",
+            "web-c9fc65cd9-thzq7",
+            "web-c9fc65cd9-vfzhl",
+            "web-c9fc65cd9-vlb6w",
+            "web-c9fc65cd9-vzf25",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 318.86765599250793
+        },
+        "alerts_fired": []
+      }
+    },
+    "A4": {
+      "baseline": {
+        "t0": 1795032302.002066,
+        "node": "gke-selfheal-workload-13368d94-tcdz",
+        "zone": "us-central1-a",
+        "instance": "gke-selfheal-workload-13368d94-tcdz",
+        "web_pods_on_node": 3,
+        "stopped": true,
+        "vm_status": "RUNNING",
+        "stopped_s": 24.0,
+        "vm_restarted_s": 31.5,
+        "not_ready_s": 46.4,
+        "shutdown_taint_s": null,
+        "recovered_s": 84.9,
+        "repair_operations": [],
+        "error_rate": 0.0746,
+        "samples": 2790,
+        "expected": 2789.7935795783997,
+        "gap_error_rate": 0.9526,
+        "gap": {
+          "kind": "http",
+          "since": 1795032302.123945,
+          "until": 1795032348.5344281,
+          "n": 232,
+          "errors": 221,
+          "error_rate": 0.9526,
+          "p95_ms": 136.5,
+          "error_kinds": {
+            "ConnectionResetError": 6,
+            "URLError": 215
+          },
+          "first_error": 1795032304.3959634,
+          "last_error": 1795032348.3960276,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-5bkzd",
+            "web-78df465677-8cfgp",
+            "web-78df465677-8gk2l"
+          ],
+          "expected": 232.05241560935974
+        },
+        "window": "NotReady to T0+600s (fixed), T0 to NotReady reported",
+        "impact": {
+          "kind": "http",
+          "since": 1795032348.5344281,
+          "until": 1795032906.493144,
+          "n": 2790,
+          "errors": 208,
+          "error_rate": 0.0746,
+          "p95_ms": 136.3,
+          "error_kinds": {
+            "URLError": 208
+          },
+          "first_error": 1795032348.5960073,
+          "last_error": 1795032390.1960046,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-f2sfg",
+            "web-78df465677-hj5tg",
+            "web-78df465677-kcbzr"
+          ],
+          "expected": 2789.7935795783997
+        },
+        "abort_evidence": {
+          "t": 1795032356.915453,
+          "kind": "http",
+          "n": 43,
+          "errors": 43,
+          "error_rate": 1.0,
+          "error_kinds": {
+            "URLError": 43
+          },
+          "at_s": 54.9
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795034270.182986,
+        "node": "gke-selfheal-workload-13368d94-tcdz",
+        "zone": "us-central1-a",
+        "instance": "gke-selfheal-workload-13368d94-tcdz",
+        "web_pods_on_node": 1,
+        "stopped": true,
+        "vm_status": "RUNNING",
+        "stopped_s": 119.8,
+        "vm_restarted_s": 133.9,
+        "not_ready_s": 55.7,
+        "shutdown_taint_s": null,
+        "recovered_s": 97.6,
+        "repair_operations": [],
+        "error_rate": 0.0007,
+        "samples": 2725,
+        "expected": 2724.573860168457,
+        "gap_error_rate": 0.3561,
+        "gap": {
+          "kind": "http",
+          "since": 1795034270.3048651,
+          "until": 1795034326.008492,
+          "n": 278,
+          "errors": 99,
+          "error_rate": 0.3561,
+          "p95_ms": 150.9,
+          "error_kinds": {
+            "URLError": 99
+          },
+          "first_error": 1795034275.8770165,
+          "last_error": 1795034325.6770735,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-cwllz",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 278.51813435554504
+        },
+        "window": "NotReady to T0+600s (fixed), T0 to NotReady reported",
+        "impact": {
+          "kind": "http",
+          "since": 1795034326.008492,
+          "until": 1795034870.923264,
+          "n": 2725,
+          "errors": 2,
+          "error_rate": 0.0007,
+          "p95_ms": 136.8,
+          "error_kinds": {
+            "URLError": 2
+          },
+          "first_error": 1795034326.2770326,
+          "last_error": 1795034326.4770453,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-gpdzp",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 2724.573860168457
+        },
+        "alerts_fired": []
+      }
+    },
+    "A5": {
+      "baseline": {
+        "t0": 1795032932.1605492,
+        "target_pod": "web-78df465677-f2sfg",
+        "injected": true,
+        "oom_s": null,
+        "recovered_s": null,
+        "alert_s": null,
+        "alert_runbook": "",
+        "memory_end_mb": 336.2,
+        "other_restarts": 0,
+        "aborted": false,
+        "error_rate": 0.0,
+        "samples": 509,
+        "expected": 509.49110865592957,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795032932.2824283,
+          "until": 1795033034.18065,
+          "n": 509,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 138.8,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-f2sfg",
+            "web-78df465677-hj5tg",
+            "web-78df465677-kcbzr"
+          ],
+          "expected": 509.49110865592957
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795034898.472094,
+        "target_pod": "web-c9fc65cd9-gpdzp",
+        "injected": true,
+        "oom_s": 14.3,
+        "recovered_s": 17.4,
+        "alert_s": 20.5,
+        "alert_runbook": "docs/runbooks/oomkilled.md",
+        "memory_end_mb": null,
+        "other_restarts": 0,
+        "aborted": false,
+        "error_rate": 0.0117,
+        "samples": 514,
+        "expected": 513.8024306297302,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795034898.5939732,
+          "until": 1795035001.3544593,
+          "n": 514,
+          "errors": 6,
+          "error_rate": 0.0117,
+          "p95_ms": 142.3,
+          "error_kinds": {
+            "TimeoutError": 1,
+            "ConnectionResetError": 3,
+            "URLError": 2
+          },
+          "first_error": 1795034907.877182,
+          "last_error": 1795034909.8775208,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-gpdzp",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 513.8024306297302
+        },
+        "alerts_fired": [
+          "WebContainerOOMKilled"
+        ]
+      }
+    },
+    "S2": {
+      "baseline": {
+        "t0": 1795033120.60755,
+        "renewed_s": null,
+        "served_s": null,
+        "aborted": true,
+        "tls_errors": 14,
+        "samples": 68,
+        "expected": 68.67921829223633,
+        "error_kinds": {
+          "verify: certificate has expired": 14
+        },
+        "window": "last 30s of validity to expiry + 45s",
+        "impact": {
+          "kind": "tls",
+          "since": 1795033120.729429,
+          "until": 1795033155.0690382,
+          "n": 68,
+          "errors": 14,
+          "error_rate": 0.2059,
+          "p95_ms": 65.5,
+          "error_kinds": {
+            "verify: certificate has expired": 14
+          },
+          "first_error": 1795033148.0975676,
+          "last_error": 1795033154.5986574,
+          "serials": [
+            "3AEE17725438D00D48BCF19C47C3348390DF404F"
+          ],
+          "recent_serials": [
+            "3AEE17725438D00D48BCF19C47C3348390DF404F"
+          ],
+          "expected": 68.67921829223633
+        },
+        "abort_evidence": {
+          "t": 1795033154.947121,
+          "kind": "tls",
+          "n": 20,
+          "errors": 14,
+          "error_rate": 0.7,
+          "error_kinds": {
+            "verify: certificate has expired": 14
+          },
+          "at_s": 34.3
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795035024.484823,
+        "renewed_s": 0.9,
+        "served_s": 60.3,
+        "aborted": false,
+        "serial_before": [
+          "0A09C179407EEF683AAD7AE1FE17DEDAC6A20763"
+        ],
+        "serial_after": [
+          "6926A8571CFE8015CF996E3F5020964A9FEE647B"
+        ],
+        "tls_errors": 0,
+        "samples": 153,
+        "expected": 153.50493001937866,
+        "error_kinds": {},
+        "window": "T0 (renewal window) to new cert served + 15s",
+        "impact": {
+          "kind": "tls",
+          "since": 1795035024.606702,
+          "until": 1795035101.359167,
+          "n": 153,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 114.2,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "serials": [
+            "0A09C179407EEF683AAD7AE1FE17DEDAC6A20763",
+            "6926A8571CFE8015CF996E3F5020964A9FEE647B"
+          ],
+          "recent_serials": [
+            "6926A8571CFE8015CF996E3F5020964A9FEE647B"
+          ],
+          "expected": 153.50493001937866
+        },
+        "alerts_fired": []
+      }
+    },
+    "S3": {
+      "baseline": {
+        "t0": 1795033250.6683571,
+        "injected": true,
+        "policy_restored_s": null,
+        "edit_reverted_s": null,
+        "window": "T0 to T0+120s",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795035122.538116,
+        "injected": true,
+        "policy_restored_s": 1.6,
+        "edit_reverted_s": 4.0,
+        "window": "T0 to T0+120s",
+        "alerts_fired": []
+      }
+    },
+    "R1": {
+      "baseline": {
+        "t0": 1795033411.9000268,
+        "target_pod": "web-78df465677-hj5tg",
+        "reachable_before": true,
+        "detected_s": 1.6,
+        "labelled_s": null,
+        "isolated_s": null,
+        "hubble_policy_drops": 0,
+        "evidence_s": null,
+        "pod_kept_for_capture": null,
+        "error_rate": 0.0,
+        "samples": 390,
+        "expected": 390.6971514225006,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795033412.021906,
+          "until": 1795033490.1613362,
+          "n": 390,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 138.9,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-78df465677-hj5tg",
+            "web-78df465677-jtfwt",
+            "web-78df465677-kcbzr"
+          ],
+          "expected": 390.6971514225006
+        },
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1795035157.7264268,
+        "target_pod": "web-c9fc65cd9-gpdzp",
+        "reachable_before": true,
+        "detected_s": 1.7,
+        "labelled_s": 1.8,
+        "isolated_s": 32.0,
+        "hubble_policy_drops": 25,
+        "evidence_s": 52.9,
+        "pod_kept_for_capture": true,
+        "error_rate": 0.0,
+        "samples": 300,
+        "expected": 300.02463579177856,
+        "window": "T0 to end",
+        "impact": {
+          "kind": "http",
+          "since": 1795035157.848306,
+          "until": 1795035217.853233,
+          "n": 300,
+          "errors": 0,
+          "error_rate": 0.0,
+          "p95_ms": 141.7,
+          "error_kinds": {},
+          "first_error": null,
+          "last_error": null,
+          "releases": [
+            "v1"
+          ],
+          "pods": [
+            "web-c9fc65cd9-c675t",
+            "web-c9fc65cd9-gpdzp",
+            "web-c9fc65cd9-w2l52",
+            "web-c9fc65cd9-wx9cn"
+          ],
+          "expected": 300.02463579177856
+        },
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-18T20:53:39.827Z",
+  "pass": false
+}

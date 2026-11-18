@@ -1,0 +1,25 @@
+{
+  "hostname": "gke-selfheal-workload-13368d94-9nzh",
+  "output": "20:52:39.438069683: Warning Shell in selfheal web pod (user=lab cmd=sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 & pod=web-c9fc65cd9-gpdzp ns=selfheal container=9d8544e6acf4 image=us-central1-docker.pkg.dev/<gcp-project>/selfheal/app) container_id=9d8544e6acf4 container_name=web container_image_repository=us-central1-docker.pkg.dev/<gcp-project>/selfheal/app container_image_tag=fb0bea5-v1 k8s_pod_name=web-c9fc65cd9-gpdzp k8s_ns_name=selfheal",
+  "output_fields": {
+    "container.id": "9d8544e6acf4",
+    "container.image.repository": "us-central1-docker.pkg.dev/<gcp-project>/selfheal/app",
+    "container.image.tag": "fb0bea5-v1",
+    "container.name": "web",
+    "evt.time": 1795035159438069683,
+    "k8s.ns.name": "selfheal",
+    "k8s.pod.name": "web-c9fc65cd9-gpdzp",
+    "proc.cmdline": "sh -c id; cat /var/run/secrets/kubernetes.io/serviceaccount/token 2>/dev/null || echo no-token; nohup sleep 3600 >/dev/null 2>&1 &",
+    "user.name": "lab"
+  },
+  "priority": "Warning",
+  "rule": "Shell spawned in selfheal web pod",
+  "source": "syscall",
+  "tags": [
+    "T1059",
+    "mitre_execution",
+    "selfheal"
+  ],
+  "time": "2026-11-18T20:52:39.438069683Z",
+  "_t": 1795035159.438069
+}
