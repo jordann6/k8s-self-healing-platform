@@ -56,6 +56,8 @@ push q3 "$sha" "$root/app/q3"
 push d1 "$sha" "$root/app/d1" -f "$root/app/d1/cloud.Dockerfile"
 push n1 "$sha" "$root/app/n1"
 push n1-capture "$sha" "$root/app/n1-capture"
+push g1 "$sha" "$root/app/g1"
+push x1 "$sha" "$root/app/x1"
 
 gen="$root/gitops/targets/eks/generated"
 mkdir -p "$gen"
@@ -92,6 +94,16 @@ images:
   - name: selfheal-n1-capture
     newName: $(repo n1-capture)
     newTag: $sha
+  - name: selfheal-g1
+    newName: $(repo g1)
+    newTag: $sha
+  - name: selfheal-x1
+    newName: $(repo x1)
+    newTag: $sha
+  # X1's target pod reuses the G1 backend image (ADR-0026).
+  - name: selfheal-x1-target
+    newName: $(repo g1)
+    newTag: $sha
 EOF
 printf '%s\n' "$sha" >"$gen/IMAGE_SHA"
 printf '%s:%s\n' "$(repo gitserver)" "$sha" >"$gen/GITSERVER_IMAGE"
@@ -99,4 +111,5 @@ printf '%s:%s\n' "$(repo qworker)" "$sha" >"$gen/QWORKER_IMAGE"
 printf '%s:%s\n' "$(repo q2)" "$sha" >"$gen/Q2_IMAGE"
 printf '%s:%s\n' "$(repo o1)" "$sha" >"$gen/O1_IMAGE"
 printf '%s:%s\n' "$(repo d1)" "$sha" >"$gen/D1_IMAGE"
+printf '%s:%s\n' "$(repo g1)" "$sha" >"$gen/G1_IMAGE"
 echo "eks-images: wrote $gen (selfheal-app -> $sha-v1)"

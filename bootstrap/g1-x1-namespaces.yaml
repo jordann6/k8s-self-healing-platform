@@ -1,0 +1,32 @@
+# Namespaces for rows G1 and X1 on EKS and AKS (ADR-0025 and ADR-0026 cloud addenda). Kind creates the
+# same names in scripts/bootstrap.sh. Every pod the lab puts here is non-root, read-only root, no
+# privilege escalation, so the restricted profile is enforced. The Envoy proxy pods run in
+# envoy-gateway-system, which this file does not touch.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-g1-platform
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-g1
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    selfheal.lab/g1-routes: allowed
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-g1-other
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: selfheal-x1
+  labels:
+    pod-security.kubernetes.io/enforce: restricted

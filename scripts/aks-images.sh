@@ -56,6 +56,8 @@ push selfheal/q3 "$sha" "$root/app/q3"
 push selfheal/d1 "$sha" "$root/app/d1" -f "$root/app/d1/cloud.Dockerfile"
 push selfheal/n1 "$sha" "$root/app/n1"
 push selfheal/n1-capture "$sha" "$root/app/n1-capture"
+push selfheal/g1 "$sha" "$root/app/g1"
+push selfheal/x1 "$sha" "$root/app/x1"
 
 gen="$root/gitops/targets/aks/generated"
 mkdir -p "$gen"
@@ -90,6 +92,16 @@ images:
   - name: selfheal-n1-capture
     newName: $registry/selfheal/n1-capture
     newTag: $sha
+  - name: selfheal-g1
+    newName: $registry/selfheal/g1
+    newTag: $sha
+  - name: selfheal-x1
+    newName: $registry/selfheal/x1
+    newTag: $sha
+  # X1's target pod reuses the G1 backend image (ADR-0026).
+  - name: selfheal-x1-target
+    newName: $registry/selfheal/g1
+    newTag: $sha
 patches:
   - target: {kind: SecretStore, name: backend}
     patch: |-
@@ -104,5 +116,6 @@ printf '%s/selfheal/qworker:%s\n' "$registry" "$sha" >"$gen/QWORKER_IMAGE"
 printf '%s/selfheal/q2:%s\n' "$registry" "$sha" >"$gen/Q2_IMAGE"
 printf '%s/selfheal/o1:%s\n' "$registry" "$sha" >"$gen/O1_IMAGE"
 printf '%s/selfheal/d1:%s\n' "$registry" "$sha" >"$gen/D1_IMAGE"
+printf '%s/selfheal/g1:%s\n' "$registry" "$sha" >"$gen/G1_IMAGE"
 "$root/scripts/render-aks-profiles.sh" >/dev/null
 echo "aks-images: wrote $gen (selfheal-app -> $sha-v1)"

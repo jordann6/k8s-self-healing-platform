@@ -1,0 +1,28 @@
+# Hardened-only TLS for row G1 (ADR-0025 cloud addendum, decision b). An HTTPS listener bound to the
+# same hostname and route selector as the HTTP one, with a certificate from the lab CA that S2 uses.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - certificate.yaml
+patches:
+  - target: {group: gateway.networking.k8s.io, version: v1, kind: Gateway, name: g1}
+    patch: |-
+      - op: add
+        path: /spec/listeners/-
+        value:
+          name: https
+          port: 443
+          protocol: HTTPS
+          hostname: app.g1.lab
+          tls:
+            mode: Terminate
+            certificateRefs:
+              - {kind: Secret, name: g1-tls}
+          allowedRoutes:
+            kinds:
+              - {group: gateway.networking.k8s.io, kind: HTTPRoute}
+            namespaces:
+              from: Selector
+              selector:
+                matchLabels:
+                  selfheal.lab/g1-routes: "allowed"

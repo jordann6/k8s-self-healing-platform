@@ -154,3 +154,93 @@ refused, release after evidence 0.5 s to reachable, a replacement controller at 
 in 1.8 to 2.4 s with exactly one label patch, self-isolation refused, and the role could
 patch pods but not delete them or read Secrets. Not shown, behaviour on Cilium (an
 unexplained 12 to 33 s enforcement delay on a loaded single node) and on either cloud.
+
+## Addendum 2026-11-17, cloud contract (EKS and AKS), written before any overlay or runner change
+
+Status, ACCEPTED 2026-11-17 by Jordan, all three decisions as recommended. Overlays are built from this
+addendum, nothing is applied to any cloud. No threshold below comes from a cloud run.
+
+### Facts
+
+1. Cloud parity is cheap by construction. The controller calls only the Kubernetes API, so the
+   Cloud change is the image, the Role namespace and the CNI. The isolation object is a plain
+   `NetworkPolicy`, which Cilium enforces on both clouds, and the controller never touches a cloud API.
+2. P1 scope (`gitops/p1/hardened/verify-image.yaml`). The signature policy matches only namespaces
+   labelled `selfheal.lab/p1=true`. `selfheal-x1` is not labelled, so P1's Kyverno policy does not
+   see the X1 controller pod. The handoff said the image must be signed so P1 admits it, that
+   is only true if the namespace is labelled, which this ADR does not propose.
+3. Image convention. The cloud scripts push immutable ECR tags and write a generated Kustomize
+   component keyed on the logical image name (`selfheal-o1` and the others). The X1 target pod
+   reuses `app/g1` as `selfheal-x1-target:v1`, so on the cloud it needs the G1 image entry too.
+4. The kind result is on the default CNI. On Cilium, four of five kind runs missed the enforcement
+   bound by 12 to 33 s, and the cause is unexplained (ADR addendum, run5). Both clouds run Cilium
+   (EKS in ENI native routing, AKS in vxlan tunnel mode with kube-proxy kept).
+
+### Decisions proposed
+
+(a) Thresholds, per target. The kind numbers carry unchanged to both clouds, and the one number that
+could differ is written as informational.
+
+| Check | kind | EKS | AKS |
+|---|---|---|---|
+| status Isolated | 10 s | 10 s | 10 s |
+| pod unreachable after label | 30 s | 30 s | 30 s, informational if Cilium misses it again |
+| replacement controller Isolated | 30 s | 30 s | 30 s |
+| patches for one Quarantine across the kill | exactly 1 | exactly 1 | exactly 1 |
+| Role patch pods, no delete, no Secrets | yes | yes | yes |
+
+The "pod unreachable" bound on a Cilium cluster is exactly the number that missed on kind. It is
+judged on EKS and AKS because that is the claim, but a miss there is reported as the Cilium
+enforcement delay and not as an operator failure. The status and replacement bounds do not
+depend on the CNI and are always judged. The first replacement on a cloud may include an image pull
+to a node that never pulled it, so as ADR-0019 did, the runner pins the controller to one labelled
+system node and records the pull time from pod events instead of relaxing 30 s.
+
+(b) Image. `eks-images.sh` and `aks-images.sh` push `x1` (from `app/x1`) and `g1` (reused by X1's
+target) and the generated component adds `selfheal-x1` and `selfheal-x1-target`. Images are
+referenced by the same immutable sha tag as every other row. They are NOT signed and `selfheal-x1`
+is NOT labelled for P1, because P1 is its own row with its own namespace and key. Digest pinning in the
+overlay is proposed as `newTag` by sha like the other rows, not by digest, to keep one convention,
+and the ECR and ACR tags are immutable. If Jordan wants X1 under signature enforcement the
+decision changes the P1 policy scope and P1 would need a re-run, which this ADR does not do.
+
+(c) Cilium delay investigation, on kind, before the cloud session, no spend. Three questions, in order.
+Run `cilium-dbg endpoint list` right after the label patch and record when the endpoint's policy
+revision and identity change. Run `cilium-dbg monitor` or Hubble with the pod's address to see the
+first DROPPED flow, and compare to the controller's patch timestamp. Repeat on a Cilium kind cluster
+with nothing else loading the node (no Argo CD sync in flight, one `make x1-up` only) to separate node
+load from the label path. Outcome rules. If the delay follows endpoint regeneration, it is recorded as the
+mechanism and the bound stays judged. If it follows load, the cloud numbers decide. If neither explains
+it, X1 stays a default CNI result and the cloud row reports the Cilium number as informational. The
+bound is not retuned again to convert a miss into a pass.
+
+(d) Teardown and bootstrap. `selfheal-x1` and `selfheal-g1*` namespaces are created by both
+bootstrap scripts (restricted Pod Security) as `bootstrap.sh` does on kind. No cloud resource is
+created by X1, so the verify-gone scripts need no X1 check. The CRD is not pruned by Argo CD (already
+known), and a destroyed cluster takes it with it.
+
+### Build items this addendum creates (after acceptance)
+
+`gitops/targets/{eks,aks}/x1/{baseline,hardened}`, the two image entries and push lines, namespaces in
+both bootstrap scripts, X1 in the cloud row lists as a focused row with the per-target thresholds in
+`judge.py`, and `apply_x1_profile` pointing at the target path.
+
+### Decisions for Jordan
+
+1. Leave X1 unsigned and the namespace out of P1 scope (recommended), or bring it under signature
+   admission and re-run P1.
+2. Do the Cilium investigation on kind first (recommended, zero spend), or skip it and let the clouds
+   answer.
+3. Judge the "pod unreachable" bound on the clouds (recommended, reported as the Cilium delay if it
+   misses), or make it informational from the start.
+
+### Build notes 2026-11-17, where the build differs from the addendum above
+
+- The controller role check (`kubectl auth can-i --as`) now raises on anything but yes or no, so a
+  Forbidden on impersonation is an error and never reads as "the role cannot delete" (the ADR-0019 lesson,
+  and AKS live check L11).
+- The runner records the replacement controller's image pull events in `x1d.pull_events`.
+- The verdict text names the Cilium enforcement delay when only the "pod unreachable" bound is missed.
+  The row still reports a miss.
+- X1 is added to each cloud's root application directory like O1. Nothing else about G1 and X1 differs
+  between profiles on the clouds beyond the images and the node pin.

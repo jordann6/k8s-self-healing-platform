@@ -1,0 +1,7 @@
+# Parity policy for row G1 on Cilium clusters (ADR-0025 cloud addendum, decision c). Both profiles carry
+# it, so the only baseline versus hardened difference stays the listener. Kind runs the default CNI and
+# does not use this component.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - policy.yaml

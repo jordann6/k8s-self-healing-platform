@@ -58,6 +58,8 @@ check "resources tagged selfheal.lab=managed" "$(q az resource list --tag selfhe
 check "disks in lab groups" "$(in_lab az resource list --resource-type Microsoft.Compute/disks)"
 check "NICs in lab groups" "$(in_lab az resource list --resource-type Microsoft.Network/networkInterfaces)"
 check "public IPs in lab groups" "$(in_lab az resource list --resource-type Microsoft.Network/publicIPAddresses)"
+# Row G1 (ADR-0025 cloud addendum, e). The proxy Service's internal load balancer lives in the node
+# resource group, which in_lab already covers, so the check below also catches a leftover G1 frontend.
 check "load balancers in lab groups" "$(in_lab az resource list --resource-type Microsoft.Network/loadBalancers)"
 check "VM scale sets in lab groups" "$(in_lab az resource list --resource-type Microsoft.Compute/virtualMachineScaleSets)"
 check "evidence snapshots (anywhere)" "$(q az snapshot list --query "[?starts_with(name, 'snap-r2-')].id" -o tsv)"

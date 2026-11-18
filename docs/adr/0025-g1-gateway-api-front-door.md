@@ -122,3 +122,139 @@ first (as N1 and node repair were) and becomes judged only after two clean runs.
   requests in both profiles with two replicas, still informational.
 - Not yet read. Cilium default-deny interaction with the Envoy data plane, which
   needs the Cilium clusters.
+
+## Addendum 2026-11-17, cloud contract (EKS and AKS), written before any overlay or runner change
+
+Status, ACCEPTED 2026-11-17 by Jordan, all three decisions as recommended. Overlays are built from
+this addendum, nothing is applied to any cloud. Vendor pages were read on 2026-11-17 and are named per fact.
+No threshold below comes from a cloud run.
+
+### Facts read
+
+1. AKS internal load balancer (Microsoft Learn, "Use an internal load balancer with AKS", updated
+   2026-07-31). The annotation `service.beta.kubernetes.io/azure-load-balancer-internal: "true"`
+   on a `LoadBalancer` Service creates a Standard load balancer in the node resource group whose
+   frontend takes a private address from the node subnet, with no public IP. The cluster identity
+   needs Network Contributor on the virtual network, or `subnets/join/action` and `subnets/read`.
+   The lab module already gives the control plane identity a role on the node subnet
+   (`infra/azure/aks.tf`, `control_plane_subnet`). Deleting the Service deletes the load balancer.
+   Not read, whether the existing `deny-public-ip` policy treats an internal frontend differently,
+   it should not because there is no public IP object, and this stays live check L1.
+2. EKS provisioner (AWS EKS user guide "Route TCP and UDP traffic with Network Load Balancers", and
+   the cloud-provider-aws Service controller page). With no AWS Load Balancer Controller installed,
+   the in-tree cloud provider makes the load balancer. It creates a Classic Load Balancer unless
+   `service.beta.kubernetes.io/aws-load-balancer-type: nlb` is set, and
+   `service.beta.kubernetes.io/aws-load-balancer-internal: "true"` makes it internal. AWS says that
+   controller now receives only critical bug fixes and recommends the AWS Load Balancer Controller.
+   The same AWS page says that with an alternate CNI plugin the Load Balancer Controller can only use
+   instance targets, and this lab replaces the VPC CNI with Cilium, so installing it would not buy
+   IP targets. The lab VPC already tags private subnets `kubernetes.io/role/internal-elb=1`
+   (`infra/aws/vpc.tf`), so internal subnet discovery needs no new tag.
+3. Envoy Gateway (docs "Customize EnvoyProxy", v1.10). `envoyService.annotations` or a patch on the
+   `EnvoyProxy` sets Service annotations, and `envoyService.type` takes `LoadBalancer`. Service
+   annotations cannot be edited after creation on AWS ("delete the service object and create it again"),
+   so the annotations go in the first apply, never added later.
+4. Repo facts. `aks-verify-gone.sh` already checks load balancers and public IPs in the lab resource
+   groups. `eks-verify-gone.sh` has no load balancer check at all. The only Cilium policies in the
+   lab select `app` labels in the `selfheal` namespace (`gitops/profiles/hardened/policy.yaml`).
+   No `CiliumNetworkPolicy` exists in `selfheal-g1`, `selfheal-g1-other` or `selfheal-g1-platform`.
+   The Envoy proxy pods run in `envoy-gateway-system`. P1's admission policy applies only to
+   namespaces labelled `selfheal.lab/p1=true`.
+
+### Decisions proposed
+
+(a) Load balancer. Internal on both clouds, no public IP, as decision 1 already said. EKS uses the
+in-tree provider with `aws-load-balancer-type: nlb` and `aws-load-balancer-internal: "true"`, and
+the Load Balancer Controller is NOT installed (one more IAM role and chart, and no IP targets under
+Cilium, for a row that only needs a private address). AKS uses `azure-load-balancer-internal: "true"`.
+The runner calls the load balancer address from a pod in the cluster, so the judged checks cross the
+cloud load balancer, which is what makes the row more than a repeat of kind. Kind keeps ClusterIP.
+The cloud overlay patches `envoyService.type` to `LoadBalancer` and adds the annotations. A guard in
+`scripts/render-g1-profiles.sh` fails the render if a cloud overlay lacks the internal annotation.
+
+(b) TLS. The cloud hardened profile adds an HTTPS listener (443) on the existing cert-manager CA
+(`bootstrap/ca.yaml`, the same issuer the S2 row uses) with a `Certificate` in the platform
+namespace, and the runner verifies the served certificate against that CA. The baseline listener
+stays HTTP. TLS is therefore a hardened-only difference and a new check, G1f, a plain request
+over HTTPS validates against the lab CA and a request over HTTP is refused or redirected. No claim
+is made for the kind row, which stays HTTP only. If cert-manager cannot issue in time the row
+records G1f as an error, not a miss.
+
+(c) Cilium. The premise in the first draft ("default-deny in the app namespace") does not hold for
+the G1 namespaces, no policy exists there, so today nothing blocks the proxy. Proposed, both
+profiles carry one `CiliumNetworkPolicy` in `selfheal-g1` and `selfheal-g1-other` that selects the
+backend and admits only the Envoy proxy pods (namespace `envoy-gateway-system`, the
+`gateway.envoyproxy.io/owning-gateway-name` label) on 8080, so the policy is parity and the only
+baseline versus hardened difference stays the listener. A new informational check G1g labels the
+runner pod as a stranger, calls a backend directly, and requires a Hubble `DROPPED` flow with a
+policy-denied reason on the destination, which shows the backend side blocked it. Which side blocks
+is therefore answered by the destination endpoint's ingress verdict in Hubble. Not read, that the
+Envoy Gateway proxy pods carry the same `owning-gateway` labels the Service and Deployment docs
+show, and whether Hubble reports the L7 proxy's source identity as the pod or the node. Both are
+live checks L2 and L3 and must be answered on the cluster before the policy selector is final.
+
+(d) Thresholds, per target, written now and not changed after a run without a disclosed addendum.
+
+| Check | kind | EKS | AKS | Why |
+|---|---|---|---|---|
+| route status (Accepted, ResolvedRefs) | 30 s | 30 s | 30 s | Controller only, no cloud call, kind took 0.05 s |
+| legit route | 200 | 200 | 200 | unchanged |
+| denied host or namespace | 404 | 404 | 404 | unchanged |
+| deleted backend | 500 | 500 | 500 | unchanged |
+| Gateway Programmed with an address | n/a | 300 s | 300 s | Cloud load balancer provisioning, chosen from documented behaviour, not a run |
+| first 200 through the load balancer | n/a | 300 s after address | 300 s after address | Target registration and health checks, same reason |
+| TLS check G1f | n/a | cert Ready 120 s | cert Ready 120 s | cert-manager issue, S2 uses 60 s on kind |
+| Hubble drop G1g | n/a | informational | informational | Reading the datapath, not a recovery claim |
+| proxy kill G1e | informational | informational | informational | Decision 3, judged only after two clean runs on that target |
+
+If a cloud number is missed the row reports the miss. The 300 s provisioning bounds are loose on
+purpose, and they are retuned only by a disclosed addendum after a run, as ADR-0026 did once.
+
+(e) Teardown. `eks-verify-gone.sh` gains a leftover check for load balancers, Classic and
+NLB, filtered on the lab's cluster tag (`kubernetes.io/cluster/selfheal`) and on load balancer
+security groups, since a Service left behind on destroy orphans an NLB and its security group in
+the VPC and blocks the VPC delete. `aks-verify-gone.sh` already covers load balancers and public IPs
+in the lab groups, so it only gains a comment naming G1. Both `*-predestroy.sh` scripts delete the
+Gateway namespace first and wait for the Service to disappear, before Argo CD or the cluster goes.
+
+(f) Proxy-kill bar. The kind run is a single run. A second kind run (kind-g1-run2) happens before
+the cloud session, so decision 3 can be applied to kind. The cloud bar needs two clean runs per
+target and cannot be satisfied in one paid session, so G1e is informational on EKS and AKS in the
+first session whatever it shows. Both paths are recorded, the ClusterIP path and the load balancer
+path, since load balancer deregistration time is a separate number.
+
+### Build items this addendum creates (after acceptance)
+
+`gitops/targets/{eks,aks}/g1/{baseline,hardened}`, a cloud `EnvoyProxy` patch, the HTTPS listener
+and `Certificate`, the two `CiliumNetworkPolicy` objects in both profiles, `push g1` and a
+`selfheal-g1` image entry in `eks-images.sh` and `aks-images.sh`, namespace creation in both
+bootstrap scripts, `proxy_address` accepting `LoadBalancer`, G1f and G1g in `g1_row.py` and
+`judge_g1`, G1 in the cloud row lists as a focused row, and the `eks-verify-gone.sh` check.
+
+### Decisions for Jordan
+
+1. Internal NLB through the in-tree provider on EKS, no Load Balancer Controller (recommended), or
+   install the controller.
+2. Add G1f (TLS) and G1g (Hubble drop) as new checks, or keep the cloud row to the kind checks only.
+3. Add the parity `CiliumNetworkPolicy` to both profiles (recommended), or leave the G1 namespaces
+   without policy and say so.
+
+### Build notes 2026-11-17, where the build differs from the addendum above
+
+- G1f. The HTTP half ("refused or redirected") is dropped. The hardened Gateway keeps its HTTP listener
+  and the route attaches to both listeners, so no refusal exists to test. G1f is now, the lab-CA
+  certificate Ready within 120 s, HTTPS served and verifying against the lab CA, and the same request
+  without the lab CA failing verification.
+- First 200 clock. It is measured from the start of the row, so it is never shorter than the wait after
+  the address. The address clock is taken from Kubernetes timestamps (proxy Service created to Gateway
+  Programmed), so it holds when the Gateway was provisioned before the row began. Both bounds are 300 s.
+- Where G1 and X1 run. Both are added to each cloud's root application directory
+  (`gitops/targets/{eks,aks}/apps/{baseline,hardened}`), as O1 is, so the runner moves the root path.
+  Their rows stay focused only (`FOCUSED_ONLY_ROWS`), never in the default cloud row list. Envoy Gateway is
+  installed by `eks-platform.sh` and `aks-platform.sh` from the pinned chart.
+- Infrastructure change, not applied. `infra/aws/data.tf` gains two ECR repositories, `g1` and `x1`. The next
+  `make eks-plan` shows them as additions. AKS needs none, ACR creates repositories on push.
+- Not verified, because nothing ran on a cloud. That the in-tree provider tags its load balancers and security
+  groups `kubernetes.io/cluster/selfheal` (the new `eks-verify-gone.sh` checks rely on it, and a check that
+  finds nothing for the wrong reason would read as "gone"), live checks L1 to L3, and the Envoy
+  proxy pod labels. Verify the tag on the first EKS session before trusting a clean result.

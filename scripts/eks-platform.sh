@@ -18,7 +18,7 @@ root="$(cd "$(dirname "$0")/.." && pwd)"
 : "${CILIUM_VERSION:?}" "${KARPENTER_VERSION:?}" "${METRICS_SERVER_VERSION:?}" "${VPA_VERSION:?}" "${KYVERNO_VERSION:?}" "${KPS_VERSION:?}"
 : "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}" "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}"
 : "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}" "${TALON_VERSION:?}" "${FALCO_VERSION:?}"
-: "${KEDA_VERSION:?}"
+: "${KEDA_VERSION:?}" "${ENVOY_GATEWAY_VERSION:?}"
 
 out() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -raw "$1"; }
 outj() { AWS_PROFILE="$MGMT_PROFILE" terraform -chdir="$root/infra/aws" output -json "$1"; }
@@ -137,6 +137,10 @@ install argo-rollouts argo/argo-rollouts "$ROLLOUTS_VERSION" argo-rollouts $(val
 # After Rollouts, never before (phase 1, row S1: silent forbidden otherwise).
 # shellcheck disable=SC2046
 install reloader stakater/reloader "$RELOADER_VERSION" reloader $(values reloader)
+# Row G1 (ADR-0025). Gateway API CRDs come with the chart. The proxy Service is an internal
+# load balancer on the cloud overlays (ADR-0025 cloud addendum).
+install eg oci://docker.io/envoyproxy/gateway-helm "$ENVOY_GATEWAY_VERSION" envoy-gateway-system \
+	-f "$root/platform/envoy-gateway.yaml"
 # shellcheck disable=SC2046
 install argocd argo/argo-cd "$ARGOCD_VERSION" argocd $(values argo-cd)
 # shellcheck disable=SC2046

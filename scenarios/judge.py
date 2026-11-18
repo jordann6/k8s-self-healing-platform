@@ -168,6 +168,17 @@ THRESHOLDS["aks"]["D1"] = {**THRESHOLDS["kind"]["D1"], "admin_attribution": True
 THRESHOLDS["aks"]["N1"] = dict(THRESHOLDS["kind"]["N1"])
 THRESHOLDS["eks"]["N1"] = {**THRESHOLDS["kind"]["N1"], "datapath": "native"}
 
+# Rows G1 and X1 on EKS and AKS (ADR-0025 and ADR-0026 cloud addenda). Written before any cloud run.
+# G1 adds the cloud load balancer clocks and the TLS check. They are chosen from documented
+# provisioning behaviour, not from a run, and are retuned only by a disclosed addendum. The proxy
+# kill stays informational (decision 3), and the Hubble drop (G1g) is recorded, never judged.
+# X1 carries the kind numbers. The "pod unreachable" bound is the one that missed on Cilium kind runs,
+# so a miss is reported as the Cilium enforcement delay (the judge says so), not as a controller fault.
+for _cloud in ("eks", "aks"):
+    THRESHOLDS[_cloud]["G1"] = {**THRESHOLDS["kind"]["G1"], "lb": True, "address_s": 300, "first_ok_s": 300,
+                                "cert_ready_s": 120}
+    THRESHOLDS[_cloud]["X1"] = {**THRESHOLDS["kind"]["X1"], "cilium": True}
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.
@@ -819,6 +830,8 @@ def judge_g1(o: dict, t: dict):
             return False, f"the Gateway took {fault.get('status_s')}s to report {name}", False, False
     if (o["legit_before"].get("status") != legit):
         return False, "the legitimate route did not serve before any fault", False, False
+    if t.get("lb") and o.get("proxy_service") != "LoadBalancer":
+        return False, "the cloud row did not call the proxy through its load balancer", False, False
 
     def served(name: str) -> bool:
         return o[name]["request"].get("status") == legit
@@ -849,6 +862,18 @@ def judge_g1(o: dict, t: dict):
     why = (f"stray host rejected {stray_ok}, cross-namespace route rejected {cross_ok}, deleted backend failed "
            f"closed {ghost_ok}, unrouted and unknown host 404 {unrouted_ok}, legitimate route served "
            f"throughout {legit_ok}; proxy kill (informational) {kill.get('failures')} of {kill.get('requests')} failed")
+    if t.get("lb"):
+        tls = o.get("tls")
+        if not tls or tls.get("error"):
+            return False, f"G1f TLS check did not run: {(tls or {}).get('error', 'missing')}", False, False
+        lb_ok = le(o.get("lb_address_s"), t["address_s"]) and le(o.get("first_ok_s"), t["first_ok_s"])
+        tls_ok = (tls.get("served_ok") is True and tls.get("rejected_without_lab_ca") is True
+                  and le(tls.get("cert_ready_s"), t["cert_ready_s"]))
+        healed = healed and lb_ok and tls_ok
+        drop = o.get("hubble_drop") or {}
+        why += (f"; load balancer address in {o.get('lb_address_s')}s and first 200 in {o.get('first_ok_s')}s {lb_ok}, "
+                f"TLS from the lab CA {tls_ok}; backend policy drop seen in Hubble (informational) "
+                f"{drop.get('seen')}")
     return True, why, True, healed
 
 
@@ -886,7 +911,11 @@ def judge_x1(o: dict, t: dict):
     e_ok = (e.get("phase") == "Failed" and e.get("reason") == "Protected" and e.get("labels_unchanged") is True
             and e.get("can_delete_pods") is False and e.get("can_get_secrets") is False
             and e.get("can_patch_pods") is True)
-    why = (f"isolated in {a.get('isolate_s')}s without a restart {a_ok}, release before evidence refused {b_ok}, "
+    cilium_note = ""
+    if t.get("cilium") and not le(a.get("blocked_s"), t["blocked_s"]):
+        cilium_note = (f" (the controller isolated in {a.get('isolate_s')}s, the pod stayed reachable "
+                       f"{a.get('blocked_s')}s, which is the Cilium enforcement delay and not controller latency)")
+    why = (f"isolated in {a.get('isolate_s')}s without a restart {a_ok}{cilium_note}, release before evidence refused {b_ok}, "
            f"release after evidence {c_ok}, resumed after controller kill in {d.get('resume_s')}s {d_ok}, "
            f"self-isolation refused and role has no delete or Secret read {e_ok}")
     return True, why, True, a_ok and b_ok and c_ok and d_ok and e_ok

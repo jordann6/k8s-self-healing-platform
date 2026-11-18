@@ -1,0 +1,17 @@
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: g1-tls
+  namespace: selfheal-g1-platform
+spec:
+  secretName: g1-tls
+  duration: 24h
+  renewBefore: 8h
+  privateKey:
+    algorithm: ECDSA
+    size: 256
+  dnsNames:
+    - app.g1.lab
+  issuerRef:
+    name: lab-ca
+    kind: ClusterIssuer
