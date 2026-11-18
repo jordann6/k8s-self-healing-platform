@@ -13,12 +13,13 @@ healed 10 of its 11 core rows (A3 healed at 281 ms on a rerun, R2 stays
 blocked because Defender never raised the alert). Phase 4 added seven more
 rows, run on both clouds on Kubernetes 1.36 (Q1 to Q3, P1, D1, O1, N1). Every
 phase 4 row healed on AKS. On EKS six healed and N1 stayed inconclusive
-because its baseline never showed impact. Counting both clouds that is 38
-hardened rows, 36 healed, one inconclusive, one blocked. GCP and an integrated
-adversarial proof on one cluster ([ADR-0024](docs/adr/0024-integrated-adversarial-proof.md),
-designed, not built) come next. Two more rows, G1 (a Gateway API front door) and
-X1 (a Quarantine custom resource and its controller), have each run twice or
-once on kind and healed, and have not run on either cloud.
+because its baseline never showed impact. Two more rows, G1 (a Gateway API
+front door) and X1 (a Quarantine custom resource and its controller), ran on
+kind and then once on each cloud, and all four cloud runs healed. Counting both
+clouds that is 42 hardened rows, 40 healed, one inconclusive, one blocked. GCP
+and an integrated adversarial proof on one cluster
+([ADR-0024](docs/adr/0024-integrated-adversarial-proof.md), designed, not
+built) come next.
 
 ![Self-healing platform on EKS](docs/architecture.png)
 
@@ -98,8 +99,9 @@ contract):
 
 *The phase 4 rows. Blue is scaling and sizing, red is admission and
 encryption, orange is recovery and operations, and the dashed grey edges are
-the runner. The two object stores are the per-cloud pair. The green box at the
-top is the two rows that have only run on kind. Source:
+the runner. The two object stores are the per-cloud pair. Green is G1 and X1,
+which ran on kind, EKS and AKS, with the per-cloud internal load balancers shown
+for G1. Source:
 `docs/diagram_phase4.py`.*
 
 | Row | Fault | Healing control | EKS | AKS |
@@ -119,23 +121,35 @@ Cilium policies are additive ([ADR-0023](docs/adr/0023-n1-cloud-parity-contract.
 The fix landed before the AKS pass and EKS has not been rerun, so the EKS row
 stays inconclusive in the record.
 
-### Two more rows, kind only so far
+### Two more rows, on kind, EKS and AKS
 
 The Kubernetes Explained checklist this lab was compared against listed a
 north-south entrance and authored operators as the two ideas the platform did
-not yet prove. G1 and X1 close those gaps. Both run on a plain kind cluster, so
-neither claim says anything yet about EKS, AKS or Cilium.
+not yet prove. G1 and X1 close those gaps. Both ran on kind first, then once on
+each cloud in a paid session.
 
-| Row | Fault | Healing control | kind result |
+| Row | Fault | Healing control | Result |
 |---|---|---|---|
-| G1 | An app team attaches a route for a stray hostname, a route from another namespace, and a route to a deleted backend | Envoy Gateway, platform namespace owns one listener bound to one hostname and to labelled namespaces, the app team owns its HTTPRoute ([ADR-0025](docs/adr/0025-g1-gateway-api-front-door.md)) | healed in one run (`kind-g1-run1`), the stray host and the cross-namespace route got 404 instead of being served, the legitimate route stayed up |
-| X1 | A responder isolates a compromised pod and then releases it before evidence exists | A `Quarantine` custom resource and a controller that isolates, waits for evidence bound to the pod UID, and releases only on a later request ([ADR-0026](docs/adr/0026-x1-quarantine-operator.md)) | healed in two clean runs (`kind-x1-run6`, `run7`), isolated in 0.8 to 1.3s with no restart, early release refused, a replacement controller resumed in under 2.5s with one label patch |
+| G1 | An app team attaches a route for a stray hostname, a route from another namespace, and a route to a deleted backend | Envoy Gateway, platform namespace owns one listener bound to one hostname and to labelled namespaces, the app team owns its HTTPRoute, internal load balancer on the clouds, hardened-only TLS from the lab CA ([ADR-0025](docs/adr/0025-g1-gateway-api-front-door.md)) | healed on kind twice (`kind-g1-run1`, `run2`), on EKS (`eks-g1-run1`) and on AKS (`aks-g1-run2`). The stray host and the cross-namespace route got 404 instead of being served, the legitimate route stayed up, TLS was ready in 0.9 to 1.2s on the clouds |
+| X1 | A responder isolates a compromised pod and then releases it before evidence exists | A `Quarantine` custom resource and a controller that isolates, waits for evidence bound to the pod UID, and releases only on a later request ([ADR-0026](docs/adr/0026-x1-quarantine-operator.md)) | healed on kind (`kind-x1-run6`, `run7`), on EKS (`eks-x1-run1`, isolated in 4.6s, unreachable at 9.2s, resumed in 7.0s) and on AKS (`aks-x1-run1`, 2.6s, 13.7s, 5.6s). Early release was refused in each |
 
-Two honest limits on G1. The deleted-backend 500 and the unrouted 404 were the
-same in the baseline and the hardened run, because Gateway API isolates a broken
-route by itself, so only the role split is the hardening. The proxy pod kill
-lost 0 of 22 requests in both profiles and stays informational until a second
-clean run.
+Honest limits on G1.
+
+- The deleted-backend 500 and the unrouted 404 were the same in the baseline and
+  the hardened run, because Gateway API isolates a broken route by itself, so
+  only the role split is the hardening.
+- The proxy pod kill lost 0 of 22 and 0 of 19 requests on kind, 0 of 4 on EKS and
+  0 of 6 on AKS. It stays informational, no bound is judged.
+- The load balancer address clock does not compare across clouds. It read 77s on
+  AKS and 4.0s on EKS, because the AWS provider reports the load balancer as
+  ensured while the NLB is still provisioning. Time to first served request on a
+  cold NLB was not measured, and the EKS first request (11.5s) hit an NLB that
+  had been active since bootstrap.
+- Each cloud ran once. The AKS first run is kept as a recorded miss (below).
+
+One honest limit on X1. "Pod unreachable" times include up to 3s of probe
+timeout, and on Cilium they include a deliberate identity delay (below), so the
+isolated time is the number that measures the controller.
 
 Cilium Gateway API was the first choice for G1 and was ruled out by reading its
 documentation. It needs `kubeProxyReplacement=true`, which none of the three
@@ -150,8 +164,9 @@ make demo    # baseline then hardened, every row -> evidence/<run-id>/report.md
 make down
 ```
 
-The two kind-only rows have their own clusters. `make g1-up` then
-`make demo ROWS=G1`, or `make x1-up` then `make demo ROWS=X1`.
+G1 and X1 have their own kind clusters. `make g1-up` then
+`make demo ROWS=G1`, or `make x1-up` then `make demo ROWS=X1`. On the clouds they
+run with `TARGET=eks` or `TARGET=aks` inside a paid session.
 
 Needs docker (about 4 GB free for the cluster), kind, kubectl, helm, cilium,
 hubble, jq, openssl 3.4+ and python3. The lab uses its own kubeconfig
@@ -272,13 +287,35 @@ unproven on Azure until Defender fires.
   release was checked 3s after the label came off, before the network policy
   engine had applied it, so a premature release looked harmless and the runner
   correctly refused to call the hardened run healed. It now polls for up to 40s.
-- **Cilium enforced the label change 12 to 33s late, and I did not find why.**
-  The controller marked the pod isolated in under 2s, but the pod stayed
+- **Cilium enforced the label change 12 to 33s late, and it was Cilium's own
+  timer.** The controller marked the pod isolated in under 2s, but the pod stayed
   reachable for 11.9, 28.0, 17.5 and 33.2s across four Cilium runs, past a bound
   I first guessed at 15s and then raised to 30s after seeing the data (disclosed
-  in the ADR). The agent log showed no identity allocation failures, so the R1
-  explanation did not apply. X1's claim is the operator, so it moved to the
-  default kind CNI, where the pod blocked in 3.7s. X1 on Cilium is unproven.
+  in the ADR). The agent log showed no allocation failures. Reading the v1.20.4
+  source found the cause, `identity-change-grace-period` (5s) plus a random
+  `identity-max-jitter` of up to 30s before an endpoint takes its new identity.
+  Setting both to 1s made the pod block in about 2s, so it was not load, not
+  allocation and not the datapath. The same jitter explains the 8 to 43s spread
+  in R1's isolation evidence. The defaults stay, and X1 reports the delay
+  instead of hiding it. X1 on Cilium passed on both clouds (EKS baseline
+  unreachable at 32.5s shows the jitter).
+- **The EKS and AKS runs found problems kind could not.**
+  - The first AKS G1 run missed. The load balancer clock read the Gateway's
+    `Programmed` transition time, which resets on every profile switch (608s and
+    759s), when the real provisioning was 77s. The clock now runs from Service
+    creation to the first `EnsuredLoadBalancer` event, the 300s bound is
+    unchanged, and the missed run is kept beside the passing rerun.
+  - Teardown re-created the load balancer. The predestroy script deleted two
+    Argo CD apps, but the child apps self-heal and the application controller was
+    still running, so Argo CD rebuilt the Gateway 2s after it was deleted and
+    made a second NLB. Both predestroy scripts now scale the controller to 0 and
+    wait for its pod to go first. That fix has not run against a cluster yet.
+  - The in-tree AWS NLB creates no security group of its own. It adds rules to
+    the node security group, including a NodePort rule open to `0.0.0.0/0`, so
+    the leftover check cannot positively confirm a load balancer group.
+    Restricting `loadBalancerSourceRanges` to the VPC CIDR is a later tightening.
+  - Azure RBAC answers an impersonated permission check with "no - Azure does not
+    have opinion", which crashed the X1 check until it read only the first word.
 - **Argo CD never prunes a CRD.** Switching back to the baseline removed the
   controller and its Role but left the CRD, so the baseline claims that no
   controller is acting, not that the CRD is absent.
