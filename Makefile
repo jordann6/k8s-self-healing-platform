@@ -427,6 +427,7 @@ KEEP_AWAKE := $(if $(shell command -v caffeinate 2>/dev/null),caffeinate -i,)
 .PHONY: demo
 demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks|aks|gke
 	$(if $(filter eks,$(TARGET)),AWS_PROFILE=$(LAB_PROFILE) MGMT_PROFILE=$(MGMT_PROFILE),) \
+	$(if $(filter gke,$(TARGET)),$(GKE_ENV),) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) $(KEEP_AWAKE) python3 scenarios/run.py --target $(TARGET) \
 		$(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
 
