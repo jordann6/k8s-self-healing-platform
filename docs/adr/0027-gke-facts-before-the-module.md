@@ -470,3 +470,24 @@ kernel `6.12.113+`. Images built at `fb0bea5`; the run used `gke-run1`.
    to start (context guard), and the target now passes `.kube/gke` itself.
 
 None of these touched a threshold or a manifest under test.
+
+### Row results (`evidence/gke-run1`, 2026-11-18)
+
+Every baseline showed impact. Hardened: A1, A2, A4, S2 and S3 healed; A3, A5
+and R1 missed. No threshold was changed for any of them.
+
+| Row | Hardened | What it showed |
+|---|---|---|
+| A1 | healed, serving again at 36s | |
+| A2 | healed, canary aborted at 70s | |
+| A3 | miss, p95 319.0 ms (bar 300), 0.00% errors, HPA 3 to 10 | The AKS story again: KEDA on Prometheus removes the metrics-server wait, and the shared CPU target leaves the sustain window just over the bar. The HPA reached its 10-replica ceiling. Not tuned on GKE alone |
+| A4 | healed, NotReady at 56s, 0.07% errors from then, every replica serving at 98s | **L4 answered.** The managed instance group started the stopped VM itself at 134s, after the heal; no auto-repair operation ran and no shutdown taint appeared. 35.6% of requests failed in the 56s before NotReady, reported and not judged (the AKS D3 clock): with a stopped VM the dead pod keeps its Service endpoint until the node controller marks the node |
+| A5 | miss, 1.17% errors (bar 1%), OOM kill 14.3s, serving 17.4s, paged 20.5s | Every clock passed. All 6 failures (of 514) fell 9 to 11s after injection, before the kill: the container stalled under memory pressure while still serving. The kill and restart cost nothing |
+| S2 | healed, 0 TLS errors of 153, new certificate served at 60s | |
+| S3 | healed, policy restored 2s, hand edit reverted 4s | |
+| R1 | miss, isolated 32s (bar 30s), 25 Hubble drops, evidence 53s | The quarantine policy worked on GKE (L2 passed: drops at the policy, probes kept passing). The 2s over is the identity grace period plus jitter (ADR-0002 addendum), the same cause as EKS's 34.6s |
+
+Live check L2 passed (the policy file is identical on all four targets); L5
+passed (no port-forward lost over the 56-minute run); L10 passed
+(`gke-verify-gone`, nothing left). The destroy removed 17 resources, the
+cluster in 5m24s. The lab project stays (D1).
