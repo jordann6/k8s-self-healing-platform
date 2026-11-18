@@ -25,17 +25,32 @@ check() { # name, value (empty = gone)
 		left=1
 	fi
 }
-# A failed query prints a LEFT line, never an empty (gone) one.
+# A failed query prints a LEFT line, never an empty (gone) one. Aggregated
+# compute lists (instances, disks, forwarding rules, instance groups) exit 0
+# when a project or zone cannot be read and only say so on stderr, so any
+# error there counts as a failed call too (found shaking the script down
+# against a project that does not exist, 2026-11-18).
+run() { # gcloud args... -> stdout, or return 1
+	local err o
+	err="$(mktemp)"
+	o="$("$@" --project="$project" 2>"$err")" || { rm -f "$err"; return 1; }
+	if grep -qiE '^ERROR|did not succeed|PERMISSION_DENIED|not found' "$err"; then
+		rm -f "$err"
+		return 1
+	fi
+	rm -f "$err"
+	printf '%s' "$o"
+}
 q() {
 	local o
-	o="$("$@" --project="$project" 2>/dev/null)" || { echo "gcloud call failed: ${*:1:4}"; return; }
+	o="$(run "$@")" || { echo "gcloud call failed: ${*:1:4}"; return; }
 	tr '\t\n' '  ' <<<"$o" | sed 's/ *$//'
 }
 # Names that were not in the before-picture.
 new() { # snapshot key, gcloud compute args...
 	local key="$1" now
 	shift
-	now="$(gcloud compute "$@" --project="$project" --format='value(name)' 2>/dev/null)" || { echo "gcloud call failed: compute $1"; return; }
+	now="$(run gcloud compute "$@" --format='value(name)')" || { echo "gcloud call failed: compute $1"; return; }
 	if [[ -f "$snapshot" ]]; then
 		comm -13 <(jq -r --arg k "$key" '.[$k][]' "$snapshot" | sort) <(sort <<<"$now") | tr '\n' ' ' | sed 's/ *$//'
 	else
