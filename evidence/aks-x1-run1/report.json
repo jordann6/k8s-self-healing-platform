@@ -1,0 +1,136 @@
+{
+  "run_id": "aks-x1-run1",
+  "target": "aks",
+  "started": "2026-11-18T07:38:02.380Z",
+  "rows": [
+    "X1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "x1_node_labelled": "aks-system-33432939-vmss000000",
+    "x1_synced": true
+  },
+  "versions": {
+    "repo_commit": "a15a1953e1a517f842c05b71f9bec5a399ff5e94-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealirjygg.azurecr.io/selfheal/qworker:a15a195",
+    "q2-signal": "acrselfhealirjygg.azurecr.io/selfheal/q2:a15a195",
+    "q2-target": "acrselfhealirjygg.azurecr.io/selfheal/q2:a15a195",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealirjygg.azurecr.io/selfheal/q3:a15a195",
+    "n1-server": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "n1-client": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "n1-denied": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealirjygg.azurecr.io/selfheal/app:a15a195-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "X1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "manual flow isolated the pod, then released it with no evidence recorded and no status anywhere",
+        "thresholds": {
+          "isolate_s": 10,
+          "blocked_s": 30,
+          "resume_s": 30,
+          "cilium": true
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "isolated in 2.564s without a restart True, release before evidence refused True, release after evidence True, resumed after controller kill in 5.63s True, self-isolation refused and role has no delete or Secret read True",
+        "thresholds": {
+          "isolate_s": 10,
+          "blocked_s": 30,
+          "resume_s": 30,
+          "cilium": true
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "X1": {
+      "baseline": {
+        "controller_present": false,
+        "reachable_before": true,
+        "blocked_s": 19.151,
+        "released_reachable_s": 10.09,
+        "released_without_evidence": true,
+        "evidence_checked": false,
+        "status_available": false,
+        "t0": 1794987511.9111161,
+        "profile": "baseline",
+        "window": "isolation, premature release, evidence, release, controller kill, and the self-isolation refusal",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "reachable_before": true,
+        "x1a": {
+          "phase": "Isolated",
+          "isolate_s": 2.564,
+          "blocked_s": 13.71,
+          "same_uid": true,
+          "restarts_unchanged": true,
+          "replacement_serving": true
+        },
+        "x1b": {
+          "phase": "Isolated",
+          "handled": "r1",
+          "refused_reason": "NoEvidence",
+          "blocked": true
+        },
+        "x1c": {
+          "preserved": true,
+          "released": true,
+          "after_evidence": true,
+          "reachable_s": 8.784,
+          "labels_restored": true
+        },
+        "x1d": {
+          "resumed": true,
+          "resume_s": 5.63,
+          "label_actions": 1,
+          "same_uid": true,
+          "controller_pods": 1,
+          "pull_events": [
+            "Pulled: Container image \"acrselfhealirjygg.azurecr.io/selfheal/x1:a15a195\" already present on machine and can be accessed by the pod"
+          ]
+        },
+        "x1e": {
+          "phase": "Failed",
+          "reason": "Protected",
+          "labels_unchanged": true,
+          "can_delete_pods": false,
+          "can_get_secrets": false,
+          "can_patch_pods": true
+        },
+        "t0": 1794987634.504032,
+        "profile": "hardened",
+        "window": "isolation, premature release, evidence, release, controller kill, and the self-isolation refusal",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-18T07:41:48.485Z",
+  "pass": true
+}

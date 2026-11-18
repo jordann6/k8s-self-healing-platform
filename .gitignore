@@ -63,6 +63,10 @@ evidence/*
 !evidence/aks-run1-rows/
 !evidence/aks-run1-s4/
 !evidence/aks-run1-a3/
+# AKS G1 and X1 session 2026-11-18 (aks-g1-run1 is the kept miss from the address clock, ADR-0025 addendum)
+!evidence/aks-x1-run1/
+!evidence/aks-g1-run1/
+!evidence/aks-g1-run2/
 
 # Terraform saved plans and Lambda build output
 *.tfplan
