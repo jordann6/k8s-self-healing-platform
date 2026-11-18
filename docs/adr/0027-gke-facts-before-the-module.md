@@ -1,7 +1,7 @@
 # ADR-0027: GKE facts verified before the GCP module is written
 
-- **Status:** proposed (2026-11-18). Nothing is built or applied. Decisions
-  D1 to D5 at the end wait for Jordan.
+- **Status:** accepted (2026-11-18). Jordan chose the recommended option for
+  D1, D2, D3 and D5; D4 follows the recommendation. Nothing is applied.
 - **Date:** 2026-11-18
 
 ## Context
