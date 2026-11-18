@@ -8,7 +8,7 @@
 #   3. make aks-verify-gone
 #
 # What it removes, in order:
-#   - the Argo CD apps (so nothing re-creates what follows)
+#   - the Argo CD apps and the application controller (so nothing re-creates what follows)
 #   - the lab app and its PodDisruptionBudget. Terraform deletes the workload
 #     node pool before the cluster, and a node pool delete considers PDBs
 #     (this CLI has no --ignore-pdb), so minAvailable 2 on a draining pool
@@ -45,10 +45,22 @@ node_rg="${node_rg:-rg-selfheal-lab-nodes}"
 if kubectl version --request-timeout=10s >/dev/null 2>&1; then
 	echo "aks-predestroy: stopping Argo CD sync"
 	kubectl -n argocd delete application selfheal-root selfheal-workload --ignore-not-found --wait=false >/dev/null || true
+	# Deleting the two apps is not enough. The child apps (selfheal-g1 among them) keep selfHeal true and
+	# the application controller keeps running, so it re-created the G1 Gateway 2 seconds after it was
+	# deleted and built a second load balancer (first EKS G1 session). Stop the controller itself and wait
+	# for its pod to go. Chart 10.x runs it as a StatefulSet, a Deployment is the older shape.
+	if kubectl -n argocd get statefulset argocd-application-controller >/dev/null 2>&1; then
+		kubectl -n argocd scale statefulset argocd-application-controller --replicas=0 >/dev/null || true
+	else
+		kubectl -n argocd scale deployment argocd-application-controller --replicas=0 >/dev/null 2>&1 || true
+	fi
+	kubectl -n argocd wait --for=delete pod -l app.kubernetes.io/name=argocd-application-controller \
+		--timeout=120s >/dev/null 2>&1 || \
+		echo "aks-predestroy: the Argo CD application controller pod is still present, the Gateway may be re-created" >&2
 
 	# Row G1 (ADR-0025 cloud addendum, e). Delete the Gateway first and wait for the proxy Service to go,
-	# so the cloud controller removes the load balancer before the cluster does. Argo CD is already stopped,
-	# so nothing re-creates it.
+	# so the cloud controller removes the load balancer before the cluster does. The Argo CD application
+	# controller is scaled to 0 above, so nothing re-creates it.
 	echo "aks-predestroy: removing the G1 Gateway and waiting for its load balancer Service to go"
 	kubectl -n selfheal-g1-platform delete gateway g1 --ignore-not-found --wait=true --timeout=180s >/dev/null || true
 	kubectl -n envoy-gateway-system wait --for=delete service \
