@@ -426,3 +426,47 @@ Prometheus managed collection; Access change propagation; Delete and restore
 projects; Cloud Billing quotas; GKE pricing. Also: Cilium 1.20.5 Helm install
 (GKE); Falco Specific Environments (GKE). Landing zone repository:
 `workload/gke.tf`, `terraform/org_policies.tf`, `docs/completion.md`.
+
+## Addendum: the first live session (2026-11-18)
+
+Lab project created by `infra/gcp-project` (9 resources, kept between
+sessions per D1). `infra/gcp` applied 17 resources; the cluster took 9m02s,
+each pool about 1m20s. GKE `1.36.5-gke.1982000`, 7 e2-standard-2 nodes, COS
+kernel `6.12.113+`. Images built at `fb0bea5`; the run used `gke-run1`.
+
+### Live checks
+
+| Check | Result |
+|---|---|
+| L1 BYO Cilium | PASS. Pools registered with the agent-not-ready NoExecute taint, every node Ready, Cilium lifted the taint itself, readiness gate passed (all pods Cilium-managed). No auto-repair during bootstrap |
+| L3 Falco on COS | PASS. All 7 pods log "Opening 'syscall' source with modern BPF probe" within about 20s of start |
+| L6 HPA input | Recorded. GKE runs `metrics-server-v1.36.0` with `--metric-resolution=30s` (AKS 60s, kind and EKS 15s), and the cluster reports HPA profile `PERFORMANCE`, the default for Standard on 1.33+. Not judged: A3 reads Prometheus through KEDA (D4) |
+| L7 quotas | PASS, and wider than planned (below) |
+| L8 NAT egress | PASS. Every chart image pulled through Cloud NAT |
+
+### What the session fixed before the first row ran
+
+1. **Quotas beyond the regional CPU count.** A new project also has
+   `CPUS_ALL_REGIONS` (32 here), a per-family `E2_CPUS` (24), and pd-balanced
+   boot disks count against `SSD_TOTAL_GB` (500; the lab needs 400 with a
+   surge node). The preflight checks all three now.
+2. **gcloud prompts block scripts.** With the Eventarc API off,
+   `gcloud eventarc triggers list` asked whether to enable it and waited.
+   Every preflight responder query runs with `--quiet` and no stdin.
+3. **Aggregated compute lists exit 0 on failure.** Shaking down
+   `gke-verify-gone.sh` against a project that does not exist, `instances`,
+   `disks`, `forwarding-rules` and `instance-groups` lists returned success
+   with the error only on stderr, so the script printed "gone" for a failed
+   query. Any stderr error now counts as a failed query (LEFT).
+4. **L3 counted unreadable logs as "no probe".** The first platform run
+   counted 6 of 7 (a pod Ready before its log line); the second counted 4 of 7
+   while all 7 had logged the probe, because `kubectl logs` through the API
+   server failed for a moment and the error was discarded. The check now
+   retries an unreadable log for up to 180s and fails only on a readable log
+   without the line.
+5. **A rerun collided on the kubeconfig context rename.** The lab file is
+   rewritten every run.
+6. **`make demo TARGET=gke` used the default kubeconfig.** The runner refused
+   to start (context guard), and the target now passes `.kube/gke` itself.
+
+None of these touched a threshold or a manifest under test.
