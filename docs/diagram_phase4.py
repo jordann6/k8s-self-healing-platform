@@ -6,7 +6,8 @@ Renders docs/architecture-phase4.png with official AWS, Azure and Kubernetes ico
 (needs graphviz `dot` on PATH).
 
 Blue = scaling and sizing (Q1 to Q3), red = admission and encryption (P1, N1),
-orange = recovery and operations (D1, O1), grey dashed = the runner injecting a
+orange = recovery and operations (D1, O1), green = the two kind-only rows
+(G1 Gateway API front door, X1 Quarantine operator), grey dashed = the runner injecting a
 fault and judging from outside. The two object stores are the per-cloud pair.
 """
 import os
@@ -18,6 +19,9 @@ from diagrams.azure.containers import ContainerRegistries
 from diagrams.azure.storage import BlobStorage
 from diagrams.custom import Custom
 from diagrams.k8s.compute import Pod, Deployment
+from diagrams.k8s.network import SVC
+from diagrams.k8s.others import CRD
+from diagrams.k8s.rbac import Role
 from diagrams.k8s.podconfig import ConfigMap
 from diagrams.onprem.client import User
 from diagrams.onprem.database import PostgreSQL
@@ -26,6 +30,7 @@ from diagrams.onprem.queue import RabbitMQ
 HERE = os.path.dirname(os.path.abspath(__file__))
 CILIUM = os.path.join(HERE, "icons", "cilium.png")
 KEDA = os.path.join(HERE, "icons", "keda.png")
+ENVOY = os.path.join(HERE, "icons", "envoy.png")
 
 graph_attrs = {"fontsize": "13", "bgcolor": "white", "pad": "0.5", "nodesep": "0.55", "ranksep": "1.0", "splines": "spline"}
 node_attrs = {"fontsize": "11"}
@@ -33,10 +38,11 @@ node_attrs = {"fontsize": "11"}
 scale = {"color": "royalblue", "fontcolor": "royalblue", "penwidth": "2"}
 sec = {"color": "firebrick", "fontcolor": "firebrick", "penwidth": "2"}
 ops = {"color": "darkorange", "fontcolor": "darkorange3", "penwidth": "2"}
+kindonly = {"color": "seagreen4", "fontcolor": "seagreen4", "penwidth": "2"}
 inject = {"color": "gray40", "fontcolor": "gray30", "style": "dashed"}
 
 with Diagram(
-    "Phase 4 rows on EKS and AKS 1.36: scaling (blue), admission and encryption (red), recovery and operations (orange)",
+    "Phase 4 rows on EKS and AKS 1.36 (blue, red, orange) and the two kind-only rows G1 and X1 (green)",
     filename="docs/architecture-phase4",
     show=False,
     direction="LR",
@@ -61,6 +67,15 @@ with Diagram(
             backup = Pod("backup + restore\njobs")
             o1 = Pod("O1 namespace\nquota, limits, evidence-gated\nrelease, alert receiver")
 
+    with Cluster("kind only so far, default CNI (not yet run on a cloud)"):
+        with Cluster("G1 front door"):
+            gw = Custom("Envoy Gateway\nplatform namespace owns the\nlistener, one host, labelled\nnamespaces only", ENVOY)
+            route = SVC("HTTPRoute\napp namespace owns it")
+        with Cluster("X1 operator"):
+            crd = CRD("Quarantine CRD\nstatus: Isolated, Preserved,\nReleased, Failed")
+            ctl = Pod("controller\nstdlib, resumes from status")
+            rbac = Role("Role\npatch pods, no delete,\nno Secrets")
+
     ecr = ECR("ECR")
     acr = ContainerRegistries("ACR")
     s3 = S3("S3 Object Lock\nCOMPLIANCE, 1 day")
@@ -84,3 +99,9 @@ with Diagram(
     backup >> Edge(label="AKS, workload identity", **ops) >> blob
     backup >> Edge(label="restore into fresh target", **ops) >> pg
     runner >> Edge(label="evidence, alert, release", **inject) >> o1
+
+    runner >> Edge(label="stray host, cross-namespace\nroute, deleted backend", **inject) >> route
+    route >> Edge(label="attach", **kindonly) >> gw
+    runner >> Edge(label="create Quarantine, early\nrelease, kill controller", **inject) >> crd
+    crd >> Edge(label="reconcile", **kindonly) >> ctl
+    rbac >> Edge(label="bounds", **kindonly) >> ctl

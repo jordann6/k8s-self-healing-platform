@@ -115,7 +115,7 @@ delete them or read Secrets.
 
 The 15 s bound on the pod becoming unreachable was written without data. Four kind runs
 (kind-x1-run1 to run4) showed the controller reaching `Isolated` in 0.7 to 1.9 s every
-time, and Cilium taking 12.0, 28.0 and 17.5 s to enforce the label change in the hardened
+time, and Cilium taking 11.9, 28.0 and 17.5 s to enforce the label change in the hardened
 profile and 13.3, 20.2 and 25.4 s in the manual baseline. That is the same datapath delay
 ADR-0002 recorded for R1 (identity allocation and endpoint regeneration on one loaded kind
 node, whose bound is 30 s). The bound is raised to 30 s, after seeing the data, and this is

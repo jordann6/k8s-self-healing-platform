@@ -16,7 +16,9 @@ phase 4 row healed on AKS. On EKS six healed and N1 stayed inconclusive
 because its baseline never showed impact. Counting both clouds that is 38
 hardened rows, 36 healed, one inconclusive, one blocked. GCP and an integrated
 adversarial proof on one cluster ([ADR-0024](docs/adr/0024-integrated-adversarial-proof.md),
-designed, not built) come next.
+designed, not built) come next. Two more rows, G1 (a Gateway API front door) and
+X1 (a Quarantine custom resource and its controller), have each run twice or
+once on kind and healed, and have not run on either cloud.
 
 ![Self-healing platform on EKS](docs/architecture.png)
 
@@ -96,7 +98,8 @@ contract):
 
 *The phase 4 rows. Blue is scaling and sizing, red is admission and
 encryption, orange is recovery and operations, and the dashed grey edges are
-the runner. The two object stores are the per-cloud pair. Source:
+the runner. The two object stores are the per-cloud pair. The green box at the
+top is the two rows that have only run on kind. Source:
 `docs/diagram_phase4.py`.*
 
 | Row | Fault | Healing control | EKS | AKS |
@@ -116,6 +119,29 @@ Cilium policies are additive ([ADR-0023](docs/adr/0023-n1-cloud-parity-contract.
 The fix landed before the AKS pass and EKS has not been rerun, so the EKS row
 stays inconclusive in the record.
 
+### Two more rows, kind only so far
+
+The Kubernetes Explained checklist this lab was compared against listed a
+north-south entrance and authored operators as the two ideas the platform did
+not yet prove. G1 and X1 close those gaps. Both run on a plain kind cluster, so
+neither claim says anything yet about EKS, AKS or Cilium.
+
+| Row | Fault | Healing control | kind result |
+|---|---|---|---|
+| G1 | An app team attaches a route for a stray hostname, a route from another namespace, and a route to a deleted backend | Envoy Gateway, platform namespace owns one listener bound to one hostname and to labelled namespaces, the app team owns its HTTPRoute ([ADR-0025](docs/adr/0025-g1-gateway-api-front-door.md)) | healed in one run (`kind-g1-run1`), the stray host and the cross-namespace route got 404 instead of being served, the legitimate route stayed up |
+| X1 | A responder isolates a compromised pod and then releases it before evidence exists | A `Quarantine` custom resource and a controller that isolates, waits for evidence bound to the pod UID, and releases only on a later request ([ADR-0026](docs/adr/0026-x1-quarantine-operator.md)) | healed in two clean runs (`kind-x1-run6`, `run7`), isolated in 0.8 to 1.3s with no restart, early release refused, a replacement controller resumed in under 2.5s with one label patch |
+
+Two honest limits on G1. The deleted-backend 500 and the unrouted 404 were the
+same in the baseline and the hardened run, because Gateway API isolates a broken
+route by itself, so only the role split is the hardening. The proxy pod kill
+lost 0 of 22 requests in both profiles and stays informational until a second
+clean run.
+
+Cilium Gateway API was the first choice for G1 and was ruled out by reading its
+documentation. It needs `kubeProxyReplacement=true`, which none of the three
+targets run, and turning it on would have changed the data plane under every
+proven row.
+
 ## Run it
 
 ```
@@ -123,6 +149,9 @@ make up      # kind + Cilium + platform charts + bootstrap
 make demo    # baseline then hardened, every row -> evidence/<run-id>/report.md
 make down
 ```
+
+The two kind-only rows have their own clusters. `make g1-up` then
+`make demo ROWS=G1`, or `make x1-up` then `make demo ROWS=X1`.
 
 Needs docker (about 4 GB free for the cluster), kind, kubectl, helm, cilium,
 hubble, jq, openssl 3.4+ and python3. The lab uses its own kubeconfig
@@ -225,6 +254,34 @@ unproven on Azure until Defender fires.
   either profile, so it is recorded as a platform limitation.
 
 ## What broke (and what it taught)
+
+### On kind (G1 and X1)
+
+- **Argo CD hid the Gateway kinds and still reported healthy.** Its
+  `resource.inclusions` list watches only the kinds the lab deploys, so the
+  Gateway, GatewayClass, HTTPRoute and EnvoyProxy objects were excluded, the app
+  showed Synced and Healthy, and nothing had been applied. It is the same class
+  of failure as the Q1 ScaledObject that stalled on EKS. The kinds are now in the
+  base and EKS lists, and a test keeps the two lists in step.
+- **The controller ignored SIGTERM, so the "kill" was not a kill.** As PID 1 a
+  Python process ignores SIGTERM unless it installs a handler, so a deleted
+  controller kept reconciling for its 30s grace period and handled the next
+  Quarantine. The row's resume time was real but measured the old pod. The
+  controller now exits on SIGTERM and the runner force-kills it.
+- **A baseline probe that was too early read as "no impact".** The manual
+  release was checked 3s after the label came off, before the network policy
+  engine had applied it, so a premature release looked harmless and the runner
+  correctly refused to call the hardened run healed. It now polls for up to 40s.
+- **Cilium enforced the label change 12 to 33s late, and I did not find why.**
+  The controller marked the pod isolated in under 2s, but the pod stayed
+  reachable for 11.9, 28.0, 17.5 and 33.2s across four Cilium runs, past a bound
+  I first guessed at 15s and then raised to 30s after seeing the data (disclosed
+  in the ADR). The agent log showed no identity allocation failures, so the R1
+  explanation did not apply. X1's claim is the operator, so it moved to the
+  default kind CNI, where the pod blocked in 3.7s. X1 on Cilium is unproven.
+- **Argo CD never prunes a CRD.** Switching back to the baseline removed the
+  controller and its Role but left the CRD, so the baseline claims that no
+  controller is acting, not that the CRD is absent.
 
 ### On both clouds (phase 4)
 
@@ -380,6 +437,15 @@ unproven on Azure until Defender fires.
 - **Spread across zones and keep budgets explicit.** Topology spread with
   `minDomains`, PDBs and node disruption budgets per pool, with the
   replacement capacity sized so one zone loss stays under the error budget.
+- **Put the Gateway behind an internal or a provider-managed load balancer and
+  own the listener in the platform namespace.** G1 runs on a ClusterIP and calls
+  the entrance from a pod. Production decides public versus internal per
+  Gateway, terminates TLS from a managed certificate, and gives each app team
+  route permissions in its own namespace and nothing on the Gateway.
+- **An operator needs more than a poll loop.** X1's controller polls every
+  second and keeps no cache. Production uses a watch, leader election so two
+  replicas never both act, a finalizer decision that is made on purpose, and a
+  framework or a long-term maintained library instead of a hand-written loop.
 - **Evidence goes to an account the cluster cannot touch.** The labs write
   to a bucket or container in the lab; production writes to a separate
   security account or subscription with object lock or immutability.
