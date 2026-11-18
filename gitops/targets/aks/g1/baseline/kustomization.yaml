@@ -1,0 +1,17 @@
+# G1 on AKS, baseline profile. The kind profile with the registry image, the parity Cilium
+# policy, and a proxy Service that is an internal Standard load balancer with no public IP, so deny-public-ip has nothing to block.
+# The annotations are in the first apply on purpose, AWS cannot edit them after creation.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../g1/baseline
+components:
+  - ../../generated
+  - ../../../g1-common/policy
+patches:
+  - target: {group: gateway.envoyproxy.io, version: v1alpha1, kind: EnvoyProxy, name: g1}
+    patch: |-
+      - {op: replace, path: /spec/provider/kubernetes/envoyService/type, value: LoadBalancer}
+      - op: add
+        path: /spec/provider/kubernetes/envoyService/annotations
+        value: {service.beta.kubernetes.io/azure-load-balancer-internal: "true"}

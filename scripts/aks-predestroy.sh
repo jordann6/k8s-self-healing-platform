@@ -45,6 +45,15 @@ node_rg="${node_rg:-rg-selfheal-lab-nodes}"
 if kubectl version --request-timeout=10s >/dev/null 2>&1; then
 	echo "aks-predestroy: stopping Argo CD sync"
 	kubectl -n argocd delete application selfheal-root selfheal-workload --ignore-not-found --wait=false >/dev/null || true
+
+	# Row G1 (ADR-0025 cloud addendum, e). Delete the Gateway first and wait for the proxy Service to go,
+	# so the cloud controller removes the load balancer before the cluster does. Argo CD is already stopped,
+	# so nothing re-creates it.
+	echo "aks-predestroy: removing the G1 Gateway and waiting for its load balancer Service to go"
+	kubectl -n selfheal-g1-platform delete gateway g1 --ignore-not-found --wait=true --timeout=180s >/dev/null || true
+	kubectl -n envoy-gateway-system wait --for=delete service \
+		-l gateway.envoyproxy.io/owning-gateway-name=g1 --timeout=300s >/dev/null || \
+		echo "aks-predestroy: the G1 proxy Service did not disappear in 300s, run make aks-verify-gone and look for a load balancer" >&2
 	echo "aks-predestroy: removing the lab app and its PodDisruptionBudget"
 	kubectl -n selfheal delete rollout,deployment,pdb --all --wait=false >/dev/null 2>&1 || true
 	for _ in $(seq 1 30); do

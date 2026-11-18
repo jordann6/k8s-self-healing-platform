@@ -83,5 +83,43 @@ class Judge(unittest.TestCase):
         self.assertFalse(judge.judge_x1(o, T)[0])
 
 
+class CloudContract(unittest.TestCase):
+    def test_cloud_thresholds_carry_the_kind_numbers(self):
+        for cloud in ("eks", "aks"):
+            t = judge.THRESHOLDS[cloud]["X1"]
+            self.assertEqual({k: t[k] for k in T}, T)
+
+    def test_a_cilium_enforcement_miss_is_named_and_still_a_miss(self):
+        t = judge.THRESHOLDS["eks"]["X1"]
+        obs = hardened()
+        obs["x1a"]["blocked_s"] = 33.2
+        ok, why, _impact, healed = judge.judge_x1(obs, t)
+        self.assertEqual((ok, healed), (True, False))
+        self.assertIn("Cilium enforcement delay", why)
+
+    def test_a_slow_controller_is_not_blamed_on_cilium(self):
+        t = judge.THRESHOLDS["aks"]["X1"]
+        obs = hardened()
+        obs["x1a"]["isolate_s"] = 25.0
+        _ok, why, _impact, healed = judge.judge_x1(obs, t)
+        self.assertFalse(healed)
+        self.assertNotIn("Cilium", why)
+
+    def test_a_forbidden_impersonation_is_an_error_not_a_denied_permission(self):
+        class H:
+            def k(self, *a, **kw):
+                class R:
+                    stdout, stderr = "", "Error from server (Forbidden): cannot impersonate"
+                return R()
+        with self.assertRaises(RuntimeError):
+            x1_row.can_check(H(), "delete", "pods")
+
+    def test_pull_events_keep_only_pulls(self):
+        class H:
+            def kj(self, *a):
+                return {"items": [{"reason": "Pulled", "message": "in 4s"}, {"reason": "Started", "message": "x"}]}
+        self.assertEqual(x1_row.pull_events(H(), ["p"]), ["Pulled: in 4s"])
+
+
 if __name__ == "__main__":
     unittest.main()

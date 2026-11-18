@@ -1,0 +1,18 @@
+# G1 on EKS, hardened profile. The kind profile with the registry image, the parity Cilium
+# policy, and a proxy Service that is an internal NLB from the in-tree AWS provider (the AWS Load Balancer Controller is not installed).
+# The annotations are in the first apply on purpose, AWS cannot edit them after creation.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../g1/hardened
+components:
+  - ../../generated
+  - ../../../g1-common/policy
+  - ../../../g1-common/tls
+patches:
+  - target: {group: gateway.envoyproxy.io, version: v1alpha1, kind: EnvoyProxy, name: g1}
+    patch: |-
+      - {op: replace, path: /spec/provider/kubernetes/envoyService/type, value: LoadBalancer}
+      - op: add
+        path: /spec/provider/kubernetes/envoyService/annotations
+        value: {service.beta.kubernetes.io/aws-load-balancer-type: nlb, service.beta.kubernetes.io/aws-load-balancer-internal: "true"}

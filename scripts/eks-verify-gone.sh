@@ -47,6 +47,17 @@ check "NAT gateways" "$(q aws ec2 describe-nat-gateways --filter Name=tag:Projec
 check "lab VPC" "$(q aws ec2 describe-vpcs --filters Name=tag:Project,Values=k8s-self-healing-platform --query 'Vpcs[].VpcId' --output text)"
 check "Cilium ENIs" "$(q aws ec2 describe-network-interfaces --filters Name=tag:cilium-managed,Values=true \
 	--query 'NetworkInterfaces[].NetworkInterfaceId' --output text)"
+# Row G1 (ADR-0025 cloud addendum, e). The in-tree provider makes the proxy Service's load balancer and a
+# security group tagged for the cluster. A Service left behind on destroy orphans both, and the group
+# blocks the VPC delete. ELBv2 and Classic are checked separately, by the cluster tag.
+read -ra v2arns <<<"$(q aws elbv2 describe-load-balancers --query 'LoadBalancers[].LoadBalancerArn' --output text)"
+check "G1 load balancers (NLB or ALB) tagged for the cluster" "$([[ ${#v2arns[@]} -gt 0 ]] && q aws elbv2 describe-tags \
+	--resource-arns "${v2arns[@]}" --query "TagDescriptions[?Tags[?Key=='kubernetes.io/cluster/selfheal']].ResourceArn" --output text)"
+read -ra classic <<<"$(q aws elb describe-load-balancers --query 'LoadBalancerDescriptions[].LoadBalancerName' --output text)"
+check "G1 classic load balancers tagged for the cluster" "$([[ ${#classic[@]} -gt 0 ]] && q aws elb describe-tags \
+	--load-balancer-names "${classic[@]}" --query "TagDescriptions[?Tags[?Key=='kubernetes.io/cluster/selfheal']].LoadBalancerName" --output text)"
+check "G1 load balancer security groups tagged for the cluster" "$(q aws ec2 describe-security-groups \
+	--filters Name=tag-key,Values=kubernetes.io/cluster/selfheal --query 'SecurityGroups[].GroupId' --output text)"
 
 det="$(aws guardduty list-detectors --query 'DetectorIds[0]' --output text 2>/dev/null)"
 rm="$(aws guardduty get-detector --detector-id "$det" \

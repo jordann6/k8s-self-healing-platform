@@ -1,0 +1,12 @@
+# X1 on EKS, baseline profile. The kind profile with the registry images, pinned to the one
+# labelled system node so a replacement controller pulls from a warm cache (ADR-0026 cloud addendum).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../../x1/baseline
+components:
+  - ../../generated
+patches:
+  - target: {kind: Deployment}
+    patch: |-
+      - {op: add, path: /spec/template/spec/nodeSelector, value: {selfheal.lab/x1: "true"}}

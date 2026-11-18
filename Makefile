@@ -493,6 +493,7 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	scripts/render-o1-profiles.sh
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
+	scripts/render-cloud-g1x1.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
 	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/x1/controller.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py scenarios/x1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
@@ -515,7 +516,7 @@ CHART_VERSIONS = CILIUM_VERSION=$(strip $(CILIUM_VERSION)) KARPENTER_VERSION=$(s
 	ARGOCD_VERSION=$(strip $(ARGOCD_VERSION)) CHAOS_MESH_VERSION=$(strip $(CHAOS_MESH_VERSION)) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) FALCO_VERSION=$(strip $(FALCO_VERSION)) \
 	KEDA_VERSION=$(strip $(KEDA_VERSION)) VPA_VERSION=$(strip $(VPA_VERSION)) \
-	KYVERNO_VERSION=$(strip $(KYVERNO_VERSION))
+	KYVERNO_VERSION=$(strip $(KYVERNO_VERSION)) ENVOY_GATEWAY_VERSION=$(strip $(ENVOY_GATEWAY_VERSION))
 EKS_ENV = MGMT_PROFILE=$(MGMT_PROFILE) LAB_PROFILE=$(LAB_PROFILE) KUBECONFIG=$(CURDIR)/.kube/eks
 
 .PHONY: eks-check

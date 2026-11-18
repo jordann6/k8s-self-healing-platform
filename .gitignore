@@ -31,8 +31,10 @@ evidence/*
 !evidence/kind-run5/
 !evidence/kind-run7/
 !evidence/kind-g1-run1/
+!evidence/kind-g1-run2/
 !evidence/kind-x1-run5/
 !evidence/kind-x1-run6/
+!evidence/kind-x1-run8-cilium/
 !evidence/kind-x1-run7/
 # EKS reference runs (account IDs and operator IP redacted by scripts/redact-evidence.py)
 !evidence/eks-run2/

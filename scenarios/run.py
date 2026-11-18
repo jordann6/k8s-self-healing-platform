@@ -73,7 +73,7 @@ ROWS_BY_TARGET = {
 }
 # Rows that run only as a focused row on a target with its own cluster (make g1-up). They are never
 # part of the default full demo, so they are not in ROWS_BY_TARGET (ADR-0025).
-FOCUSED_ONLY_ROWS = {"kind": ["G1", "X1"]}
+FOCUSED_ONLY_ROWS = {"kind": ["G1", "X1"], "eks": ["G1", "X1"], "aks": ["G1", "X1"]}
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
 ROWS = ROWS_BY_TARGET["kind"]
@@ -1496,9 +1496,12 @@ def preconditions(rows: list[str]) -> dict:
         if focused == "Q2" and TARGET != "kind":
             # ADR-0017: the Q2 pods select this label, so it must exist before the app can be Healthy.
             checks["q2_nodes_labelled"] = q2_row.label_workload_nodes(sys.modules[__name__])
+        if focused == "X1" and TARGET != "kind":
+            # ADR-0026 cloud addendum: the X1 pods select this label, so it must exist before the app is Healthy.
+            checks["x1_node_labelled"] = x1_row.label_system_node(sys.modules[__name__])
         app = f"selfheal-{focused.lower()}"
         wait_for(lambda: app_state(app).get("health") == "Healthy"
-                 and app_state(app).get("sync") == "Synced", 180, step=5,
+                 and app_state(app).get("sync") == "Synced", 180 if TARGET == "kind" or focused != "G1" else 480, step=5,
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
                  "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
@@ -1745,28 +1748,40 @@ def apply_o1_profile(profile: str) -> None:
                  120, step=2, what="O1 baseline without ResourceQuota")
 
 
+def set_focused_path(row: str, app_path: str, profile: str) -> None:
+    """Point a focused row's application at its profile path. On a cloud the root app self-heals its
+    children, so the root moves and the child follows (as O1 does, EKS 2026-11-10)."""
+    root_path = f"apps/{profile}" if TARGET == "kind" else f"targets/{TARGET}/apps/{profile}"
+    root = k("-n", "argocd", "get", "application", "selfheal-root")
+    if root.returncode == 0 and TARGET != "kind":
+        k("-n", "argocd", "patch", "application", "selfheal-root", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": root_path}}}), check=True)
+        refresh("selfheal-root")
+    else:
+        k("-n", "argocd", "patch", "application", f"selfheal-{row}", "--type", "merge",
+          "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh(f"selfheal-{row}")
+
+
 def apply_g1_profile(profile: str) -> None:
     """Switch the isolated G1 application and wait for the Gateway to carry that profile's listener."""
     log(f"profile -> {profile} (G1 only)")
-    app_path = f"g1/{profile}"
-    k("-n", "argocd", "patch", "application", "selfheal-g1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
-    refresh("selfheal-g1")
+    app_path = f"g1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/g1/{profile}"
+    set_focused_path("g1", app_path, profile)
     wait_for(lambda: app_state("selfheal-g1")["path"] == app_path, 120, step=3, what="G1 app path")
     wait_for(lambda: app_state("selfheal-g1")["sync"] == "Synced", 180, step=3, what="G1 app Synced")
     want = "Selector" if profile == "hardened" else "All"
     wait_for(lambda: g1_row.listener_shape(sys.modules[__name__])["from"] == want, 120, step=2,
              what=f"G1 listener from={want}")
-    wait_for(lambda: g1_row.gateway_ready(sys.modules[__name__]), 120, step=2, what="G1 Gateway Programmed")
+    wait_for(lambda: g1_row.gateway_ready(sys.modules[__name__]), 120 if TARGET == "kind" else 420, step=2,
+             what="G1 Gateway Programmed")
 
 
 def apply_x1_profile(profile: str) -> None:
     """Switch the isolated X1 application and wait for the CRD and controller, or their absence."""
     log(f"profile -> {profile} (X1 only)")
-    app_path = f"x1/{profile}"
-    k("-n", "argocd", "patch", "application", "selfheal-x1", "--type", "merge",
-      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
-    refresh("selfheal-x1")
+    app_path = f"x1/{profile}" if TARGET == "kind" else f"targets/{TARGET}/x1/{profile}"
+    set_focused_path("x1", app_path, profile)
     wait_for(lambda: app_state("selfheal-x1")["path"] == app_path, 120, step=3, what="X1 app path")
     wait_for(lambda: app_state("selfheal-x1")["sync"] == "Synced", 180, step=3, what="X1 app Synced")
     if profile == "hardened":
@@ -1944,6 +1959,10 @@ def main() -> int:
 
     if TARGET in CLOUD_ROWS and "D1" in rows:
         d1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "D1_IMAGE").read_text().strip()
+    if TARGET in CLOUD_ROWS and ("G1" in rows or "X1" in rows):
+        # Both clients use the G1 backend image, which the registry holds (ADR-0026 reuses it for X1's target).
+        client_image = (ROOT / "gitops" / "targets" / TARGET / "generated" / "G1_IMAGE").read_text().strip()
+        g1_row.CLIENT_IMAGE = x1_row.CLIENT_IMAGE = client_image
     if TARGET in CLOUD_ROWS and "O1" in rows:
         o1_row.IMAGE = (ROOT / "gitops" / "targets" / TARGET / "generated" / "O1_IMAGE").read_text().strip()
     if TARGET in CLOUD_ROWS and "Q2" in rows:
@@ -1965,7 +1984,7 @@ def main() -> int:
            "results": {}, "observations": {}}
     focused = focused_row(rows)
     lab_context = contextlib.nullcontext(None) if focused else Lab()
-    hubble_context = HubbleRelay() if focused == "N1" or (focused == "P1" and TARGET != "kind") else (contextlib.nullcontext() if focused else HubbleRelay())
+    hubble_context = HubbleRelay() if focused == "N1" or (focused in ("P1", "G1") and TARGET != "kind") else (contextlib.nullcontext() if focused else HubbleRelay())
     with lab_context as lab, hubble_context:
         for profile in ("baseline", "hardened"):
             if focused:

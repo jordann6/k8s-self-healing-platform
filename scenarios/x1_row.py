@@ -20,6 +20,8 @@ EVIDENCE = "x1-evidence"
 GROUP = "selfhealing.lab/v1alpha1"
 SA = f"system:serviceaccount:{NS}:{CONTROLLER}"
 BLOCK_WAIT_S = 40
+NODE_LABEL = "selfheal.lab/x1"
+SYSTEM_NODE_SELECTOR = "selfheal.lab/nodes=system"
 ISOLATE = {"selfheal.lab/quarantined": "true", "lab/pool": "quarantine"}
 
 PROBE = """
@@ -30,6 +32,38 @@ try:
 except Exception:
     print("blocked")
 """
+
+
+def label_system_node(h: Any) -> str:
+    """Pin X1 to one system-pool node so a replacement controller pulls from a warm cache (ADR-0026 cloud
+    addendum). Reuses a node that already carries the label, so a rerun never moves the pin."""
+    labelled = h.kj("get", "nodes", "-l", f"{NODE_LABEL}=true").get("items", [])
+    if labelled:
+        return labelled[0]["metadata"]["name"]
+    nodes = h.kj("get", "nodes", "-l", SYSTEM_NODE_SELECTOR).get("items", [])
+    if not nodes:
+        raise RuntimeError(f"no node matches {SYSTEM_NODE_SELECTOR} to carry the X1 pin")
+    name = nodes[0]["metadata"]["name"]
+    h.k("label", "node", name, f"{NODE_LABEL}=true", "--overwrite", check=True)
+    return name
+
+
+def can_check(h: Any, verb: str, resource: str) -> bool:
+    result = h.k("auth", "can-i", verb, resource, "-n", NS, "--as", SA, timeout=20)
+    answer = result.stdout.strip()
+    if answer not in ("yes", "no"):
+        # A Forbidden on impersonation must never read as "the role cannot delete" (ADR-0019 lesson).
+        raise RuntimeError(f"cannot check the controller role, kubectl said: {(result.stderr or answer)[:200]}")
+    return answer == "yes"
+
+
+def pull_events(h: Any, pods: list[str]) -> list[str]:
+    """Image pull events of the replacement controller, so a cold pull is recorded and never hidden."""
+    out: list[str] = []
+    for pod in pods:
+        items = h.kj("-n", NS, "get", "events", "--field-selector", f"involvedObject.name={pod}").get("items", [])
+        out += [f"{e.get('reason')}: {e.get('message')}" for e in items if e.get("reason") in ("Pulling", "Pulled")]
+    return out
 
 
 def client_manifest() -> dict[str, Any]:
@@ -224,7 +258,7 @@ def run_hardened(h: Any, ip: str, pod: dict[str, Any], directory: Path) -> dict[
     after = h.kj("-n", NS, "get", "pod", target["metadata"]["name"])
     out["x1d"] = {"resumed": bool(cr), "resume_s": resume_s, "label_actions": count_actions(log, "q-d"),
                   "same_uid": after.get("metadata", {}).get("uid") == target["metadata"]["uid"],
-                  "controller_pods": len(new_pods)}
+                  "controller_pods": len(new_pods), "pull_events": pull_events(h, new_pods)}
     # X1e the controller's own pod, plus its permissions
     own = new_pods[0] if new_pods else ""
     h.k("apply", "-f", "-", input=json.dumps(quarantine_manifest("q-e", own)), check=True, timeout=30)
@@ -232,7 +266,7 @@ def run_hardened(h: Any, ip: str, pod: dict[str, Any], directory: Path) -> dict[
     own_labels = h.kj("-n", NS, "get", "pod", own).get("metadata", {}).get("labels", {})
 
     def can(verb: str, resource: str) -> bool:
-        return h.k("auth", "can-i", verb, resource, "-n", NS, "--as", SA, timeout=20).stdout.strip() == "yes"
+        return can_check(h, verb, resource)
 
     out["x1e"] = {"phase": (cr or {}).get("status", {}).get("phase"), "reason": (cr or {}).get("status", {}).get("reason"),
                   "labels_unchanged": "selfheal.lab/quarantined" not in own_labels,

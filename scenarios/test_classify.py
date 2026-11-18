@@ -1267,7 +1267,8 @@ class AksThresholds(unittest.TestCase):
     def test_every_aks_row_has_a_threshold_judge_and_hypothesis(self):
         from judge import JUDGES, hypothesis
         rows = {"A1", "A2", "A3", "A4", "A5", "S1", "S2", "S3", "S4", "R1", "Q1", "Q2", "O1", "Q3", "P1", "D1", "N1", "R2"}
-        self.assertEqual(set(THRESHOLDS["aks"]), rows)
+        # G1 and X1 are focused rows with their own cloud thresholds (ADR-0025 and ADR-0026 addenda).
+        self.assertEqual(set(THRESHOLDS["aks"]), rows | {"G1", "X1"})
         self.assertTrue(rows <= set(JUDGES))
         for r in rows:
             self.assertTrue(hypothesis(r, "aks"))

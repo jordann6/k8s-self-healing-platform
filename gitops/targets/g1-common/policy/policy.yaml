@@ -1,0 +1,39 @@
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: g1-backend-from-proxy
+  namespace: selfheal-g1
+spec:
+  endpointSelector:
+    matchLabels: {app: web}
+  ingress:
+    # Only the Envoy proxy pods of the g1 Gateway. Kubelet probes come from the local host, which
+    # Cilium admits by default. The two owning-gateway labels are read from the Envoy Gateway docs for
+    # the proxy Service and Deployment, not yet from a running proxy pod (live check L2).
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: envoy-gateway-system
+            gateway.envoyproxy.io/owning-gateway-name: g1
+            gateway.envoyproxy.io/owning-gateway-namespace: selfheal-g1-platform
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: g1-backend-from-proxy
+  namespace: selfheal-g1-other
+spec:
+  endpointSelector:
+    matchLabels: {app: other}
+  ingress:
+    # Only the Envoy proxy pods of the g1 Gateway. Kubelet probes come from the local host, which
+    # Cilium admits by default. The two owning-gateway labels are read from the Envoy Gateway docs for
+    # the proxy Service and Deployment, not yet from a running proxy pod (live check L2).
+    - fromEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: envoy-gateway-system
+            gateway.envoyproxy.io/owning-gateway-name: g1
+            gateway.envoyproxy.io/owning-gateway-namespace: selfheal-g1-platform
+      toPorts:
+        - ports: [{port: "8080", protocol: TCP}]

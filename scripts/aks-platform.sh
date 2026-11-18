@@ -24,7 +24,7 @@ tf="$root/infra/azure"
 : "${KUBECONFIG:?run through make}"
 : "${CILIUM_VERSION:?}" "${KPS_VERSION:?}" "${CERT_MANAGER_VERSION:?}" "${ESO_VERSION:?}"
 : "${ROLLOUTS_VERSION:?}" "${RELOADER_VERSION:?}" "${ARGOCD_VERSION:?}" "${CHAOS_MESH_VERSION:?}"
-: "${TALON_VERSION:?}" "${FALCO_VERSION:?}" "${VPA_VERSION:?}" "${KYVERNO_VERSION:?}"
+: "${TALON_VERSION:?}" "${FALCO_VERSION:?}" "${VPA_VERSION:?}" "${KYVERNO_VERSION:?}" "${ENVOY_GATEWAY_VERSION:?}"
 [[ "$KUBECONFIG" == "$root/.kube/aks" ]] || { echo "aks-platform: KUBECONFIG must be $root/.kube/aks" >&2; exit 1; }
 [[ "$root" != *" "* ]] || { echo "aks-platform: the repo path must not contain spaces" >&2; exit 1; }
 gen="$root/gitops/targets/aks/generated"
@@ -139,6 +139,10 @@ install argo-rollouts argo/argo-rollouts "$ROLLOUTS_VERSION" argo-rollouts $(val
 # After Rollouts, never before (phase 1, row S1: silent forbidden otherwise).
 # shellcheck disable=SC2046
 install reloader stakater/reloader "$RELOADER_VERSION" reloader $(values reloader)
+# Row G1 (ADR-0025). Gateway API CRDs come with the chart. The proxy Service is an internal
+# load balancer on the cloud overlays (ADR-0025 cloud addendum).
+install eg oci://docker.io/envoyproxy/gateway-helm "$ENVOY_GATEWAY_VERSION" envoy-gateway-system \
+	-f "$root/platform/envoy-gateway.yaml"
 # shellcheck disable=SC2046
 install argocd argo/argo-cd "$ARGOCD_VERSION" argocd $(values argo-cd)
 # shellcheck disable=SC2046
