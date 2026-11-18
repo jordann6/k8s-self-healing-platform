@@ -1,0 +1,334 @@
+{
+  "run_id": "aks-g1-run2",
+  "target": "aks",
+  "started": "2026-11-18T07:52:57.016Z",
+  "rows": [
+    "G1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "selfheal-aks",
+    "api_ready": true,
+    "envoy-gateway-system/envoy-gateway": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "g1_synced": true
+  },
+  "versions": {
+    "repo_commit": "a15a1953e1a517f842c05b71f9bec5a399ff5e94-dirty",
+    "cilium": "quay.io/cilium/cilium:v1.20.4@sha256:20fe92e4c86641233a450098c158d2d29085f3419931ab6bf681d2485dedf16e",
+    "falco": "docker.io/falcosecurity/falco:0.45.2",
+    "falco-talon": "docker.io/falcosecurity/falco-talon:0.3.0",
+    "argo-rollouts": "quay.io/argoproj/argo-rollouts:v1.10.1",
+    "external-secrets": "ghcr.io/external-secrets/external-secrets:v2.14.0",
+    "cert-manager": "quay.io/jetstack/cert-manager-controller:v1.21.3",
+    "chaos-controller-manager": "ghcr.io/chaos-mesh/chaos-mesh:v2.8.7",
+    "reloader-reloader": "ghcr.io/stakater/reloader:v1.4.23",
+    "keda-operator": null,
+    "rabbitmq": "rabbitmq:3.13.7-management",
+    "qworker": "acrselfhealirjygg.azurecr.io/selfheal/qworker:a15a195",
+    "q2-signal": "acrselfhealirjygg.azurecr.io/selfheal/q2:a15a195",
+    "q2-target": "acrselfhealirjygg.azurecr.io/selfheal/q2:a15a195",
+    "vpa-vertical-pod-autoscaler-recommender": "registry.k8s.io/autoscaling/vpa-recommender:1.8.1",
+    "q3-target": "acrselfhealirjygg.azurecr.io/selfheal/q3:a15a195",
+    "n1-server": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "n1-client": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "n1-denied": "acrselfhealirjygg.azurecr.io/selfheal/n1:a15a195",
+    "o1-controller": "acrselfhealirjygg.azurecr.io/selfheal/o1:a15a195",
+    "o1-alert-receiver": "acrselfhealirjygg.azurecr.io/selfheal/o1:a15a195",
+    "kubernetes": "v1.36.5",
+    "web_image": "acrselfhealirjygg.azurecr.io/selfheal/app:a15a195-v1",
+    "node_images": [
+      "AKSUbuntu-2404gen2containerd-202610.30.1"
+    ]
+  },
+  "results": {
+    "G1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "baseline listener served the stray hostname and the route from another namespace through the shared entrance",
+        "thresholds": {
+          "route_status_s": 30,
+          "legit_status": 200,
+          "denied_status": 404,
+          "failed_status": 500,
+          "lb": true,
+          "address_s": 300,
+          "first_ok_s": 300,
+          "cert_ready_s": 120
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "stray host rejected True, cross-namespace route rejected True, deleted backend failed closed True, unrouted and unknown host 404 True, legitimate route served throughout True; proxy kill (informational) 0 of 6 failed; load balancer address in 77.0s and first 200 in 5.883s True, TLS from the lab CA True; backend policy drop seen in Hubble (informational) True",
+        "thresholds": {
+          "route_status_s": 30,
+          "legit_status": 200,
+          "denied_status": 404,
+          "failed_status": 500,
+          "lb": true,
+          "address_s": 300,
+          "first_ok_s": 300,
+          "cert_ready_s": 120
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "G1": {
+      "baseline": {
+        "t0": 1794988441.396217,
+        "listener": {
+          "hostname": null,
+          "from": "All"
+        },
+        "proxy_service": "LoadBalancer",
+        "legit_before": {
+          "status": 200,
+          "backend": "web"
+        },
+        "lb_address_s": 77.0,
+        "first_ok_s": 6.694,
+        "lb_address": "10.42.0.10",
+        "stray_host": {
+          "namespace": "selfheal-g1",
+          "route": "g1-stray-host",
+          "hostname": "evil.g1.lab",
+          "path": "/",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 1.189,
+          "request": {
+            "status": 200,
+            "backend": "web"
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "cross_namespace": {
+          "namespace": "selfheal-g1-other",
+          "route": "g1-cross-namespace",
+          "hostname": "app.g1.lab",
+          "path": "/other",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 1.288,
+          "request": {
+            "status": 200,
+            "backend": "other"
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "deleted_backend": {
+          "namespace": "selfheal-g1",
+          "route": "g1-deleted-backend",
+          "hostname": "app.g1.lab",
+          "path": "/ghost",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "False",
+            "reason": "BackendNotFound"
+          },
+          "status_s": 0.737,
+          "request": {
+            "status": 500,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "unrouted_path": {
+          "status": 404,
+          "backend": null
+        },
+        "unknown_host": {
+          "status": 404,
+          "backend": null
+        },
+        "hubble_drop": {
+          "available": true,
+          "direct_call": {
+            "status": null,
+            "backend": null,
+            "error": "URLError"
+          },
+          "blocked": true,
+          "seen": true,
+          "drops": 10,
+          "verdict_side": "destination ingress policy"
+        },
+        "proxy_kill": {
+          "killed": "envoy-selfheal-g1-platform-g1-2db48b10-95b54cfd7-8s8x4",
+          "requests": 6,
+          "failures": 0,
+          "cluster_ip_path": {
+            "requests": 6,
+            "failures": 0
+          }
+        },
+        "proxy_recovery_s": 47.472,
+        "route_status_s": 1.288,
+        "legit_after": {
+          "status": 200,
+          "backend": "web"
+        },
+        "window": "faulted routes, unrouted requests, and one proxy pod kill (informational)",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794988596.9146008,
+        "listener": {
+          "hostname": "app.g1.lab",
+          "from": "Selector"
+        },
+        "proxy_service": "LoadBalancer",
+        "legit_before": {
+          "status": 200,
+          "backend": "web"
+        },
+        "lb_address_s": 77.0,
+        "first_ok_s": 5.883,
+        "lb_address": "10.42.0.10",
+        "stray_host": {
+          "namespace": "selfheal-g1",
+          "route": "g1-stray-host",
+          "hostname": "evil.g1.lab",
+          "path": "/",
+          "accepted": {
+            "status": "False",
+            "reason": "NoMatchingListenerHostname"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.622,
+          "request": {
+            "status": 404,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "cross_namespace": {
+          "namespace": "selfheal-g1-other",
+          "route": "g1-cross-namespace",
+          "hostname": "app.g1.lab",
+          "path": "/other",
+          "accepted": {
+            "status": "False",
+            "reason": "NotAllowedByListeners"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.653,
+          "request": {
+            "status": 404,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "deleted_backend": {
+          "namespace": "selfheal-g1",
+          "route": "g1-deleted-backend",
+          "hostname": "app.g1.lab",
+          "path": "/ghost",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "False",
+            "reason": "BackendNotFound"
+          },
+          "status_s": 0.675,
+          "request": {
+            "status": 500,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "unrouted_path": {
+          "status": 404,
+          "backend": null
+        },
+        "unknown_host": {
+          "status": 404,
+          "backend": null
+        },
+        "hubble_drop": {
+          "available": true,
+          "direct_call": {
+            "status": null,
+            "backend": null,
+            "error": "URLError"
+          },
+          "blocked": true,
+          "seen": true,
+          "drops": 10,
+          "verdict_side": "destination ingress policy"
+        },
+        "tls": {
+          "cert_ready_s": 0.886,
+          "status_line": "HTTP/1.1 200 OK",
+          "served_ok": true,
+          "without_lab_ca": "verify",
+          "rejected_without_lab_ca": true
+        },
+        "proxy_kill": {
+          "killed": "envoy-selfheal-g1-platform-g1-2db48b10-95b54cfd7-7lqzf",
+          "requests": 6,
+          "failures": 0,
+          "cluster_ip_path": {
+            "requests": 6,
+            "failures": 0
+          }
+        },
+        "proxy_recovery_s": 54.167,
+        "route_status_s": 0.675,
+        "legit_after": {
+          "status": 200,
+          "backend": "web"
+        },
+        "window": "faulted routes, unrouted requests, and one proxy pod kill (informational)",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-18T07:58:31.523Z",
+  "pass": true
+}

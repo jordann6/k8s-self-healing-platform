@@ -14,6 +14,10 @@
 set -euo pipefail
 root="$(cd "$(dirname "$0")/.." && pwd)"
 target="${1:?usage: d1-bootstrap.sh eks|aks}"
+if [[ "${D1:-}" == "off" ]]; then
+	echo "  D1=off, skipping (a session that does not run row D1)"
+	exit 0
+fi
 
 case "$target" in
 eks)

@@ -267,3 +267,35 @@ informational. No judged bound for G1e is written here, that needs your decision
 next run. The recorded `proxy_recovery_s` (30.6 to 30.9 s in both runs) is not a recovery time. It is measured after
 the 30 s kill window ends, so it can never be shorter than that window, and it should not be quoted or used as a bar.
 The meaningful number is the failed request count. On the clouds G1e stays informational (cloud addendum, f).
+
+## Addendum 2026-11-18, first AKS run (aks-g1-run1) and the address clock
+
+Written after aks-g1-run1 and before any rerun.
+
+aks-g1-run1 is kept as recorded. Baseline impact, hardened **miss**. Every functional check healed (stray host
+`NoMatchingListenerHostname`, cross-namespace route `NotAllowedByListeners`, deleted backend 500 with
+`BackendNotFound`, unrouted and unknown host 404, legitimate route served throughout, lab-CA TLS ready in 1.5 s and
+refused without the lab CA, backend policy drop seen in Hubble). The miss is the load balancer address clock, 759 s
+against the 300 s bound. First 200 was 5.8 s.
+
+The clock was wrong, not the load balancer. It read the Gateway's `Programmed` `lastTransitionTime`, which moves
+every time the listener changes. G1 was already deployed by the baseline root at bootstrap, so each profile switch
+reset it. Baseline read 608 s and hardened 759 s, and the 151 s between them is the time between the two profile
+switches. The Service events show the real provisioning. Service created 07:33:24Z, first `EnsuredLoadBalancer`
+07:34:41Z, which is 77 s. The provider re-synced the Service on each Gateway change (four `EnsuredLoadBalancer`
+events, one object, `firstTimestamp` unchanged).
+
+Change. `lb_provisioning_s` now measures from the proxy Service `creationTimestamp` to the `firstTimestamp` of its
+first `EnsuredLoadBalancer` event, selected by the Service UID. When the event is missing (events expire) the judge
+errors, it never passes or misses on a clock it could not read. The 300 s bound is unchanged. Unit tests cover the
+first event against a later re-sync, a missing event, and the judge error.
+
+Limit. The rerun uses the same Service, so it times the same provisioning (77 s) through the corrected clock. It
+proves the clock on a real cluster, not a second provisioning.
+
+Live checks answered on AKS. L1, `deny-public-ip` accepted the internal frontend (`EnsuredLoadBalancer`, no public
+IP on the `kubernetes-internal` frontend). The proxy Service took `10.42.0.10` from the node subnet `10.42.0.0/22`.
+L2, both proxy pods carry `gateway.envoyproxy.io/owning-gateway-name=g1` and
+`gateway.envoyproxy.io/owning-gateway-namespace=selfheal-g1-platform`, so the policy selector stands. L3, Hubble
+reports proxy to backend flows with the proxy pod as source (its own Cilium identity, verdict FORWARDED), not the
+host or node. EKS has the same clock and must not run G1 on the old one.

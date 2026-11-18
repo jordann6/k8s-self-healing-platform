@@ -114,6 +114,14 @@ class CloudContract(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             x1_row.can_check(H(), "delete", "pods")
 
+    def test_an_azure_rbac_denial_with_a_reason_is_a_no(self):
+        class H:
+            def k(self, *a, **kw):
+                class R:
+                    stdout, stderr = "no - Azure does not have opinion for this user.\n", ""
+                return R()
+        self.assertFalse(x1_row.can_check(H(), "delete", "pods"))
+
     def test_pull_events_keep_only_pulls(self):
         class H:
             def kj(self, *a):

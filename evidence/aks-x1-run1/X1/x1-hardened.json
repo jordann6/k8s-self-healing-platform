@@ -1,0 +1,44 @@
+{
+  "reachable_before": true,
+  "x1a": {
+    "phase": "Isolated",
+    "isolate_s": 2.564,
+    "blocked_s": 13.71,
+    "same_uid": true,
+    "restarts_unchanged": true,
+    "replacement_serving": true
+  },
+  "x1b": {
+    "phase": "Isolated",
+    "handled": "r1",
+    "refused_reason": "NoEvidence",
+    "blocked": true
+  },
+  "x1c": {
+    "preserved": true,
+    "released": true,
+    "after_evidence": true,
+    "reachable_s": 8.784,
+    "labels_restored": true
+  },
+  "x1d": {
+    "resumed": true,
+    "resume_s": 5.63,
+    "label_actions": 1,
+    "same_uid": true,
+    "controller_pods": 1,
+    "pull_events": [
+      "Pulled: Container image \"acrselfhealirjygg.azurecr.io/selfheal/x1:a15a195\" already present on machine and can be accessed by the pod"
+    ]
+  },
+  "x1e": {
+    "phase": "Failed",
+    "reason": "Protected",
+    "labels_unchanged": true,
+    "can_delete_pods": false,
+    "can_get_secrets": false,
+    "can_patch_pods": true
+  },
+  "t0": 1794987634.504032,
+  "profile": "hardened"
+}

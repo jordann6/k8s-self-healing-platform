@@ -866,6 +866,8 @@ def judge_g1(o: dict, t: dict):
         tls = o.get("tls")
         if not tls or tls.get("error"):
             return False, f"G1f TLS check did not run: {(tls or {}).get('error', 'missing')}", False, False
+        if o.get("lb_address_s") is None:
+            return False, "G1 load balancer clock could not be read (no EnsuredLoadBalancer event for the proxy Service)", False, False
         lb_ok = le(o.get("lb_address_s"), t["address_s"]) and le(o.get("first_ok_s"), t["first_ok_s"])
         tls_ok = (tls.get("served_ok") is True and tls.get("rejected_without_lab_ca") is True
                   and le(tls.get("cert_ready_s"), t["cert_ready_s"]))

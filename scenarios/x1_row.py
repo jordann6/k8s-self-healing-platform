@@ -50,7 +50,9 @@ def label_system_node(h: Any) -> str:
 
 def can_check(h: Any, verb: str, resource: str) -> bool:
     result = h.k("auth", "can-i", verb, resource, "-n", NS, "--as", SA, timeout=20)
-    answer = result.stdout.strip()
+    # With Azure RBAC on AKS a denial carries the webhook's reason on stdout,
+    # "no - Azure does not have opinion for this user.", so only the first word is the answer.
+    answer = result.stdout.strip().split(" - ", 1)[0]
     if answer not in ("yes", "no"):
         # A Forbidden on impersonation must never read as "the role cannot delete" (ADR-0019 lesson).
         raise RuntimeError(f"cannot check the controller role, kubectl said: {(result.stderr or answer)[:200]}")

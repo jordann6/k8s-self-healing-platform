@@ -1,0 +1,11 @@
+{
+  "controller_present": false,
+  "reachable_before": true,
+  "blocked_s": 19.151,
+  "released_reachable_s": 10.09,
+  "released_without_evidence": true,
+  "evidence_checked": false,
+  "status_available": false,
+  "t0": 1794987511.9111161,
+  "profile": "baseline"
+}
