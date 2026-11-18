@@ -425,7 +425,7 @@ down: ## Delete the kind cluster
 KEEP_AWAKE := $(if $(shell command -v caffeinate 2>/dev/null),caffeinate -i,)
 
 .PHONY: demo
-demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks|aks
+demo: ## Run every row baseline then hardened; evidence/<run-id>/report.md (+ .json). TARGET=eks|aks|gke
 	$(if $(filter eks,$(TARGET)),AWS_PROFILE=$(LAB_PROFILE) MGMT_PROFILE=$(MGMT_PROFILE),) \
 	TALON_VERSION=$(strip $(TALON_VERSION)) $(KEEP_AWAKE) python3 scenarios/run.py --target $(TARGET) \
 		$(if $(RUN_ID),--run-id $(RUN_ID),) $(if $(ROWS),--rows $(ROWS),)
@@ -448,7 +448,7 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row test_g1_row test_x1_row
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_gke_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row test_g1_row test_x1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
@@ -462,7 +462,7 @@ test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (n
 	cd scripts && python3 -m unittest -v test_redact_evidence test_p1_registry test_argocd_inclusions test_d1_store_guard
 
 .PHONY: check
-check: test eks-check aks-check d1-store-check ## Static checks: every profile renders (kind, EKS and AKS), shellcheck, Terraform gates (AWS and Azure), pre-commit
+check: test eks-check aks-check gke-check d1-store-check ## Static checks: every profile renders (kind, EKS, AKS and GKE), shellcheck, Terraform gates (AWS, Azure and GCP), pre-commit
 	kubectl kustomize gitops/profiles/baseline >/dev/null
 	kubectl kustomize gitops/profiles/hardened >/dev/null
 	kubectl kustomize gitops/q1/baseline >/dev/null
@@ -495,7 +495,7 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	scripts/render-aks-profiles.sh
 	scripts/render-cloud-g1x1.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/x1/controller.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py scenarios/x1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/x1/controller.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/gke_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py scenarios/x1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------
@@ -711,3 +711,94 @@ aks-destroy-plan: ## Teardown 2 of 3: write infra/azure/destroy.tfplan and print
 .PHONY: aks-verify-gone
 aks-verify-gone: ## Teardown 3 of 3: read-only proof nothing survived, against the preflight's before-picture
 	scripts/aks-verify-gone.sh
+
+# --- GKE: the GCP module (ADR-0027) -------------------------------------------
+# In-cluster rows only; S1, S4 and R2 on GCP are the landing zone proofs.
+# Credentials are the operator's gcloud sign-in. The credentialed apply and
+# destroy are run by the operator from the saved plans these targets print.
+# Nothing here applies or destroys infrastructure.
+
+TFG := terraform -chdir=$(CURDIR)/infra/gcp
+TFGP := terraform -chdir=$(CURDIR)/infra/gcp-project
+GKE_ENV = KUBECONFIG=$(CURDIR)/.kube/gke
+
+.PHONY: gke-render
+gke-render: repos ## Render the GKE platform values against the pinned charts and assert the design facts (network, no credentials)
+	$(CHART_VERSIONS) scripts/render-gke-platform.sh
+
+# OFFLINE=1 skips the chart renders; say so in any report that uses it.
+.PHONY: gke-check
+gke-check: $(if $(filter 1,$(OFFLINE)),,gke-render) ## GCP gates (no credentials): chart renders unless OFFLINE=1, fmt, validate, tflint, checkov, trivy, conftest, both roots
+	scripts/render-gke-profiles.sh
+	@for d in infra/gcp-project infra/gcp; do \
+		echo "gke-check: $$d"; \
+		terraform -chdir=$$d fmt -check -recursive && \
+		terraform -chdir=$$d init -backend=false -input=false >/dev/null && \
+		terraform -chdir=$$d validate -no-color >/dev/null && \
+		tflint --chdir=$$d --recursive --minimum-failure-severity=warning && \
+		checkov -d $$d --framework terraform --quiet --compact --skip-path .terraform && \
+		trivy config --quiet --severity CRITICAL,HIGH --exit-code 1 --skip-dirs $$d/.terraform $$d && \
+		conftest test --parser hcl2 --combine --policy ../platform-guardrails/policy $$d/*.tf || exit 1; \
+	done
+
+.PHONY: gke-lock
+gke-lock: ## Record Google provider hashes for CI (linux_amd64) and this Mac (darwin_arm64), both roots
+	$(TFGP) providers lock -platform=linux_amd64 -platform=darwin_arm64
+	$(TFG) providers lock -platform=linux_amd64 -platform=darwin_arm64
+
+.PHONY: gke-project-plan
+gke-project-plan: ## Once (ADR-0027 D1): write infra/gcp-project/tfplan for the lab project, its APIs and billing link
+	@echo "Billing links today: $$(gcloud billing projects list --billing-account=$$(sed -n 's/^billing_account *= *"\(.*\)".*/\1/p' infra/gcp-project/lab.auto.tfvars) --format='value(projectId)' | wc -l | tr -d ' ') (a sixth may fail; see ADR-0027, billing cap)"
+	$(TFGP) init -input=false
+	$(TFGP) plan -input=false -out=tfplan $(GKE_PROJECT_ARGS)
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/gcp-project apply $(CURDIR)/infra/gcp-project/tfplan"
+	@echo "Then put its project_id into infra/gcp/lab.auto.tfvars"
+
+.PHONY: gke-cost
+gke-cost: ## Infracost estimate of the GKE stack (before any live session)
+	infracost scan infra/gcp && infracost inspect --group-by resource
+
+.PHONY: gke-preflight
+gke-preflight: ## Read-only checks: project, billing, landing zone gone, org policy, liens, CPU quota 16, version, responders, before-picture
+	scripts/gke-preflight.sh
+
+.PHONY: gke-plan
+gke-plan: gke-preflight ## Write infra/gcp/tfplan and print the apply command
+	$(TFG) init -input=false
+	$(TFG) plan -input=false -out=tfplan $(GKE_PLAN_ARGS)
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/gcp apply $(CURDIR)/infra/gcp/tfplan"
+	@echo "Then, right away (no pod starts until Cilium is in):  make gke-up"
+
+.PHONY: gke-images
+gke-images: ## Build linux/amd64 images, push the git SHA tags to Artifact Registry, write the generated overlay
+	scripts/gke-images.sh
+
+.PHONY: gke-platform
+gke-platform: repos ## Kubeconfig (DNS endpoint), Cilium BYO CNI, platform charts (no metrics-server), live checks L1 L3 L6
+	$(GKE_ENV) $(CHART_VERSIONS) scripts/gke-platform.sh
+
+.PHONY: gke-bootstrap
+gke-bootstrap: ## CA, partner key, Git, Argo CD root app -> targets/gke/apps/baseline, workload synced
+	$(GKE_ENV) scripts/gke-bootstrap.sh
+
+.PHONY: gke-up
+gke-up: gke-images gke-platform gke-bootstrap ## Everything after the apply, in order
+
+.PHONY: gke-predestroy
+gke-predestroy: ## Teardown 1 of 3: stop Argo CD's controller, apps, LoadBalancer Services, PVCs, PDBs
+	$(GKE_ENV) scripts/gke-predestroy.sh
+
+.PHONY: gke-destroy-plan
+gke-destroy-plan: ## Teardown 2 of 3: write infra/gcp/destroy.tfplan and print the command
+	$(TFG) plan -destroy -input=false -out=destroy.tfplan
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/gcp apply $(CURDIR)/infra/gcp/destroy.tfplan"
+	@echo "Then:  make gke-verify-gone"
+
+.PHONY: gke-verify-gone
+gke-verify-gone: ## Teardown 3 of 3: read-only proof nothing survived, against the preflight's before-picture
+	scripts/gke-verify-gone.sh
+
+.PHONY: gke-project-park
+gke-project-park: ## After the last GKE session: plan unlinking billing from the kept, empty project (D1)
+	$(TFGP) plan -input=false -out=tfplan -var=billing_linked=false
+	@echo; echo "Read the plan, then run:  terraform -chdir=$(CURDIR)/infra/gcp-project apply $(CURDIR)/infra/gcp-project/tfplan"

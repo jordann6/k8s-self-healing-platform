@@ -1,0 +1,37 @@
+# GKE overrides on top of values.yaml: bring your own CNI on the legacy
+# datapath (ADR-0027 row 1, decision D2). GKE network policy is off and
+# Dataplane V2 is not used, so Cilium is the only policy engine.
+#
+# Cilium docs (Helm install, GKE): both pools are created with
+# node.cilium.io/agent-not-ready=true:NoExecute (infra/gcp/gke.tf), and the
+# NodeInit DaemonSet "is required to prepare the GKE nodes as nodes are added
+# to the cluster": it reconfigures the kubelet to CNI mode and mounts the BPF
+# filesystem. Default for GKE is direct routing with Kubernetes PodCIDR IPAM:
+# VPC-native alias ranges already route every node's pod range.
+# ipv4NativeRoutingCIDR is the cluster's pod range, passed by make
+# gke-platform from the Terraform output (it is not committed).
+nodeinit:
+  enabled: true
+  reconfigureKubelet: true
+  removeCbrBridge: true
+cni:
+  binPath: /home/kubernetes/bin
+gke:
+  enabled: true
+ipam:
+  mode: kubernetes
+routingMode: native
+# GKE's legacy datapath runs kube-proxy; Cilium runs beside it, as on AKS
+# (stated so a later chart default cannot surprise a run).
+kubeProxyReplacement: "false"
+enableIPv4Masquerade: true
+operator:
+  replicas: 2
+  # Never on a workload node: row A4 stops one.
+  nodeSelector:
+    selfheal.lab/nodes: system
+hubble:
+  eventBufferCapacity: "65535"
+  relay:
+    nodeSelector:
+      selfheal.lab/nodes: system

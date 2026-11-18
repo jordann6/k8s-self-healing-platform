@@ -1,0 +1,22 @@
+# GKE overrides on top of ../kube-prometheus-stack.yaml. Managed Service for
+# Prometheus collection is off at create (ADR-0027 row 3): the in-cluster
+# Prometheus evaluates the Sloth rules and the canary analysis with the same
+# PromQL as kind, and nothing leaves the cluster, so no metric writer grant
+# has to propagate and no ingestion is billed.
+prometheus:
+  prometheusSpec:
+    nodeSelector:
+      selfheal.lab/nodes: system
+prometheusOperator:
+  nodeSelector:
+    selfheal.lab/nodes: system
+kube-state-metrics:
+  nodeSelector:
+    selfheal.lab/nodes: system
+grafana:
+  nodeSelector:
+    selfheal.lab/nodes: system
+# The nodes are not shared with the control plane, so the kubelet and
+# cAdvisor scrape is affordable, as on EKS and AKS (A3 reads cAdvisor CPU).
+kubelet:
+  enabled: true

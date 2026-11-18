@@ -1,0 +1,15 @@
+# GKE, baseline: the shared baseline profile plus what only exists on GKE.
+# colocate.yaml is a byte-for-byte copy of the AKS file (kustomize loads
+# nothing outside this directory; scripts/render-gke-profiles.sh fails if the
+# copies drift): the same deterministic one-node placement for row A4.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../profiles/baseline
+components:
+  - ../common
+  # Written by `make gke-images` (registry, git SHA tag), not committed.
+  - ../generated
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    path: colocate.yaml

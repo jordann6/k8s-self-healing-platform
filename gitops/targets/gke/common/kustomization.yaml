@@ -1,0 +1,24 @@
+# Everything GKE changes for both profiles alike. Nothing here is a healing
+# control under test (ADR-0001). The secret backend stays the kind backend
+# (row S1 on GCP is the landing zone proof, ADR-0027 Scope); only placement
+# changes: the web service under test runs on the tainted workload pool (the
+# nodes row A4 acts on), and the user (prober) and the dependency (partner)
+# run on the system pool, so a workload node fault never takes out the
+# measurement itself.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: workload}
+      - op: add
+        path: /spec/template/spec/tolerations
+        value:
+          - {key: selfheal.lab/workload, operator: Exists, effect: NoSchedule}
+  - target: {kind: Deployment, name: "prober|partner"}
+    patch: |-
+      - op: add
+        path: /spec/template/spec/nodeSelector
+        value: {selfheal.lab/nodes: system}
