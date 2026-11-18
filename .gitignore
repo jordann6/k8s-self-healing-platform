@@ -65,6 +65,8 @@ evidence/*
 !evidence/aks-run1-a3/
 # AKS G1 and X1 session 2026-11-18 (aks-g1-run1 is the kept miss from the address clock, ADR-0025 addendum)
 !evidence/aks-x1-run1/
+# GKE reference run (project ID and number redacted, --cloud gcp)
+!evidence/gke-run1/
 !evidence/aks-g1-run1/
 !evidence/aks-g1-run2/
 # EKS G1 and X1 session 2026-11-18 (NodePool CPU limit 12, not 24, for the vCPU quota; see DEVIATION.md). Redacted.
@@ -79,6 +81,10 @@ infra/aws/build/
 gitops/targets/eks/generated/
 # Written by make aks-images (ACR login server, git SHA tag, Key Vault URL)
 gitops/targets/aks/generated/
+# Written by make gke-images (Artifact Registry path, git SHA tag)
+gitops/targets/gke/generated/
+# Written by make gke-preflight (what existed before the session, for verify-gone)
+infra/gcp/.session/
 # Written by make aks-preflight (what existed before the session, for verify-gone)
 infra/azure/.session/
 .d1/

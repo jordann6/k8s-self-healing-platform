@@ -183,3 +183,22 @@ There is no node-level network quarantine on AKS (decision D4): R2 isolates
 by cordon plus the pod's quarantine policy, and the README lists the gap. The
 node is protected from autoscaler scale-down by annotation, the AKS-supported
 stand-in for EC2 termination protection.
+
+## GKE thresholds (set 2026-11-18, before the first GKE run)
+
+GKE runs the in-cluster rows only (ADR-0027, Scope). Every shared row keeps
+its kind and EKS number: A1 60s, A2 180s, A3 p95 300 ms, A5 60s and 120s, S2
+0 TLS errors, S3 60s, R1 30s and 90s. Nothing is relaxed for GKE.
+
+| Row | Threshold | Why |
+|---|---|---|
+| A4 | every web replica serving off the stopped node within 600s; errors under 1% from NotReady on | The AKS bound and the AKS clock (errors judged from NotReady, decision D3 of ADR-0007): the same VM stop and the same 30s hardened toleration. No replacement node is required, because the workload pool is four fixed nodes (ADR-0027, D3) |
+
+Judge rules that differ from AKS, written before the first GKE run:
+
+- A4: the VM counts as stopped only when Compute Engine reports it
+  `TERMINATED`. A GKE auto-repair operation on the workload pool inside the
+  window voids the row as an error ("the repair, not the lab's controls,
+  would have healed it", ADR-0027 row 17). A VM started again by the managed
+  instance group is reported, not voided: recovery counts only replicas
+  serving off the stopped node, so a restart cannot heal the row.

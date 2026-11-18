@@ -59,3 +59,17 @@ azure` before commit.
   records after T0 (ADR-0008 has the real times).
 - `aks-run1-a3`: A3 with KEDA scaling the HPA from Prometheus. Missed: p95
   320 ms against 300, 0.00% errors, HPA 3 to 7, scaled at 41.5s.
+
+## Reference run (GKE, phase 5)
+
+One live session, 2026-11-18. The project ID and number are replaced with
+`<gcp-project>` and `<gcp-project-number>` by `scripts/redact-evidence.py
+--cloud gcp` before commit.
+
+- `gke-run1`: the eight in-cluster rows, both profiles (ADR-0027 Scope). Every
+  baseline showed impact. Hardened A1, A2, A4, S2 and S3 healed. A3 missed on
+  latency only (p95 319.0 ms against 300 ms, 0.00% errors, HPA 3 to 10), A5
+  missed on errors only (1.17% against 1%: 6 of 514 requests failed 9 to 11s
+  after injection, before the OOM kill at 14.3s; restart and page were clean),
+  and R1 missed by 2s (isolated at 32s against 30s, the Cilium identity
+  grace period plus jitter in the ADR-0002 addendum). No threshold changed.

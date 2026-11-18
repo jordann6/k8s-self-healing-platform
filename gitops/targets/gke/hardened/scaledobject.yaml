@@ -1,0 +1,47 @@
+# Row A3 on AKS: the hardened HPA, driven by KEDA instead of metrics-server.
+#
+# AKS runs its own metrics-server at the upstream 60s resolution and it cannot
+# be replaced (kind and EKS install it at 15s). In aks-run1 the HPA scaled at
+# 69s (EKS: 32s) and the sustain window opened on a backlog it had not caught
+# up with. The managed KEDA add-on reads the same signal, web CPU against its
+# request, from the in-cluster Prometheus (cAdvisor at a 10s scrape) and
+# creates the HPA, named web as before, so the runner and the row are
+# unchanged. Bounds and behaviour match ../../../profiles/hardened/hpa.yaml.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: web
+  namespace: selfheal
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: web
+  minReplicaCount: 3
+  maxReplicaCount: 10
+  advanced:
+    horizontalPodAutoscalerConfig:
+      name: web
+      behavior:
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          selectPolicy: Max
+          policies:
+            - {type: Percent, value: 100, periodSeconds: 15}
+            - {type: Pods, value: 4, periodSeconds: 15}
+        scaleDown:
+          stabilizationWindowSeconds: 30
+          policies:
+            - {type: Percent, value: 100, periodSeconds: 15}
+  triggers:
+    # Average utilization in percent of the 100m request, the quantity the
+    # shared HPA targets at 100. As a Value target the HPA computes
+    # ceil(replicas x value / 100), the same arithmetic as Utilization.
+    - type: prometheus
+      metricType: Value
+      metadata:
+        serverAddress: http://kps-prometheus.monitoring.svc:9090
+        threshold: "100"
+        query: >-
+          100 * sum(irate(container_cpu_usage_seconds_total{namespace="selfheal",container="web",job="kubelet",metrics_path="/metrics/cadvisor"}[1m]))
+          / sum(kube_pod_container_resource_requests{namespace="selfheal",container="web",resource="cpu"})

@@ -1,0 +1,13 @@
+# GKE overrides on top of ../falco.yaml. The web pods run on the tainted
+# workload nodes, so Falco has to run there too or row R1 never fires.
+# The driver stays modern_ebpf (../falco.yaml): on Container-Optimized OS
+# "Falco cannot insert its Kernel Module" and "To use Falco on GKE, you need
+# to deploy using the Modern eBPF" (falco.org, ADR-0027 row 16). Whether the
+# node image's kernel loads it is live check L3.
+tolerations:
+  - key: selfheal.lab/workload
+    operator: Exists
+    effect: NoSchedule
+  - key: node.cilium.io/agent-not-ready
+    operator: Exists
+    effect: NoExecute

@@ -1,0 +1,4 @@
+# GKE overrides on top of ../keda.yaml. GKE has no KEDA add-on, so the pinned
+# chart drives row A3 the way AKS's add-on does (ADR-0027, D4).
+nodeSelector:
+  selfheal.lab/nodes: system

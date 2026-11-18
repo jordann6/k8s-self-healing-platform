@@ -1,0 +1,26 @@
+# GKE, hardened: the shared hardened profile plus what only exists on GKE.
+# topology.yaml and scaledobject.yaml are byte-for-byte copies of the AKS
+# files (render-gke-profiles.sh fails if they drift). They give strict
+# hostname spread with minDomains 3 over four fixed workload nodes (ADR-0027
+# row 8 and D3, no cluster autoscaler in the path) and KEDA on the in-cluster
+# Prometheus creating the HPA named web (D4).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - ../../../profiles/hardened
+  - scaledobject.yaml
+components:
+  - ../common
+  # Written by `make gke-images` (registry, git SHA tag), not committed.
+  - ../generated
+patches:
+  - target: {group: argoproj.io, kind: Rollout, name: web}
+    path: topology.yaml
+  # The shared HPA would fight KEDA's over the Rollout.
+  - target: {group: autoscaling, kind: HorizontalPodAutoscaler, name: web}
+    patch: |-
+      $patch: delete
+      apiVersion: autoscaling/v2
+      kind: HorizontalPodAutoscaler
+      metadata:
+        name: web

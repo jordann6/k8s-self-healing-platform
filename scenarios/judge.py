@@ -179,6 +179,15 @@ for _cloud in ("eks", "aks"):
                                 "cert_ready_s": 120}
     THRESHOLDS[_cloud]["X1"] = {**THRESHOLDS["kind"]["X1"], "cilium": True}
 
+# GKE (ADR-0027). The in-cluster rows only; S1, S4 and R2 on GCP are the
+# landing zone proofs. Shared rows keep the kind and EKS numbers (A3 stays at
+# 300 ms, R1 at 30s). A4 keeps the AKS bound: the same stop, the same 30s
+# toleration, and no node to create, because the pool is fixed at four (D3).
+THRESHOLDS["gke"] = {
+    **{r: dict(THRESHOLDS["kind"][r]) for r in ("A1", "A2", "A3", "A5", "S2", "S3", "R1")},
+    "A4": {"recover_s": 600, "error_rate": 0.01},
+}
+
 # Minimum share of the expected prober samples a window must hold to be judged.
 MIN_SAMPLE_SHARE = 0.8
 # Must match run.py: more than this share of failures in 10s stops an injection.
@@ -246,6 +255,11 @@ HYPOTHESES = {
 
 # Rows whose mechanism differs on a target state their own hypothesis there.
 HYPOTHESES_BY_TARGET = {
+    "gke": {
+        "A4": "When the VM hosting the most web pods is stopped, the error rate stays under 1% from the moment "
+              "its node is marked NotReady, and every web replica is serving again on the remaining fixed "
+              "workload nodes within 600s.",
+    },
     "eks": {
         "N1": "For Cilium-managed pods on different nodes under ENI IPAM with native routing, the baseline "
               "sends the request as plaintext between the two pod addresses on the physical NICs. Hardened "
@@ -1312,7 +1326,30 @@ def judge_r2_aks(o: dict, t: dict):
     return True, why, impact, healed
 
 
-JUDGES_BY_TARGET = {"aks": {"A4": judge_a4_aks, "S4": judge_s4_aks, "R2": judge_r2_aks}}
+def judge_a4_gke(o: dict, t: dict):
+    if not o.get("stopped"):
+        return False, f"the VM was not confirmed stopped (status {o.get('vm_status')})", False, False
+    if not o.get("web_pods_on_node"):
+        return False, "the stopped node ran no web pod, so nothing under test was hit", False, False
+    if o.get("not_ready_s") is None:
+        return False, "the node was never marked NotReady in the window, so A4's error clock has no start", False, False
+    if not enough(o.get("samples"), o.get("expected", 0)):
+        return False, f"prober window too thin ({o.get('samples')} of ~{o.get('expected')})", False, False
+    err, rec = o["error_rate"], o.get("recovered_s")
+    impact = err >= t["error_rate"] or rec is None
+    # No replacement node is required: the pool is fixed (ADR-0027, D3).
+    healed = le(rec, t["recover_s"]) and err < t["error_rate"]
+    gap = o.get("gap_error_rate")
+    why = (f"stopped {o.get('zone')}/{o.get('instance')} ({o.get('web_pods_on_node')} web pods), NotReady at "
+           f"{fmt_s(o.get('not_ready_s'))}; errors from NotReady {err:.2%}"
+           + (f" (before NotReady, reported not judged: {gap:.2%})" if gap is not None else "")
+           + f"; all replicas serving {fmt_s(rec)}"
+           + (f"; VM started again by something else at {fmt_s(o.get('vm_restarted_s'))}" if o.get("vm_restarted_s") else ""))
+    return True, why, impact, healed
+
+
+JUDGES_BY_TARGET = {"aks": {"A4": judge_a4_aks, "S4": judge_s4_aks, "R2": judge_r2_aks},
+                    "gke": {"A4": judge_a4_gke}}
 
 
 def void_reason(row: str, target: str, o: dict) -> str | None:
@@ -1323,6 +1360,11 @@ def void_reason(row: str, target: str, o: dict) -> str | None:
     if target == "aks" and row == "A4" and o.get("repair_events"):
         return (f"AKS auto-repair acted on the stopped node inside the window ({', '.join(o['repair_events'])}): "
                 f"the repair, not the lab's controls, would have healed it (ADR-0007 row 17)")
+    # A VM started again by the MIG is reported, not voided: recovery counts
+    # only replicas serving off the stopped node, so a restart cannot heal it.
+    if target == "gke" and row == "A4" and o.get("repair_operations"):
+        return (f"GKE auto-repair acted on the stopped node inside the window ({', '.join(o['repair_operations'])}): "
+                f"the repair, not the lab's controls, would have healed it (ADR-0027 row 17)")
     return None
 
 

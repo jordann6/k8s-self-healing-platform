@@ -1,0 +1,9 @@
+LAST SEEN   TYPE      REASON      OBJECT                    MESSAGE
+14m         Normal    Scheduled   pod/web-c9fc65cd9-gpdzp   Successfully assigned selfheal/web-c9fc65cd9-gpdzp to gke-selfheal-workload-13368d94-9nzh
+5m          Normal    Pulled      pod/web-c9fc65cd9-gpdzp   Container image "us-central1-docker.pkg.dev/<gcp-project>/selfheal/app:fb0bea5-v1" already present on machine and can be accessed by the pod
+5m          Normal    Created     pod/web-c9fc65cd9-gpdzp   Container created
+5m          Normal    Started     pod/web-c9fc65cd9-gpdzp   Container started
+4m57s       Warning   Unhealthy   pod/web-c9fc65cd9-gpdzp   Readiness probe failed: Get "http://10.64.3.74:8080/readyz": dial tcp 10.64.3.74:8080: connect: connection refused
+4m57s       Warning   Unhealthy   pod/web-c9fc65cd9-gpdzp   Liveness probe failed: Get "http://10.64.3.74:8080/healthz": dial tcp 10.64.3.74:8080: connect: connection refused
+5m          Warning   Unhealthy   pod/web-c9fc65cd9-gpdzp   Readiness probe failed: Get "http://10.64.3.74:8080/readyz": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+5m          Warning   Unhealthy   pod/web-c9fc65cd9-gpdzp   Liveness probe failed: Get "http://10.64.3.74:8080/healthz": read tcp 10.60.0.6:41272->10.64.3.74:8080: read: connection reset by peer
