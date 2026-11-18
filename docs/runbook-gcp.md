@@ -53,7 +53,7 @@ and logging usage.
 
 ```sh
 make gke-up            # gke-images, gke-platform, gke-bootstrap
-export KUBECONFIG=$PWD/.kube/gke
+export KUBECONFIG=$PWD/.kube/gke   # for your own kubectl; make demo TARGET=gke sets it itself
 ```
 
 ### Live checks before the demo (the docs do not settle these)
