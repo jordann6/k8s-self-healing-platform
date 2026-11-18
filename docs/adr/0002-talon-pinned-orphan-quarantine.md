@@ -49,3 +49,19 @@ before the attack (both profiles), so the identity exists and isolation costs
 only the endpoint regeneration. The 30s threshold is unchanged. Production
 equivalent: a kvstore-backed identity allocator, or a quarantine label set that
 is pre-provisioned, so incident response never waits on identity creation.
+
+## Addendum 2026-11-18, R1's isolation time matches the Cilium identity jitter
+
+ADR-0026's Cilium investigation found that Cilium v1.20.4 delays applying a pod label change to the endpoint
+identity by `identity-change-grace-period` (default 5 s) plus a random jitter of up to `identity-max-jitter`
+(default 30 s). Pre-allocating the quarantine identity, the remedy above, did not remove that wait, the identity
+already existed in every later trial of that investigation and the delay stayed.
+
+The `isolated_s` values for R1 hardened across the committed evidence are 8.4 (aks-run1-rows), 16.1, 18.7, 34.6
+(eks-run2-a4r1, eks-run2, eks-run2-rows), 11.0 (eks-run3), and on kind 22.5, 43.2, 15.6, 38.2, 22.3, 22.1 and 24.9
+(kind-run1 to run7). That spread, 8 to 43 s, is the shape the default settings predict (5 s plus a uniform jitter
+up to 30 s, plus detection), and three of the runs are over the 30 s bound. The reference runs (kind-run5 and
+run7) were within it. No bound and no verdict is changed here. R1's rows are not wrong, but "the pre-allocated
+identity makes isolation cost only the endpoint regeneration" is not supported, and a pass on a single run is
+partly luck against the jitter. Whether to set the two Cilium options, or to say so on the R1 claim, is the open
+decision recorded in ADR-0026's 2026-11-18 addendum.
