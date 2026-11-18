@@ -1,0 +1,3 @@
+# Copy to lab.auto.tfvars (gitignored) and fill in. The project ID stays out
+# of the public repo; take it from: terraform -chdir=infra/gcp-project output -raw project_id
+project_id = "jn-selfheal-000000"

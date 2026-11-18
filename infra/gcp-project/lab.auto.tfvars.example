@@ -1,0 +1,3 @@
+# Copy to lab.auto.tfvars (gitignored) and fill in. IDs stay out of the public repo.
+org_id          = "000000000000"         # gcloud organizations list --format='value(name)'
+billing_account = "000000-000000-000000" # gcloud billing accounts list --format='value(name)'
