@@ -245,15 +245,27 @@ def parse_ts(value: str) -> float:
 
 
 def lb_provisioning_s(h: Any) -> float | None:
-    """Seconds from the proxy Service being created to the Gateway reporting Programmed, which needs the
-    load balancer address. None when either timestamp is missing, and the judge then errors."""
-    created = proxy_service(h).get("metadata", {}).get("creationTimestamp")
-    gateway = h.kj("-n", PLATFORM_NS, "get", "gateway", GATEWAY)
-    programmed = [c.get("lastTransitionTime") for c in (gateway.get("status") or {}).get("conditions") or []
-                  if c.get("type") == "Programmed" and c.get("status") == "True"]
-    if not created or not programmed or not programmed[0]:
+    """Seconds from the proxy Service being created to the cloud provider's first EnsuredLoadBalancer event for
+    that Service (ADR-0025 addendum 2026-11-18, AKS). The first version read the Gateway's Programmed
+    lastTransitionTime, which moves on every listener change, so it measured the last profile switch and not the
+    provisioning (aks-g1-run1, kept as a miss). The provider re-syncs the Service on each Gateway change, which keeps
+    the event alive and its firstTimestamp unchanged. None when the Service or the event is missing (events
+    expire), and the judge then errors rather than passing or missing on a clock it could not read."""
+    meta = proxy_service(h).get("metadata", {})
+    created, uid = meta.get("creationTimestamp"), meta.get("uid")
+    if not created or not uid:
         return None
-    return round(parse_ts(programmed[0]) - parse_ts(created), 3)
+    events = h.kj("-n", PROXY_NS, "get", "events", "--field-selector",
+                  f"involvedObject.uid={uid},reason=EnsuredLoadBalancer").get("items", [])
+    return provisioning_s(created, events)
+
+
+def provisioning_s(created: str, events: list[dict[str, Any]]) -> float | None:
+    stamps = [e.get("firstTimestamp") or e.get("eventTime") for e in events]
+    stamps = [parse_ts(x) for x in stamps if x]
+    if not stamps:
+        return None
+    return round(min(stamps) - parse_ts(created), 3)
 
 
 def listener_has_https(h: Any) -> bool:
@@ -333,8 +345,8 @@ def run(h: Any, _lab: Any, profile: str, directory: Path) -> dict[str, Any]:
     obs: dict[str, Any] = {"t0": t0, "listener": shape, "proxy_service": "LoadBalancer" if cloud else "ClusterIP",
                            "legit_before": probe(h, ip, HOST, "/shop")}
     if cloud:
-        # The address clock comes from Kubernetes timestamps (proxy Service created to Gateway Programmed), so
-        # it holds even when the Gateway was provisioned before this row started. The first-200 clock is the
+        # The address clock comes from Kubernetes timestamps (proxy Service created to the first
+        # EnsuredLoadBalancer event), so it holds even when the Gateway was provisioned before this row started. The first-200 clock is the
         # wait from the start of this row, so it is conservative (never shorter than the wait after the address).
         obs["lb_address_s"] = lb_provisioning_s(h)
         obs["first_ok_s"] = round(h.now() - ok_started, 3)

@@ -125,7 +125,7 @@ reportsController:
         azure.workload.identity/client-id: $(jq -r .kyverno_reports <<<"$ids")
         azure.workload.identity/tenant-id: $(r tenant_id)
 EOV
-if grep -qE ': (null|)$' "$kyverno_values"; then
+if grep -qE ': (null)?$' "$kyverno_values"; then
 	echo "aks-platform: a Kyverno identity value was not filled" >&2
 	exit 1
 fi

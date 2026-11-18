@@ -56,6 +56,16 @@ class Helpers(unittest.TestCase):
         self.assertEqual(pod["metadata"]["namespace"], g1_row.PLATFORM_NS)
 
 
+class ProvisioningClock(unittest.TestCase):
+    def test_the_first_ensured_event_is_the_clock_not_a_later_resync(self):
+        events = [{"firstTimestamp": "2026-11-18T07:34:41Z", "lastTimestamp": "2026-11-18T07:46:08Z"},
+                  {"firstTimestamp": None, "eventTime": "2026-11-18T07:40:00.000000Z"}]
+        self.assertEqual(g1_row.provisioning_s("2026-11-18T07:33:24Z", events), 77.0)
+
+    def test_no_event_is_no_clock(self):
+        self.assertIsNone(g1_row.provisioning_s("2026-11-18T07:33:24Z", []))
+
+
 class Judge(unittest.TestCase):
     def test_baseline_that_leaks_is_impact(self):
         ok, _why, impact, healed = judge.judge_g1(baseline_obs(), T)
@@ -127,6 +137,9 @@ class CloudContract(unittest.TestCase):
         del obs["tls"]
         self.assertFalse(judge.judge_g1(obs, CLOUD["eks"])[0])
         self.assertFalse(judge.judge_g1(cloud_hardened(tls={"error": "certificate never Ready"}), CLOUD["eks"])[0])
+
+    def test_unreadable_load_balancer_clock_is_an_error_not_a_miss(self):
+        self.assertFalse(judge.judge_g1(cloud_hardened(lb_address_s=None), CLOUD["aks"])[0])
 
     def test_slow_load_balancer_or_unverified_tls_is_a_miss(self):
         for over in ({"lb_address_s": 400.0}, {"first_ok_s": 301.0},
