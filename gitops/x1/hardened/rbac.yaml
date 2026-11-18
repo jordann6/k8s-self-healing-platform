@@ -1,0 +1,36 @@
+# Least privilege (ADR-0026 risk 1). The controller can patch pods and read one kind
+# of ConfigMap in this namespace. It cannot delete pods, read Secrets, or touch any
+# other namespace, and it has no cluster role.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: x1-controller
+  namespace: selfheal-x1
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: x1-controller
+  namespace: selfheal-x1
+rules:
+  - apiGroups: [""]
+    resources: [pods]
+    verbs: [get, list, patch]
+  - apiGroups: [""]
+    resources: [configmaps]
+    verbs: [get]
+  - apiGroups: [selfhealing.lab]
+    resources: [quarantines]
+    verbs: [get, list, watch]
+  - apiGroups: [selfhealing.lab]
+    resources: [quarantines/status]
+    verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: x1-controller
+  namespace: selfheal-x1
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: Role, name: x1-controller}
+subjects:
+  - {kind: ServiceAccount, name: x1-controller, namespace: selfheal-x1}

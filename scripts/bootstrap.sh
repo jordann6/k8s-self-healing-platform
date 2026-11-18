@@ -13,7 +13,8 @@ focused_p1="${FOCUSED_P1:-0}"
 focused_d1="${FOCUSED_D1:-0}"
 focused_o1="${FOCUSED_O1:-0}"
 focused_g1="${FOCUSED_G1:-0}"
-focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1 + focused_o1 + focused_g1))
+focused_x1="${FOCUSED_X1:-0}"
+focused_count=$((focused_q1 + focused_q2 + focused_q3 + focused_n1 + focused_p1 + focused_d1 + focused_o1 + focused_g1 + focused_x1))
 if ((focused_count > 1)); then
 	echo "bootstrap: choose one focused capability" >&2
 	exit 2
@@ -63,6 +64,10 @@ if ((focused_count == 0 || focused_g1 == 1)); then
 		kubectl create namespace "$ns" --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 	done
 	kubectl label namespace selfheal-g1 selfheal.lab/g1-routes=allowed --overwrite >/dev/null
+fi
+
+if ((focused_count == 0 || focused_x1 == 1)); then
+	kubectl create namespace selfheal-x1 --dry-run=client -o yaml | kubectl apply -f - >/dev/null
 fi
 
 if [[ "$focused_p1" == "1" ]]; then
@@ -122,6 +127,9 @@ elif [[ "$focused_p1" == "1" ]]; then
 elif [[ "$focused_g1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/g1.yaml" >/dev/null
 	echo "bootstrap: done (focused G1 app -> g1/baseline)"
+elif [[ "$focused_x1" == "1" ]]; then
+	kubectl apply -f "$root/gitops/apps/baseline/x1.yaml" >/dev/null
+	echo "bootstrap: done (focused X1 app -> x1/baseline)"
 elif [[ "$focused_d1" == "1" ]]; then
 	kubectl apply -f "$root/gitops/apps/baseline/d1.yaml" >/dev/null
 	echo "bootstrap: done (focused D1 app -> d1/baseline)"

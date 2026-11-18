@@ -51,6 +51,7 @@ import q3_row  # noqa: E402
 import n1_row  # noqa: E402
 import p1_row  # noqa: E402
 import g1_row  # noqa: E402
+import x1_row  # noqa: E402
 import d1_row  # noqa: E402
 import o1_row  # noqa: E402
 
@@ -72,7 +73,7 @@ ROWS_BY_TARGET = {
 }
 # Rows that run only as a focused row on a target with its own cluster (make g1-up). They are never
 # part of the default full demo, so they are not in ROWS_BY_TARGET (ADR-0025).
-FOCUSED_ONLY_ROWS = {"kind": ["G1"]}
+FOCUSED_ONLY_ROWS = {"kind": ["G1", "X1"]}
 # The modules holding each cloud's own rows (A4, S4, R2 and on EKS S1b, S5).
 CLOUD_ROWS = {"eks": eks_rows, "aks": aks_rows}
 ROWS = ROWS_BY_TARGET["kind"]
@@ -101,6 +102,7 @@ ACTIONS = {
     **n1_row.ACTIONS,
     **p1_row.ACTIONS,
     **g1_row.ACTIONS,
+    **x1_row.ACTIONS,
     **d1_row.ACTIONS,
     **o1_row.ACTIONS,
     **eks_rows.ACTIONS,
@@ -1296,15 +1298,16 @@ RUNNERS = {"A1": row_a1, "A2": row_a2, "A3": row_a3, "A5": row_a5, "S1": row_s1,
            "P1": lambda lab, profile, d: p1_row.run(sys.modules[__name__], lab, profile, d),
            "D1": lambda lab, profile, d: d1_row.run(sys.modules[__name__], lab, profile, d),
            "O1": lambda lab, profile, d: o1_row.run(sys.modules[__name__], lab, profile, d),
-           "G1": lambda lab, profile, d: g1_row.run(sys.modules[__name__], lab, profile, d)}
+           "G1": lambda lab, profile, d: g1_row.run(sys.modules[__name__], lab, profile, d),
+           "X1": lambda lab, profile, d: x1_row.run(sys.modules[__name__], lab, profile, d)}
 DETECTED = {"A1": "detected_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "oom_s", "S1": "synced_s",
             "S2": "renewed_s", "S3": "policy_restored_s", "R1": "detected_s", "Q1": "scaled_up_s",
             "Q2": "metric_failure_detected_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s", "G1": "route_status_s"}
+            "P1": "trusted_admission_s", "D1": "backup_s", "O1": "evidence_s", "G1": "route_status_s", "X1": "isolate_s"}
 RECOVERED = {"A1": "recovered_s", "A2": "aborted_s", "A3": "scaled_s", "A5": "recovered_s", "S1": "rolled_s",
              "S2": "served_s", "S3": "edit_reverted_s", "R1": "isolated_s", "Q1": "drained_s",
              "Q2": "metric_recovered_s", "Q3": "recommendation_s", "N1": "tunnel_s",
-             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s", "G1": "proxy_recovery_s"}
+             "P1": "recovery_s", "D1": "rto_s", "O1": "release_s", "G1": "proxy_recovery_s", "X1": "resume_s"}
 
 
 def runner(row: str):
@@ -1360,6 +1363,10 @@ FOCUSED_G1_PRECONDITIONS = [
     ("argocd", "statefulset", "argocd-application-controller"),
     ("gitops", "deploy", "gitserver"),
 ]
+FOCUSED_X1_PRECONDITIONS = [
+    ("kube-system", "daemonset", "cilium"), ("kube-system", "deploy", "cilium-operator"),
+    ("argocd", "statefulset", "argocd-application-controller"), ("gitops", "deploy", "gitserver"),
+]
 FOCUSED_D1_PRECONDITIONS = [
     ("argocd", "statefulset", "argocd-application-controller"),
     ("gitops", "deploy", "gitserver"),
@@ -1403,6 +1410,10 @@ def g1_only(rows: list[str]) -> bool:
     return rows == ["G1"]
 
 
+def x1_only(rows: list[str]) -> bool:
+    return rows == ["X1"]
+
+
 def focused_row(rows: list[str]) -> str | None:
     if q1_only(rows):
         return "Q1"
@@ -1420,6 +1431,8 @@ def focused_row(rows: list[str]) -> str | None:
         return "O1"
     if g1_only(rows):
         return "G1"
+    if x1_only(rows):
+        return "X1"
     return None
 
 
@@ -1451,6 +1464,8 @@ def precondition_resources(rows: list[str]) -> list[tuple[str, str, str]]:
         return FOCUSED_O1_PRECONDITIONS
     if focused == "G1":
         return FOCUSED_G1_PRECONDITIONS
+    if focused == "X1":
+        return FOCUSED_X1_PRECONDITIONS
     extra = {"eks": [("kube-system", "deploy", "karpenter")],
              "aks": [("responder", "deploy", "r2-worker")]}.get(TARGET, [])
     return extra + FULL_PRECONDITIONS
@@ -1488,7 +1503,7 @@ def preconditions(rows: list[str]) -> dict:
                  what=f"{focused} app Synced and Healthy")
         names = {"Q1": ("rabbitmq", "qworker"), "Q2": ("q2-signal", "q2-target"),
                  "Q3": ("q3-target",), "N1": ("n1-server", "n1-client", "n1-denied"),
-                 "P1": (), "D1": (), "O1": (), "G1": ()}[focused]
+                 "P1": (), "D1": (), "O1": (), "G1": (), "X1": ("x1-target",)}[focused]
         for name in names:
             p = k("-n", NS, "rollout", "status", f"deploy/{name}", "--timeout=120s", timeout=130)
             checks[f"{NS}/{name}"] = p.returncode == 0
@@ -1746,6 +1761,23 @@ def apply_g1_profile(profile: str) -> None:
     wait_for(lambda: g1_row.gateway_ready(sys.modules[__name__]), 120, step=2, what="G1 Gateway Programmed")
 
 
+def apply_x1_profile(profile: str) -> None:
+    """Switch the isolated X1 application and wait for the CRD and controller, or their absence."""
+    log(f"profile -> {profile} (X1 only)")
+    app_path = f"x1/{profile}"
+    k("-n", "argocd", "patch", "application", "selfheal-x1", "--type", "merge",
+      "-p", json.dumps({"spec": {"source": {"path": app_path}}}), check=True)
+    refresh("selfheal-x1")
+    wait_for(lambda: app_state("selfheal-x1")["path"] == app_path, 120, step=3, what="X1 app path")
+    wait_for(lambda: app_state("selfheal-x1")["sync"] == "Synced", 180, step=3, what="X1 app Synced")
+    if profile == "hardened":
+        wait_for(lambda: k("get", "crd", "quarantines.selfhealing.lab").returncode == 0, 60, step=2,
+                 what="X1 CRD established")
+    else:
+        wait_for(lambda: k("get", "crd", "quarantines.selfhealing.lab").returncode != 0, 120, step=2,
+                 what="X1 baseline without the CRD")
+
+
 def apply_focused_profile(row: str, profile: str) -> None:
     if row == "Q1":
         apply_q1_profile(profile)
@@ -1763,6 +1795,8 @@ def apply_focused_profile(row: str, profile: str) -> None:
         apply_o1_profile(profile)
     elif row == "G1":
         apply_g1_profile(profile)
+    elif row == "X1":
+        apply_x1_profile(profile)
     else:
         raise ValueError(f"unknown focused row {row}")
 
@@ -1863,6 +1897,8 @@ def write_report(outdir: Path, doc: dict) -> None:
         L.append("\nD1 records the deterministic source digest, backup Job identity and completion, retained object version and checksums, authorized source PVC replacement, exact fresh-target restore, RPO and RTO, an atomic malformed restore failure, and two deletion denials.")
     elif doc["rows"] == ["G1"]:
         L.append("\nG1 records the listener shape, the Gateway's own Accepted and ResolvedRefs conditions per faulted route, the response each faulted host and path received through the Envoy proxy Service, the legitimate route during every fault, and an informational proxy pod kill. The caller is a pod inside the cluster, so no public address exists.")
+    elif doc["rows"] == ["X1"]:
+        L.append("\nX1 records, per Quarantine, the status phase and conditions the controller wrote, isolation time, direct pod-IP reachability from an in-cluster client before and after, pod UID and restart count, the evidence record, label-patch counts from the replacement controller's log, and `kubectl auth can-i` for the controller's service account.")
     elif doc["rows"] == ["O1"]:
         L.append("\nO1 records namespace admission defaults and quota denial, exact operator and controller permissions, controller replacement identity, evidence and alert correlation, release ordering, and quarantine connectivity before and after release.")
     else:

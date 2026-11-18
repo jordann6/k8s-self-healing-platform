@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: x1-controller
+  namespace: selfheal-x1
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: x1-controller}
+  template:
+    metadata:
+      # Protected, so a Quarantine can never isolate the controller itself.
+      labels: {app: x1-controller, selfheal.lab/protected: "true"}
+    spec:
+      serviceAccountName: x1-controller
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: controller
+          image: selfheal-x1:v1
+          imagePullPolicy: IfNotPresent
+          readinessProbe:
+            exec: {command: ["python3", "-c", "import sys"]}
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 96Mi}

@@ -8,6 +8,7 @@
 #   make n1-up     multi-node kind + only the components required by N1
 #   make p1-up     kind + local registry + Kyverno signed-image admission
 #   make g1-up     kind + Envoy Gateway + Gateway API front door
+#   make x1-up     kind + Cilium + the Quarantine operator
 #   make d1-up     kind + PostgreSQL + retained local object backup
 #   make o1-up     kind + operational readiness boundary and controller
 #   make demo      baseline -> hardened, every row; writes evidence/<run-id>/
@@ -89,6 +90,9 @@ p1-up: p1-kind-up p1-platform p1-bootstrap ## Focused P1 signed-image admission 
 .PHONY: g1-up
 g1-up: g1-kind-up g1-platform g1-bootstrap ## Focused G1 Gateway API front-door proof
 
+.PHONY: x1-up
+x1-up: x1-kind-up x1-platform x1-bootstrap ## Focused X1 Quarantine operator proof
+
 .PHONY: d1-up
 d1-up: d1-kind-up d1-platform d1-bootstrap ## Focused D1 backup, restore, and deletion-resistance proof
 
@@ -163,6 +167,16 @@ g1-kind-up: ## Create G1's kind cluster and load its images
 	$(MAKE) repos
 	$(MAKE) g1-images
 
+.PHONY: x1-kind-up
+x1-kind-up: ## Create the kind cluster, install Cilium, and load only X1 images
+	mkdir -p .kube
+	kind create cluster --config kind/cluster.yaml --kubeconfig $(KUBECONFIG)
+	$(MAKE) repos
+	$(HELM) upgrade --install cilium cilium/cilium --version $(CILIUM_VERSION) -n kube-system -f cilium/values.yaml
+	cilium status --wait --wait-duration 6m >/dev/null
+	cilium/readiness-gate.sh
+	$(MAKE) x1-images
+
 .PHONY: d1-kind-up
 d1-kind-up: ## Create the kind cluster, install Cilium, and load only D1 images
 	mkdir -p .kube
@@ -236,6 +250,13 @@ g1-images: ## Build and load the G1 backend and Git server images
 	docker build -q -t selfheal-gitserver:dev app/gitserver
 	docker build -q -t selfheal-g1:v1 app/g1
 	kind load docker-image selfheal-gitserver:dev selfheal-g1:v1 --name $(KIND_CLUSTER)
+
+.PHONY: x1-images
+x1-images: ## Build and load the X1 controller, the target, and the Git server images
+	docker build -q -t selfheal-gitserver:dev app/gitserver
+	docker build -q -t selfheal-x1:v1 app/x1
+	docker build -q -t selfheal-x1-target:v1 app/g1
+	kind load docker-image selfheal-gitserver:dev selfheal-x1:v1 selfheal-x1-target:v1 --name $(KIND_CLUSTER)
 
 .PHONY: d1-images
 d1-images: ## Build the D1 tool and load PostgreSQL, MinIO, and Git server images
@@ -339,6 +360,11 @@ g1-platform: repos ## Install Envoy Gateway and Argo CD for focused G1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
 		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
 
+.PHONY: x1-platform
+x1-platform: repos ## Install only Argo CD after Cilium for focused X1
+	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
+		-n argocd --create-namespace -f platform/argo-cd.yaml --wait --timeout 10m
+
 .PHONY: d1-platform
 d1-platform: repos ## Install only Argo CD for focused D1
 	$(HELM) upgrade --install argocd argo/argo-cd --version $(ARGOCD_VERSION) \
@@ -376,6 +402,10 @@ p1-bootstrap: ## Inject P1's public trust root, seed Git, and apply the baseline
 .PHONY: g1-bootstrap
 g1-bootstrap: ## Create the G1 namespaces, seed Git, and apply the G1 baseline app
 	FOCUSED_G1=1 scripts/bootstrap.sh
+
+.PHONY: x1-bootstrap
+x1-bootstrap: ## Create the X1 namespace, seed Git, and apply the X1 baseline app
+	FOCUSED_X1=1 scripts/bootstrap.sh
 
 .PHONY: d1-bootstrap
 d1-bootstrap: ## Generate runtime credentials, seed Git, and apply the D1 baseline app
@@ -421,7 +451,7 @@ slo: ## Regenerate gitops/base/slo-rules.yaml from slo/ with Sloth
 
 .PHONY: test
 test: ## Unit-test the runner's honesty rules and the R2 responders' refusals (no cluster, no cloud)
-	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row test_g1_row
+	cd scenarios && python3 -m unittest -v test_classify test_aks_rows test_q2_row test_q3_row test_n1_row test_p1_row test_d1_row test_o1_row test_g1_row test_x1_row
 	cd infra/aws/responder && python3 -m unittest -v test_handler
 	cd app/r2worker && python3 -m unittest -v test_worker
 	cd app/qworker && python3 -m unittest -v test_worker
@@ -455,6 +485,9 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	kubectl kustomize gitops/g1/baseline >/dev/null
 	kubectl kustomize gitops/g1/hardened >/dev/null
 	scripts/render-g1-profiles.sh
+	kubectl kustomize gitops/x1/baseline >/dev/null
+	kubectl kustomize gitops/x1/hardened >/dev/null
+	scripts/render-x1-profiles.sh
 	kubectl kustomize gitops/d1/baseline >/dev/null
 	kubectl kustomize gitops/d1/hardened >/dev/null
 	scripts/render-d1-profiles.sh
@@ -464,7 +497,7 @@ check: test eks-check aks-check d1-store-check ## Static checks: every profile r
 	scripts/render-eks-profiles.sh
 	scripts/render-aks-profiles.sh
 	shellcheck scripts/*.sh cilium/*.sh infra/aws/rotation/build.sh
-	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
+	python3 -m py_compile app/app.py app/dbprobe/dbprobe.py app/r2worker/worker.py app/qworker/worker.py app/q2/app.py app/q3/app.py app/n1/app.py app/p1/app.py app/o1/app.py app/g1/app.py app/x1/controller.py app/d1/d1store.py scripts/d1_store_guard.py scenarios/run.py scenarios/aks_rows.py scenarios/p1_row.py scenarios/d1_row.py scenarios/o1_row.py scenarios/g1_row.py scenarios/x1_row.py infra/aws/responder/handler.py scripts/p1_registry.py
 	pre-commit run --all-files
 
 # --- EKS: the AWS module ------------------------------------------------------

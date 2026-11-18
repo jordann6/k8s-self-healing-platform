@@ -1,0 +1,50 @@
+# The pod an incident responder isolates. lab/pool=serving is in the Service and
+# the Deployment selector, so relabelling it to quarantine takes it out of both:
+# it stops serving, the ReplicaSet starts a replacement, and the pod itself keeps
+# running for evidence (ADR-0002, the same design Falco Talon uses in R1).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: x1-target
+  namespace: selfheal-x1
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: x1-target, lab/pool: serving}
+  template:
+    metadata:
+      labels: {app: x1-target, lab/pool: serving}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: target
+          image: selfheal-x1-target:v1
+          imagePullPolicy: IfNotPresent
+          env:
+            - {name: G1_BACKEND, value: x1-target}
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8080}
+            periodSeconds: 2
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 64Mi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: x1-target
+  namespace: selfheal-x1
+spec:
+  selector: {app: x1-target, lab/pool: serving}
+  ports:
+    - port: 80
+      targetPort: 8080

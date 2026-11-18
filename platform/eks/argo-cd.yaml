@@ -66,6 +66,14 @@ configs:
       - apiGroups: [gateway.envoyproxy.io]
         kinds: [EnvoyProxy]
         clusters: ["*"]
+      # Row X1 (ADR-0026). The CRD, its Quarantine instances, and the NetworkPolicy
+      # the controller's isolation relies on are watched so Argo CD reports health.
+      - apiGroups: [apiextensions.k8s.io]
+        kinds: [CustomResourceDefinition]
+        clusters: ["*"]
+      - apiGroups: [selfhealing.lab]
+        kinds: [Quarantine]
+        clusters: ["*"]
       - apiGroups: [karpenter.sh]
         kinds: [NodePool]
         clusters: ["*"]

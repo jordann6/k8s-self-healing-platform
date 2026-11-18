@@ -78,6 +78,8 @@ THRESHOLDS = {
         # connectivity telemetry is an error rather than a protected pass.
         # G1 (kind only). Fixed in ADR-0025 before the first run. The proxy kill is
         # informational (ADR-0025 decision 3) so it has no threshold here.
+        # X1 (kind only). Fixed in ADR-0026 before the first run.
+        "X1": {"isolate_s": 10, "blocked_s": 15, "resume_s": 30},
         "G1": {"route_status_s": 30, "legit_status": 200, "denied_status": 404, "failed_status": 500},
         "O1": {"controller_recover_s": 60, "evidence_s": 30,
                "alert_s": 30, "release_s": 30},
@@ -211,6 +213,10 @@ HYPOTHESES = {
           "a route from another namespace, fails a route to a deleted backend closed, answers unrouted requests "
           "with 404, and keeps the legitimate route serving throughout, where the baseline listener serves the "
           "stray and cross-namespace routes.",
+    "X1": "A Quarantine resource makes the controller isolate the named pod without restarting it, refuse a release "
+          "requested before evidence exists, release only on a later request after the evidence, resume from status "
+          "after the controller is killed, and refuse to isolate its own pod, with a role that cannot delete pods "
+          "or read Secrets.",
     "O1": "The hardened namespace enforces a resource budget and default limits, confines the operator to a "
           "named release request, replaces a failed controller within 60 seconds, captures evidence and delivers "
           "a matching alert within 30 seconds, then releases quarantine only after evidence while restoring access.",
@@ -846,6 +852,46 @@ def judge_g1(o: dict, t: dict):
     return True, why, True, healed
 
 
+def judge_x1(o: dict, t: dict):
+    if o.get("profile") == "baseline":
+        if o.get("crd_present") is not False:
+            return False, "the baseline cluster already has the Quarantine CRD", False, False
+        if o.get("reachable_before") is not True:
+            return False, "the target pod was not reachable before the manual isolation, so nothing was tested", False, False
+        if o.get("blocked_s") is None:
+            return False, "the manual isolation never blocked the pod, so the release test proves nothing", False, False
+        impact = o.get("released_without_evidence") is True and o.get("status_available") is False
+        why = ("manual flow isolated the pod, then released it with no evidence recorded and no status anywhere"
+               if impact else "manual flow did not release the pod without evidence")
+        return True, why, impact, False
+
+    required = ("x1a", "x1b", "x1c", "x1d", "x1e")
+    missing = [name for name in required if not o.get(name)]
+    if missing:
+        return False, f"X1 observations missing: {', '.join(missing)}", False, False
+    if o.get("reachable_before") is not True:
+        return False, "the target pod was not reachable before the Quarantine", False, False
+    a, b, c, d, e = (o[name] for name in required)
+    if a.get("phase") != "Isolated" or a.get("blocked_s") is None:
+        return True, "the Quarantine never isolated the pod", True, False
+    a_ok = (le(a.get("isolate_s"), t["isolate_s"]) and le(a.get("blocked_s"), t["blocked_s"])
+            and a.get("same_uid") is True and a.get("restarts_unchanged") is True
+            and a.get("replacement_serving") is True)
+    b_ok = (b.get("phase") == "Isolated" and b.get("handled") == "r1"
+            and b.get("refused_reason") == "NoEvidence" and b.get("blocked") is True)
+    c_ok = (c.get("preserved") is True and c.get("released") is True and c.get("after_evidence") is True
+            and c.get("reachable") is True and c.get("labels_restored") is True)
+    d_ok = (d.get("resumed") is True and le(d.get("resume_s"), t["resume_s"]) and d.get("same_uid") is True
+            and d.get("label_actions") == 1 and d.get("controller_pods") == 1)
+    e_ok = (e.get("phase") == "Failed" and e.get("reason") == "Protected" and e.get("labels_unchanged") is True
+            and e.get("can_delete_pods") is False and e.get("can_get_secrets") is False
+            and e.get("can_patch_pods") is True)
+    why = (f"isolated in {a.get('isolate_s')}s without a restart {a_ok}, release before evidence refused {b_ok}, "
+           f"release after evidence {c_ok}, resumed after controller kill in {d.get('resume_s')}s {d_ok}, "
+           f"self-isolation refused and role has no delete or Secret read {e_ok}")
+    return True, why, True, a_ok and b_ok and c_ok and d_ok and e_ok
+
+
 def judge_d1(o: dict, t: dict):
     source = o.get("source") or {}
     source_ok = (source.get("available") is True and source.get("rows") == t["rows"]
@@ -1253,7 +1299,7 @@ JUDGES = {"A1": judge_a1, "A2": judge_a2, "A3": judge_a3, "A4": judge_a4, "A5": 
           "S1": judge_s1, "S1b": judge_s1b, "S2": judge_s2, "S3": judge_s3, "S4": judge_s4,
           "S5": judge_s5, "R1": judge_r1, "R2": judge_r2, "Q1": judge_q1, "Q2": judge_q2,
           "Q3": judge_q3, "N1": judge_n1, "P1": judge_p1, "D1": judge_d1,
-          "O1": judge_o1, "G1": judge_g1}
+          "O1": judge_o1, "G1": judge_g1, "X1": judge_x1}
 
 
 def verdict(row: str, profile: str, obs: dict, baseline_status: str | None, target: str = "kind") -> dict:

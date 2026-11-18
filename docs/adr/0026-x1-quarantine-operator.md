@@ -75,3 +75,38 @@ addendum per target before the runner is written.
 
 Replacing Talon, adding a webhook to Cilium, forensic capture automation, and any
 second GitOps controller.
+
+## Addendum 2026-11-17, build decisions
+
+1. No kopf. Reading result. kopf 1.45.2 (2026-10-23, Python 3.11 or newer) is current,
+   but it adds an async framework and its transitive packages to an image whose siblings
+   (`app/o1`, `app/r2worker`) use only the standard library, and the lab would have to
+   hash-pin and scan that tree. The controller is standard library only. This deviates
+   from the first draft, which said kopf. The part that matters for the claim is kept, a
+   CRD with a status subresource and a controller that reconciles from status.
+2. Shape. `spec.podName` (one pod, not a selector), `spec.evidenceRef`, and
+   `spec.release.requestId`. Status carries `phase`, `targetUID`, `isolatedAt`,
+   `preservedAt`, `evidenceCapturedAt`, `handledReleaseId` and conditions. The decision is
+   a pure function (`reconcile` in `app/x1/controller.py`) so every refusal is unit tested.
+3. Release is request-id based. A request made before evidence is consumed and refused
+   (`ReleaseRefused`, `NoEvidence`) and never turns into a release when evidence later
+   arrives. A release needs a new request id, and it is refused in the same pass that
+   first sees the evidence, so release is always strictly after the preserve step.
+4. Evidence is bound to a pod UID. A record naming another UID is ignored, and a
+   replacement pod with the same name is never acted on (`PodReplaced`). This is the
+   stale-record lesson from the Azure S4 row.
+5. No finalizer. Deleting a Quarantine leaves the pod isolated, the safe default, and
+   removes the finalizer-that-never-clears failure from the risk list.
+6. Protected pods. A pod labelled `selfheal.lab/protected=true` (the controller itself)
+   fails with `Protected` and nothing is changed.
+7. Isolation is the same label-keyed NetworkPolicy in both profiles, so the only
+   difference between baseline and hardened is who applies and removes the label. The
+   baseline is the manual flow, and its impact is a release with no evidence and no
+   status anywhere.
+8. Kind only, on a Cilium cluster (as O1), so NetworkPolicy is enforced. The evidence is
+   direct pod-IP reachability from an in-cluster client, not the Service.
+
+Thresholds, fixed before the first run. Status Isolated within 10 s, the pod unreachable
+within 15 s, a replacement controller reaches Isolated within 30 s of the kill, exactly
+one label patch for the Quarantine across the kill, and the role may patch pods but not
+delete them or read Secrets.

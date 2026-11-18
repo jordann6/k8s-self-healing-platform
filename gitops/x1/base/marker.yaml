@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: x1-profile
+  namespace: selfheal-x1
+data:
+  capability: quarantine-operator

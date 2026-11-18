@@ -1,0 +1,14 @@
+# Isolation is a pre-reviewed policy keyed on a label, not something generated at
+# incident time. Both profiles carry it, so the only difference between them is
+# who applies the label and who may remove it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: x1-quarantine
+  namespace: selfheal-x1
+spec:
+  podSelector:
+    matchLabels:
+      selfheal.lab/quarantined: "true"
+  policyTypes: ["Ingress"]
+  ingress: []
