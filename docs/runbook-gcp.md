@@ -45,8 +45,9 @@ offering the pinned minor, or any Eventarc trigger, push subscription, Cloud
 Run service or Cloud Function in the lab project. It writes the
 before-picture verify-gone compares with.
 
-Billing starts at the apply (about $0.55 per hour before Infracost; the
-zonal cluster fee is covered by the free tier credit).
+Billing starts at the apply: about $0.52 per hour (Infracost, $450 per month
+list with the $73 cluster fee the zonal free tier credit covers), plus NAT
+and logging usage.
 
 ## 2. Platform, images, bootstrap (right after the apply)
 

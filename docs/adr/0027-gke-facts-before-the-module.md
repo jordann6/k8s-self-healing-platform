@@ -274,9 +274,11 @@ render in full here; figures from Google's own search snippet, to recheck)
 
 **Decision:** one zonal Standard cluster in us-central1, so the fee is
 covered. Seven e2-standard-2 nodes (three system, four workload), pd-balanced
-50 GB boot disks, one Cloud NAT. Rough figure about $0.55 per hour before the
-Infracost run (`make gke-cost` against the saved plan, Jordan runs
-`! infracost auth login` if needed). No Dataplane V2 observability, no managed
+50 GB boot disks, one Cloud NAT. Infracost 2.16.3 (`make gke-cost`,
+2026-11-18, list prices): $450 per month for the built module, $216 workload
+pool, $162 system pool, $73 cluster fee, everything else $0 before usage. The
+fee is covered by the free tier credit, so a session costs about $0.52 per
+hour plus NAT data processing and logging volume. No Dataplane V2 observability, no managed
 Prometheus ingestion, no Container Threat Detection (SCC Premium, skipped per
 the plan).
 
