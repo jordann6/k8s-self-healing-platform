@@ -9,7 +9,8 @@
 #      except the seed (Jordan's precondition, 2026-11-18)
 #   3. org policies: nothing beyond Google's six defaults (row 2); no custom
 #      constraints; no lien on the lab project
-#   4. regional CPU quota covers 7 nodes plus one surge (16 vCPUs, L7)
+#   4. CPU quotas (regional, global, E2) cover 7 nodes plus one surge (16
+#      vCPUs, L7) and SSD_TOTAL_GB covers 8 pd-balanced boot disks (400 GB)
 #   5. the REGULAR channel offers the pinned minor (variables.tf)
 #   6. no responder in the lab project that could act on lab resources
 #      (row 15): Eventarc triggers, Pub/Sub push subscriptions, Cloud Run,
@@ -43,8 +44,15 @@ p="$(gcloud projects describe "$project" --format=json 2>/dev/null || echo '{}')
 [[ "$(jq -r '.lifecycleState // empty' <<<"$p")" == "ACTIVE" ]] && ok "project ACTIVE" || bad "project is not ACTIVE (run the infra/gcp-project root first)"
 [[ "$(jq -r '.parent.type // empty' <<<"$p")" == "organization" ]] && ok "parent is the organization" ||
 	bad "project parent is $(jq -r '.parent.type // "unknown"' <<<"$p"), expected organization"
-[[ "$(gcloud billing projects describe "$project" --format='value(billingEnabled)' 2>/dev/null)" == "True" ]] &&
-	ok "billing enabled" || bad "billing is not enabled on the project"
+# Three reads: one transient failure read as "not enabled" on 2026-11-18
+# between two reads that both said True.
+billing=""
+for _ in 1 2 3; do
+	billing="$(gcloud billing projects describe "$project" --format='value(billingEnabled)' 2>/dev/null </dev/null || true)"
+	[[ "$billing" == "True" ]] && break
+	sleep 5
+done
+[[ "$billing" == "True" ]] && ok "billing enabled" || bad "billing is not enabled on the project (read: ${billing:-error})"
 
 echo "2. landing zone teardown"
 lz="$(gcloud projects list --filter='projectId:jn-lz-* AND lifecycleState=ACTIVE' --format='value(projectId)' 2>/dev/null |
@@ -69,7 +77,7 @@ liens="$(curl -fsS -H "Authorization: Bearer $(gcloud auth print-access-token)" 
 	"https://cloudresourcemanager.googleapis.com/v3/liens?parent=projects/$project" 2>/dev/null | jq -r '.liens // [] | length' || echo error)"
 [[ "$liens" == "0" ]] && ok "no liens on the project" || bad "liens on the project: $liens (would block teardown)"
 
-echo "4. regional CPU quota"
+echo "4. quotas"
 q="$(gcloud compute regions describe "$region" --project="$project" --format=json 2>/dev/null |
 	jq -r '.quotas[] | select(.metric == "CPUS") | "\(.limit) \(.usage)"' || true)"
 if [[ -n "$q" ]]; then
@@ -79,6 +87,20 @@ if [[ -n "$q" ]]; then
 else
 	bad "could not read the regional CPUS quota"
 fi
+# A new project also carries a global CPU cap and per-family caps, and
+# pd-balanced boot disks count against SSD_TOTAL_GB (8 x 50 GB with a surge
+# node). Found reading the new lab project's quotas, 2026-11-18.
+quota_free() { # json, metric -> free (integer) or empty
+	jq -r --arg m "$2" '.quotas[] | select(.metric == $m) | (.limit - .usage | floor)' <<<"$1"
+}
+need() { # label, free, wanted
+	if [[ -z "$2" ]]; then bad "$1 quota unreadable"; elif (($2 >= $3)); then ok "$1 free $2 (need $3)"; else bad "$1 free $2, need $3"; fi
+}
+reg="$(gcloud compute regions describe "$region" --project="$project" --format=json 2>/dev/null || echo '{"quotas":[]}')"
+glob="$(gcloud compute project-info describe --project="$project" --format=json 2>/dev/null || echo '{"quotas":[]}')"
+need CPUS_ALL_REGIONS "$(quota_free "$glob" CPUS_ALL_REGIONS)" 16
+need E2_CPUS "$(quota_free "$reg" E2_CPUS)" 16
+need SSD_TOTAL_GB "$(quota_free "$reg" SSD_TOTAL_GB)" 400
 
 echo "5. GKE versions"
 offered="$(gcloud container get-server-config --location="$region" --project="$project" --format=json 2>/dev/null |
@@ -89,7 +111,9 @@ grep -q "^$minor\." <<<"$offered" && ok "REGULAR offers $minor ($(grep "^$minor\
 echo "6. responders in the lab project"
 for kind in "eventarc triggers list --location=-" "pubsub subscriptions list" "run services list" "functions list"; do
 	# shellcheck disable=SC2086
-	out="$(gcloud $kind --project="$project" --format=json 2>&1)" || {
+	# --quiet and no stdin: with an API off, gcloud otherwise asks whether to
+	# enable it and waits forever (seen 2026-11-18 on eventarc).
+	out="$(gcloud $kind --project="$project" --format=json --quiet 2>&1 </dev/null)" || {
 		grep -qiE 'not enabled|has not been used|SERVICE_DISABLED' <<<"$out" && { ok "${kind%% *}: API off, none"; continue; }
 		bad "${kind%% *}: could not list ($(head -1 <<<"$out" | cut -c1-80))"
 		continue
