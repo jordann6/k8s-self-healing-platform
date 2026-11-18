@@ -1,0 +1,277 @@
+{
+  "run_id": "kind-g1-run2",
+  "target": "kind",
+  "started": "2026-11-18T06:13:42.145Z",
+  "rows": [
+    "G1"
+  ],
+  "partial": true,
+  "preconditions": {
+    "context": "kind-selfheal",
+    "api_ready": true,
+    "envoy-gateway-system/envoy-gateway": true,
+    "argocd/argocd-application-controller": true,
+    "gitops/gitserver": true,
+    "g1_synced": true
+  },
+  "versions": {
+    "repo_commit": "bfa013b812ebaf7603983b03517692e9b88a08da-dirty",
+    "cilium": null,
+    "falco": null,
+    "falco-talon": null,
+    "argo-rollouts": null,
+    "external-secrets": null,
+    "cert-manager": null,
+    "chaos-controller-manager": null,
+    "reloader-reloader": null,
+    "keda-operator": null,
+    "rabbitmq": null,
+    "qworker": null,
+    "q2-signal": null,
+    "q2-target": null,
+    "vpa-vertical-pod-autoscaler-recommender": null,
+    "q3-target": null,
+    "n1-server": null,
+    "n1-client": null,
+    "n1-denied": null,
+    "o1-controller": null,
+    "o1-alert-receiver": null,
+    "kubernetes": "v1.37.0"
+  },
+  "results": {
+    "G1": {
+      "baseline": {
+        "status": "impact",
+        "reason": "baseline listener served the stray hostname and the route from another namespace through the shared entrance",
+        "thresholds": {
+          "route_status_s": 30,
+          "legit_status": 200,
+          "denied_status": 404,
+          "failed_status": 500
+        },
+        "pass": true
+      },
+      "hardened": {
+        "status": "healed",
+        "reason": "stray host rejected True, cross-namespace route rejected True, deleted backend failed closed True, unrouted and unknown host 404 True, legitimate route served throughout True; proxy kill (informational) 0 of 19 failed",
+        "thresholds": {
+          "route_status_s": 30,
+          "legit_status": 200,
+          "denied_status": 404,
+          "failed_status": 500
+        },
+        "pass": true
+      }
+    }
+  },
+  "observations": {
+    "G1": {
+      "baseline": {
+        "t0": 1794982423.984378,
+        "listener": {
+          "hostname": null,
+          "from": "All"
+        },
+        "proxy_service": "ClusterIP",
+        "legit_before": {
+          "status": 200,
+          "backend": "web"
+        },
+        "stray_host": {
+          "namespace": "selfheal-g1",
+          "route": "g1-stray-host",
+          "hostname": "evil.g1.lab",
+          "path": "/",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.084,
+          "request": {
+            "status": 200,
+            "backend": "web"
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "cross_namespace": {
+          "namespace": "selfheal-g1-other",
+          "route": "g1-cross-namespace",
+          "hostname": "app.g1.lab",
+          "path": "/other",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.069,
+          "request": {
+            "status": 200,
+            "backend": "other"
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "deleted_backend": {
+          "namespace": "selfheal-g1",
+          "route": "g1-deleted-backend",
+          "hostname": "app.g1.lab",
+          "path": "/ghost",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "False",
+            "reason": "BackendNotFound"
+          },
+          "status_s": 0.072,
+          "request": {
+            "status": 500,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "unrouted_path": {
+          "status": 404,
+          "backend": null
+        },
+        "unknown_host": {
+          "status": 404,
+          "backend": null
+        },
+        "proxy_kill": {
+          "killed": "envoy-selfheal-g1-platform-g1-2db48b10-6968f556dd-v6rdx",
+          "requests": 19,
+          "failures": 0
+        },
+        "proxy_recovery_s": 30.705,
+        "route_status_s": 0.084,
+        "legit_after": {
+          "status": 200,
+          "backend": "web"
+        },
+        "window": "faulted routes, unrouted requests, and one proxy pod kill (informational)",
+        "alerts_fired": []
+      },
+      "hardened": {
+        "t0": 1794982482.796412,
+        "listener": {
+          "hostname": "app.g1.lab",
+          "from": "Selector"
+        },
+        "proxy_service": "ClusterIP",
+        "legit_before": {
+          "status": 200,
+          "backend": "web"
+        },
+        "stray_host": {
+          "namespace": "selfheal-g1",
+          "route": "g1-stray-host",
+          "hostname": "evil.g1.lab",
+          "path": "/",
+          "accepted": {
+            "status": "False",
+            "reason": "NoMatchingListenerHostname"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.087,
+          "request": {
+            "status": 404,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "cross_namespace": {
+          "namespace": "selfheal-g1-other",
+          "route": "g1-cross-namespace",
+          "hostname": "app.g1.lab",
+          "path": "/other",
+          "accepted": {
+            "status": "False",
+            "reason": "NotAllowedByListeners"
+          },
+          "resolved_refs": {
+            "status": "True",
+            "reason": "ResolvedRefs"
+          },
+          "status_s": 0.062,
+          "request": {
+            "status": 404,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "deleted_backend": {
+          "namespace": "selfheal-g1",
+          "route": "g1-deleted-backend",
+          "hostname": "app.g1.lab",
+          "path": "/ghost",
+          "accepted": {
+            "status": "True",
+            "reason": "Accepted"
+          },
+          "resolved_refs": {
+            "status": "False",
+            "reason": "BackendNotFound"
+          },
+          "status_s": 0.076,
+          "request": {
+            "status": 500,
+            "backend": null
+          },
+          "legit_during": {
+            "status": 200,
+            "backend": "web"
+          }
+        },
+        "unrouted_path": {
+          "status": 404,
+          "backend": null
+        },
+        "unknown_host": {
+          "status": 404,
+          "backend": null
+        },
+        "proxy_kill": {
+          "killed": "envoy-selfheal-g1-platform-g1-2db48b10-6968f556dd-42rvr",
+          "requests": 19,
+          "failures": 0
+        },
+        "proxy_recovery_s": 30.86,
+        "route_status_s": 0.087,
+        "legit_after": {
+          "status": 200,
+          "backend": "web"
+        },
+        "window": "faulted routes, unrouted requests, and one proxy pod kill (informational)",
+        "alerts_fired": []
+      }
+    }
+  },
+  "finished": "2026-11-18T06:15:36.231Z",
+  "pass": true
+}

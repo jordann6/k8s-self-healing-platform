@@ -244,3 +244,44 @@ both bootstrap scripts, X1 in the cloud row lists as a focused row with the per-
   The row still reports a miss.
 - X1 is added to each cloud's root application directory like O1. Nothing else about G1 and X1 differs
   between profiles on the clouds beyond the images and the node pin.
+
+## Addendum 2026-11-18, the Cilium delay is Cilium's own identity settings (kind, no spend)
+
+The unexplained 12 to 33 s enforcement delay on Cilium (kind-x1-run1 to run5) is explained, and X1 now has a
+passing Cilium run. The probe is `scripts/cilium_identity_delay.py`, a manual label patch with no controller.
+
+Cause. Cilium v1.20.4 does not apply a pod label change to the endpoint identity immediately. It waits
+`identity-change-grace-period` (default 5 s) and starts the `resolve-identity` controller with a random jitter of up
+to `identity-max-jitter` (default 30 s). Read in `pkg/defaults/defaults.go`, `daemon/cmd/daemon_main.go` and
+`runIdentityResolver` in `pkg/endpoint/endpoint.go` at tag v1.20.4. The agent logs "Resolving identity labels
+(non-blocking)" within 0.1 s of the patch and "Identity of endpoint changed" 12 to 33 s later, and the BPF program
+reloads 0.1 s after that. The controller recorded no failures or retries.
+
+| Condition | Trials | Identity changed after patch | Pod unreachable after patch |
+|---|---|---|---|
+| Defaults, Argo CD running | 5 | 28.9 and 31.3 s (two trials measured it) | 17.4 to 34.7 s |
+| Defaults, Argo CD scaled to zero | 3 | 20.8 to 33.5 s | 24.5 to 36.8 s |
+| Defaults, one logged trial | 1 | 12.1 s | 15.2 s |
+| `identity-max-jitter` 1 s | 5 | 5.4 to 6.3 s | 8.7 to 9.6 s |
+| `identity-max-jitter` 1 s and `identity-change-grace-period` 1 s | 4 | 1.6 to 1.8 s | 4.7 to 5.5 s |
+
+What this rules out. Load is not the cause, scaling Argo CD to zero did not remove the delay. Identity allocation is
+not the cause, the quarantined identity (47010) already existed after the first trial and later trials were still slow.
+The datapath is not the cause. The earlier ADR-0002 explanation for R1 (identity allocation on a loaded node) should be
+re-read against this before R1's numbers are cited again, it may be the same delay. Not done here.
+
+Measurement note. "Pod unreachable" in the runner and in this probe includes up to 3 s of the probe's own request
+timeout (`PROBE` timeout is 3 s), so it overstates the enforcement time by up to that much. This was true of every
+number above and of the bound judged since run1. No bound is changed.
+
+Result. kind-x1-run8-cilium, a Cilium cluster with both settings at 1 s. Baseline impact. Hardened healed, `Isolated` in
+1.3 s, pod unreachable in 4.5 s, no restart, release before evidence refused, release after evidence 1.7 s to reachable,
+a replacement controller at `Isolated` in 3.0 s with one label patch, self-isolation refused. This is one run on a
+non-default Cilium configuration. With Cilium's defaults the 30 s bound can be missed (run5, 33.2 s, and the table
+above), so on EKS and AKS the cloud verdict will name the Cilium enforcement delay when that happens, as the cloud
+addendum already says.
+
+Decision for Jordan, not made here. Whether `cilium/values.yaml`, `values-eks.yaml` and `values-aks.yaml` should set
+the two options. It changes when every label-driven row (R1, O1, X1, the Talon quarantine) sees enforcement, so those
+rows would need a rerun on each cloud before their evidence is comparable. The recommendation is to leave the lab on
+Cilium's defaults and let X1 report the delay, unless you want a faster-quarantine claim on purpose.

@@ -258,3 +258,12 @@ bootstrap scripts, `proxy_address` accepting `LoadBalancer`, G1f and G1g in `g1_
   groups `kubernetes.io/cluster/selfheal` (the new `eks-verify-gone.sh` checks rely on it, and a check that
   finds nothing for the wrong reason would read as "gone"), live checks L1 to L3, and the Envoy
   proxy pod labels. Verify the tag on the first EKS session before trusting a clean result.
+
+## Addendum 2026-11-18, second kind run (kind-g1-run2)
+
+Baseline impact, hardened healed, same as run1. The proxy kill lost 0 of 19 requests in both profiles, so with
+run1 (0 of 22) there are two clean runs on kind, which meets the condition of decision 3 for promoting G1e from
+informational. No judged bound for G1e is written here, that needs your decision and a number fixed before the
+next run. The recorded `proxy_recovery_s` (30.6 to 30.9 s in both runs) is not a recovery time. It is measured after
+the 30 s kill window ends, so it can never be shorter than that window, and it should not be quoted or used as a bar.
+The meaningful number is the failed request count. On the clouds G1e stays informational (cloud addendum, f).
