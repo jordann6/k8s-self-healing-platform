@@ -71,5 +71,21 @@ class LocalPaths(unittest.TestCase):
         self.assertTrue(R.leftover("/Users/op/lab/run.py", R.path_subs(Path("/Users/op/lab"), Path("/Users/op"))))
 
 
+
+class Gcp(unittest.TestCase):
+    subs = {"jn-selfheal-abc123": "<gcp-project>", "123456789012": "<gcp-project-number>"}
+
+    def test_project_id_and_number(self):
+        text = "gce://jn-selfheal-abc123/us-central1-a/vm sa service-123456789012@gcp-sa.iam"
+        out = R.redact(text, self.subs)
+        self.assertNotIn("jn-selfheal-abc123", out)
+        self.assertNotIn("123456789012", out)
+        self.assertFalse(R.leftover(out, self.subs))
+
+    def test_google_token(self):
+        out = R.redact("Authorization: Bearer ya29.a0AfB_byC1234567890abcdefghijk", {})
+        self.assertIn("<google-token>", out)
+        self.assertFalse(R.leftover(out, {}))
+
 if __name__ == "__main__":
     unittest.main()

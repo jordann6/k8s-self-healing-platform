@@ -12,6 +12,10 @@ afterwards.
 
     scripts/redact-evidence.py --ip 203.0.113.7 evidence/eks-run2 evidence/eks-run2-rows
 
+With --cloud gcp (GKE runs) it replaces the project ID (from the gitignored
+infra/gcp/lab.auto.tfvars) with <gcp-project> and the project number with
+<gcp-project-number>, and Google OAuth tokens with <google-token>.
+
 With --cloud azure (AKS runs) it instead replaces the subscription ID (from
 the gitignored infra/azure/lab.auto.tfvars) with <azure-subscription>, the
 tenant ID (from `az account show`, or --tenant) with <azure-tenant>, and then
@@ -59,6 +63,23 @@ def azure_ids(tenant: str | None) -> dict[str, str]:
     return {m.group(1).lower(): "<azure-subscription>", tenant.lower(): "<azure-tenant>"}
 
 
+def gcp_ids(number: str | None) -> dict[str, str]:
+    """The lab project ID (gitignored infra/gcp/lab.auto.tfvars) and its
+    project number (from gcloud, or --project-number). The number appears in
+    service agent emails and resource names and identifies the project."""
+    tfvars = (ROOT / "infra" / "gcp" / "lab.auto.tfvars").read_text()
+    m = re.search(r'^project_id\s*=\s*"([a-z][a-z0-9-]{4,28}[a-z0-9])"', tfvars, re.M)
+    if not m:
+        sys.exit("redact-evidence: project_id not found in infra/gcp/lab.auto.tfvars")
+    if not number:
+        p = subprocess.run(["gcloud", "projects", "describe", m.group(1), "--format=value(projectNumber)"],
+                           capture_output=True, text=True, timeout=60)
+        number = p.stdout.strip()
+        if p.returncode != 0 or not number.isdigit():
+            sys.exit("redact-evidence: could not read the project number (gcloud, or pass --project-number)")
+    return {m.group(1): "<gcp-project>", number: "<gcp-project-number>"}
+
+
 # EKS audit events carry the caller's session key ID and role unique ID.
 KEY_ID = re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")
 UNIQUE_ID = re.compile(r"\bA(?:ROA|IDA|GPA|NPA|NVA|PKA|CCA|3T)[A-Z0-9]{16,17}\b")
@@ -67,6 +88,8 @@ UNIQUE_ID = re.compile(r"\bA(?:ROA|IDA|GPA|NPA|NVA|PKA|CCA|3T)[A-Z0-9]{16,17}\b"
 GUID = re.compile(r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b")
 SAS_SIG = re.compile(r"([?&]sig=)[A-Za-z0-9%/+=]+")
 JWT = re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}")
+# Google OAuth access tokens.
+GOOGLE_TOKEN = re.compile(r"\bya29\.[A-Za-z0-9_-]{20,}")
 
 
 def redact(text: str, subs: dict[str, str], azure: bool = False) -> str:
@@ -79,6 +102,7 @@ def redact(text: str, subs: dict[str, str], azure: bool = False) -> str:
     text = UNIQUE_ID.sub("<aws-unique-id>", text)
     text = SAS_SIG.sub(r"\1<sas-signature>", text)
     text = JWT.sub("<jwt>", text)
+    text = GOOGLE_TOKEN.sub("<google-token>", text)
     if azure:
         text = GUID.sub("<azure-guid>", text)
     return text
@@ -87,7 +111,7 @@ def redact(text: str, subs: dict[str, str], azure: bool = False) -> str:
 def leftover(text: str, subs: dict[str, str], azure: bool = False) -> bool:
     low = text.lower()
     return (any(s.lower() in low for s in subs) or bool(KEY_ID.search(text) or UNIQUE_ID.search(text))
-            or bool(SAS_SIG.search(text)) or bool(JWT.search(text))
+            or bool(SAS_SIG.search(text)) or bool(JWT.search(text)) or bool(GOOGLE_TOKEN.search(text))
             or (azure and bool(GUID.search(text))))
 
 
@@ -103,12 +127,16 @@ def path_subs(repo: Path | None = None, home: Path | None = None) -> dict[str, s
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ip", action="append", default=[], help="operator IPv4 address to redact (repeatable)")
-    ap.add_argument("--cloud", choices=["aws", "azure"], default="aws")
+    ap.add_argument("--cloud", choices=["aws", "azure", "gcp"], default="aws")
     ap.add_argument("--tenant", help="Azure tenant ID (default: az account show)")
+    ap.add_argument("--project-number", help="GCP project number (default: gcloud projects describe)")
     ap.add_argument("runs", nargs="+", type=Path)
     args = ap.parse_args()
     azure = args.cloud == "azure"
-    subs = azure_ids(args.tenant) if azure else account_ids()
+    if args.cloud == "gcp":
+        subs = gcp_ids(args.project_number)
+    else:
+        subs = azure_ids(args.tenant) if azure else account_ids()
     subs.update({ip: "<operator-ip>" for ip in args.ip})
     subs.update(path_subs())
     changed, left = 0, []
