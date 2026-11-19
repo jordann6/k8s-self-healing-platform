@@ -7,8 +7,9 @@
 # human with the evidence in hand. Steps:
 #
 #   1. resolve the finding to one pod, node and instance (refuse to guess)
-#   2. relabel the pod into the quarantine CiliumNetworkPolicy (as in R1)
-#   3. cordon the node, mark it do-not-disrupt and do-not-repair (no drain)
+#   2. cordon the node, mark it do-not-disrupt and do-not-repair (no drain),
+#      first, so the pod's replacement can never land on this node
+#   3. relabel the pod into the quarantine CiliumNetworkPolicy (as in R1)
 #   4. termination protection on the instance
 #   5. move every ENI to the quarantine security group (host-level isolation,
 #      which a NetworkPolicy cannot give)

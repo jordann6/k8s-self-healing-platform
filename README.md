@@ -299,7 +299,7 @@ Source: `docs/diagram_gcp.py`.*
 | A2 | healed: canary aborted at 70s, only v1 after, 0.00% | gke-run1 |
 | A3 | **miss**: sustained-spike p95 **319.0 ms** (bar 300), 0.00% errors, HPA 3 to 10 through KEDA | gke-run1 |
 | A4 | healed: node NotReady at 56s, 0.07% errors from then, every replica serving at 98s on the three nodes left; the same run's baseline hit 100% errors | gke-run1 |
-| A5 | **miss**: 1.17% errors (bar 1%); OOMKilled at 14s, serving at 17s, paged at 21s | gke-run1 |
+| A5 | **miss**: 1.17% errors (bar 1%); OOMKilled at 14s, serving at 17s, paged at 20s | gke-run1 |
 | S2 | healed: 0 TLS errors of 153, renewed certificate served at 60s | gke-run1 |
 | S3 | healed: policy restored at 2s, hand edit reverted at 4s | gke-run1 |
 | R1 | **miss**: detected at 2s, isolated at **32s** (bar 30s, 25 Hubble drops), evidence at 53s, 0.00% errors | gke-run1 |
